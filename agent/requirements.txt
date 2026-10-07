@@ -1,0 +1,10 @@
+# Agent de poste — installé uniquement sur un poste Windows de construction.
+# Le moteur partagé (moteur/suivi) vient du dépôt lui-même (voir construire.ps1).
+pywin32>=306
+psutil>=5.9
+requests>=2.32
+requests-negotiate-sspi>=0.5 ; sys_platform == "win32"
+pystray>=0.19
+Pillow>=10.0
+pyinstaller>=6.6
+pytest>=8.0

@@ -1,0 +1,15 @@
+{
+  "_commentaire": "Copie en config.json à côté de l'exécutable pour le développement et le pilote. En production, la GPO écrit les mêmes clés dans HKLM\\SOFTWARE\\GI-CONSEILS\\Suivi et l'emporte.",
+  "url_api": null,
+  "intervalle_s": 5,
+  "seuil_inactivite_s": 300,
+  "envoi_toutes_les_s": 180,
+  "racines": [
+    {"chemin": "\\\\AD-SERVEUR\\GIC\\MISSIONS_EN_COURS", "profondeur": 1},
+    {"chemin": "\\\\AD-SERVEUR\\GIC\\AVIS", "profondeur": 3},
+    {"chemin": "\\\\AD-SERVEUR\\ETUDES", "profondeur": 1},
+    {"chemin": "\\\\AD-SERVEUR\\SUIVI-CONTROLE", "profondeur": 1}
+  ],
+  "correspondance_lecteurs": {"H:": "\\\\AD-SERVEUR\\GIC"},
+  "journal_niveau": "INFO"
+}

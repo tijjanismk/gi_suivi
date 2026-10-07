@@ -1,0 +1,39 @@
+# Secrets et configuration locale
+.env
+*.env
+!.env.exemple
+secrets/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Django
+static_collecte/
+media/
+*.log
+journaux/
+
+# Agent : constructions
+agent/build/
+agent/dist/
+*.msi
+*.spec
+
+# Copie de l'archive v0.1.0 et fichiers orphelins à la racine de agent/ (à supprimer, jamais à versionner)
+agent/agent-gisuivi-v0.1.0/
+agent/principal.py
+agent/observation.py
+
+# Données : jamais dans Git
+*.csv
+*.xlsx
+*.pdf
+!docs/**/*.pdf

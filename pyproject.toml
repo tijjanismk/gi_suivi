@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+# Le serveur seulement : agent/, deploy/ et scripts/ ne sont pas des paquets du serveur.
+include = ["config*", "identite*", "suivi*", "moteur*"]
+
+[project]
+name = "gic"
+version = "0.1.0"
+description = "GI-CONSEILS — suivi d'activité et réponse aux avis de marchés"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=6.0,<7.0",
+    "psycopg[binary]>=3.2",
+    "openpyxl>=3.1",
+    "uvicorn[standard]>=0.30",
+    "environs>=11.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-django>=4.8",
+    "pytest-cov>=5.0",
+    "ruff>=0.6",
+    "pre-commit>=3.7",
+    "freezegun>=1.5",
+]
+# L'agent de poste a ses propres dépendances, installées uniquement sur un
+# poste Windows de construction (voir agent/pyproject.toml). Elles ne sont
+# jamais installées sur le serveur.
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+extend-exclude = [
+    "*/migrations/*",
+    # Copie de l'archive v0.1.0 et fichiers orphelins à la racine de agent/ : à supprimer, pas à corriger
+    "agent/agent-gisuivi-v0.1.0",
+    "agent/principal.py",
+    "agent/observation.py",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "DJ", "S", "N"]
+ignore = ["S101"]  # assert autorisé dans les tests
+
+[tool.ruff.lint.per-file-ignores]
+"*/tests/*" = ["S105", "S106"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py"]
+testpaths = ["moteur", "suivi", "identite", "tests"]
+markers = [
+    "e2e: parcours complets, nécessitent PostgreSQL",
+    "windows: tests qui n'ont de sens que sur un poste Windows (agent)",
+]
+addopts = "-ra --strict-markers -m 'not windows'"
