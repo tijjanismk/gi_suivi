@@ -23,12 +23,12 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
-| S01 | Squelette du dépôt | Projet Django `config/`, applications vides `identite`, `suivi`, paquet `moteur/`, `pyproject.toml`, `.env.exemple`, pre-commit, CI, `CONTEXT.md` | CI verte sur une PR vide ; `manage.py check` passe ; README permet d'installer en local en 10 minutes | en cours |
+| S01 | Squelette du dépôt | Projet Django `config/`, applications vides `identite`, `suivi`, paquet `moteur/`, `pyproject.toml`, `.env.exemple`, pre-commit, CI, `CONTEXT.md` | CI verte sur une PR vide ; `manage.py check` passe ; README permet d'installer en local en 10 minutes | fait (non tagué) |
 | S02 | Middleware d'identité | `REMOTE_USER` / `X-Remote-User` depuis 127.0.0.1 → `Utilisateur` ; groupes via LDAP mis en cache ; utilisateur fictif en dev ; page `/identite/qui-suis-je` ; décorateur `@groupe_requis` | Tests : création à la première requête, refus sans en-tête en prod, 403 hors groupe ; page affiche login et groupes | en cours |
 | S03 | Moteur : segmentation | `moteur/suivi/segmentation.py` + types ; règles 7.1 et 7.3 du blueprint | 20 cas de test au moins (pauses, verrouillage, clôture, brouillon) ; 100 % de couverture du module | fait (non tagué) |
 | S04 | Moteur : classement | `moteur/suivi/classement.py` : normalisation lettre → UNC, racines à profondeur, extraction du code, exceptions, à classer, fichiers ignorés | 20 cas de test ; même dossier obtenu par `H:\` et par UNC ; code `GIC-…` et `AAAA-…` extraits | fait (non tagué) |
 | S05 | Moteur : indicateurs | `moteur/suivi/indicateurs.py` : heures effectives, % prévu, arrivée/départ, amplitude, occupation, par jour et par période | Cas limites couverts (journée vide, minuit, heures prévues 0) | fait (non tagué) |
-| S06 | Modèles et migrations | `Employe`, `Poste`, `Segment`, `Dossier`, `Racine`, `Exception`, `JournalAcces`, `Parametre` ; index ; admin pour `Racine`, `Parametre`, `Exception` | `makemigrations --check` propre ; admin permet de saisir les racines et paramètres ; fixtures `conftest.py` | en cours |
+| S06 | Modèles et migrations | `Employe`, `Poste`, `Segment`, `Dossier`, `Racine`, `Exception`, `JournalAcces`, `Parametre` ; index ; admin pour `Racine`, `Parametre`, `Exception` | `makemigrations --check` propre ; admin permet de saisir les racines et paramètres ; fixtures `conftest.py` | fait (non tagué) |
 | S07 | IIS et Kerberos en environnement test | Site `suivi-test`, SPN, certificat, web.config, service NSSM `GIC-Test`, `qui-suis-je` depuis un poste | Depuis un poste du domaine, sans mot de passe, la page affiche l'utilisateur et `GI-Direction` ; en-tête `Authorization: Negotiate` observé (pas NTLM) | à faire |
 
 ## Phase 2 — API (semaines 3-5)

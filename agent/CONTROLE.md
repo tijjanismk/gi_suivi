@@ -15,4 +15,4 @@ Poste : ____________  Version : ______  Date : __________  Testeur : __________
 | 9 | Clic sur l'icône → « Mon activité du jour » | Résumé cohérent avec la journée | ☐ |
 | 10 | Document1 puis Enregistrer sous… | Un seul segment, au nom final | ☐ |
 
-Résultat collé dans la pull request qui publie le MSI.
+Résultat collé dans le message du commit qui publie le MSI (voir `docs/git.md`).

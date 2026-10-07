@@ -1,0 +1,16 @@
+{% load static %}<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titre %}GI-CONSEILS{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <header class="entete">
+    <span class="marque">GI-CONSEILS</span>
+    {% if user.is_authenticated %}<span class="utilisateur">{{ user }}</span>{% endif %}
+  </header>
+  <main class="contenu">{% block contenu %}{% endblock %}</main>
+</body>
+</html>

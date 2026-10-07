@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block titre %}Qui suis-je ?{% endblock %}
+{% block contenu %}
+<section class="carte">
+  <h1>Qui suis-je ?</h1>
+  <dl>
+    <dt>Login Windows</dt><dd>{{ user.login_windows }}</dd>
+    <dt>Groupes</dt><dd>{{ user.groupes|join:", "|default:"aucun" }}</dd>
+    <dt>Accès direction</dt><dd>{{ direction|yesno:"oui,non" }}</dd>
+    <dt>Source de l'identité</dt><dd>{% if source == "dev" %}utilisateur fictif (développement){% else %}IIS (authentification Windows){% endif %}</dd>
+  </dl>
+</section>
+{% endblock %}

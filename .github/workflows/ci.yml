@@ -53,7 +53,8 @@ jobs:
       - name: Tests rapides (moteur, unitaires, intégration)
         run: pytest --cov=moteur --cov=suivi --cov=identite --cov-report=term-missing -m "not e2e and not windows"
       - name: Parcours de bout en bout
-        run: pytest -m e2e
+        # Code 5 = aucun test collecté : normal tant que le parcours e2e (phase 4) n'existe pas
+        run: pytest -m e2e || [ $? -eq 5 ]
 
   agent:
     name: Agent (tests hors Windows)

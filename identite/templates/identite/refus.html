@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titre %}Accès réservé{% endblock %}
+{% block contenu %}
+<section class="carte refus">
+  <h1>Accès réservé</h1>
+  <p>Cette page est réservée aux membres du groupe {{ groupes|join:" ou " }}.</p>
+  {% if user.is_authenticated %}<p>Vous êtes connecté en tant que <strong>{{ user.login_windows }}</strong>.</p>{% endif %}
+  <p>Si vous pensez devoir y accéder, demandez à l'administrateur de vous ajouter au groupe.</p>
+</section>
+{% endblock %}

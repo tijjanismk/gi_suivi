@@ -9,7 +9,7 @@ fournit les deux au moindre coût.
 
 | Branche | Rôle | Règle |
 |---|---|---|
-| `main` | Ce qui est déployé ou déployable | Protégée : pas de push direct, CI verte obligatoire, une pull request par changement |
+| `main` | Ce qui est déployé ou déployable | On n'y fusionne qu'une branche passée par `scripts\dev\verifier.ps1` ; un commit par tâche |
 | `dev/<ticket>-<mot-clé>` | Une tâche du plan | Ex. `dev/S03-segmentation`, `dev/S12-export-excel`. Vit quelques jours au plus |
 | `fix/<mot-clé>` | Correction en production | Branche depuis `main`, fusionnée vite |
 | `exp/<mot-clé>` | Essai jetable (un prototype, une bibliothèque à évaluer) | Jamais fusionnée telle quelle ; on en tire une branche `dev/` propre ou on la supprime |
@@ -19,7 +19,7 @@ personne et un seul environnement de production, elles n'apportent que des
 fusions supplémentaires.
 
 Chaque tâche de `docs/plan/taches.md` correspond à une branche `dev/` et à
-une pull request. Si une tâche ne tient pas en une branche de quelques jours,
+un commit dans `main`. Si une tâche ne tient pas en une branche de quelques jours,
 c'est qu'elle doit être découpée dans le plan, pas étirée dans Git.
 
 ## Commits
@@ -50,30 +50,29 @@ docs(adr): 0003 pont MCP local et identité
 
 Un commit = un changement cohérent qui passe les tests. Le corps du message
 explique le *pourquoi* quand il n'est pas évident ; le *quoi* est dans le
-diff. On commite souvent (plusieurs fois par heure) ; on nettoie avant la
-pull request si l'historique est brouillon (`git rebase -i`), jamais après.
+diff. On commite souvent (plusieurs fois par heure) sur la branche : la
+fusion en un seul commit dans `main` (`merge --squash`) tient l'historique
+propre.
 
-## Pull request en solo
+## Vérifier en local, puis pousser (décision du 07/10/2026)
 
-La pull request est le moment où l'on cesse d'écrire et où l'on relit. Elle
-sert à ça, pas à attendre l'approbation de quelqu'un.
+Pas de pull request : tout se vérifie sur le poste, GitHub garde la copie et
+l'historique. La CI GitHub tourne encore à chaque envoi et doit confirmer ce
+qui a déjà passé en local.
 
-1. **Ouvrir la PR** dès que la branche existe, en brouillon, avec le ticket
-   en titre (`S03 — Segmentation des observations`). La description reprend
-   les critères d'acceptation du ticket sous forme de cases à cocher.
-2. **Revue par l'IA, dans une nouvelle conversation** (voir
-   `docs/rituels-ia.md`, prompt de revue de code) : on colle le diff, on lit
-   les remarques, on corrige ce qui mérite de l'être, on note dans la PR ce
-   qu'on a écarté et pourquoi.
-3. **Relecture à froid** : le lendemain si possible, ou après une pause.
-   Lire le diff dans GitHub, pas dans l'éditeur : l'œil change.
-4. **CI verte**, cases à cocher cochées, `CONTEXT.md` mis à jour si
-   l'architecture ou l'état du projet ont changé.
-5. **Squash and merge** vers `main` : un commit par tâche dans `main`, au
-   message propre. La branche est supprimée automatiquement.
-
-Pour les corrections urgentes (`fix/`), les étapes 2 et 3 peuvent être
-raccourcies, mais la PR existe toujours : c'est elle qui laisse la trace.
+1. **Travailler sur la branche** `dev/<ticket>-<mot-clé>`, en local.
+2. **`.\scripts\dev\verifier.ps1`** : les mêmes contrôles que la CI (ruff,
+   migrations, tests moteur et Django sur PostgreSQL, tests de l'agent). On
+   ne va pas plus loin tant que la dernière ligne ne dit pas « Tout est vert ».
+3. **Relecture à froid** du diff (`git diff main`), après une pause ; revue
+   par l'IA dans une nouvelle conversation si le changement est délicat
+   (`docs/rituels-ia.md`).
+4. **Fusion dans `main` en local**, un commit par tâche :
+   `git switch main ; git merge --squash dev/<ticket> ; git commit`.
+   `CONTEXT.md` et `docs/plan/taches.md` mis à jour dans ce commit.
+5. **Pousser `main`**, après avoir vérifié que le dépôt GitHub est toujours
+   privé (il décrit le serveur et le réseau du bureau). La branche locale est
+   supprimée.
 
 ## Versions et déploiement
 

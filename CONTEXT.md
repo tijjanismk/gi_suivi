@@ -92,14 +92,15 @@ Navigateur (poste / VPN) ──────────────────�
 Voir `docs/plan/taches.md` pour la liste ordonnée et l'état de chaque tâche.
 Mettre à jour la section « En cours » ci-dessous à la fin de chaque session.
 
-**En cours :** Phase 1 — socle Django (S01, S02, S06) sur la branche `dev/S01-socle-django` ;
-moteur S03 à S05 fait ; agent v0.2.0 en pilote sur le poste du développeur (service G06 installé,
-MSI G07 en attente de WiX). Phase 0 (serveur) toujours à faire.
+**En cours :** Phase 1 — S01, S03 à S06 faits ; S02 attend la source des groupes AD (ADR à
+écrire) ; S07 attend le serveur. Agent v0.2.0 en pilote sur le poste du développeur (service G06
+installé, MSI G07 en attente de WiX). Phase 0 (serveur) toujours à faire.
 **Dernière session :** 2026-10-07 — agent mis au point sur poste (CONTROLE.md : 1 à 4, 7 à 10
 passés ; 5 et 6 restent), ADR 0003 (identification générique du fichier, PDF en navigateur,
-tampon par utilisateur) et 0004 (supervision par service), socle Django écrit
-**Prochaine étape :** base de développement (`scripts/dev/creer_base_dev.sql`), tests Django,
-fusion de S01 ; décider la source des groupes AD (S02) ; P01 sauvegarde du serveur
+tampon par utilisateur) et 0004 (supervision par service), socle Django fusionné (70 tests,
+couverture 98 %), dépôt sur GitHub (privé), vérification locale `scripts\dev\verifier.ps1`
+**Prochaine étape :** décider la source des groupes AD (S02) ; phase 2, A01 ingestion des lots ;
+P01 sauvegarde du serveur. Toujours `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md).
 
 ## Ce que l'IA doit faire en début de session
 

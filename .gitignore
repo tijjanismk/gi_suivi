@@ -1,3 +1,6 @@
+# Réglages de Claude Code propres à ce poste (port du serveur de développement…)
+.claude/
+
 # Secrets et configuration locale
 .env
 *.env

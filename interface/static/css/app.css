@@ -1,0 +1,13 @@
+/* Feuille minimale du socle (S02). Le gabarit complet, mobile d'abord, vient avec T01. */
+:root { --texte: #1d2733; --discret: #5b6878; --fond: #f6f7f9; --carte: #fff; --accent: #0b5cad; --refus: #a3261b; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, "Segoe UI", sans-serif; color: var(--texte); background: var(--fond); }
+.entete { display: flex; justify-content: space-between; align-items: center; padding: .75rem 1rem; background: var(--carte); border-bottom: 1px solid #dde1e6; }
+.marque { font-weight: 600; color: var(--accent); }
+.utilisateur { color: var(--discret); font-size: .9rem; }
+.contenu { max-width: 48rem; margin: 0 auto; padding: 1rem; }
+.carte { background: var(--carte); border: 1px solid #dde1e6; border-radius: 8px; padding: 1rem 1.25rem; }
+.refus h1 { color: var(--refus); }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: .4rem 1rem; }
+dt { color: var(--discret); }
+dd { margin: 0; }

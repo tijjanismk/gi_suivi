@@ -72,8 +72,8 @@ conservée dans `agent/CONTROLE.md` :
 7. Gestionnaire des tâches après une heure : processeur < 1 %, mémoire < 80 Mo.
 8. Tuer `gisuivi-agent.exe` → relancé dans la minute par le service.
 
-Le résultat (date, poste, version, 8 cases cochées) est collé dans la
-description de la pull request qui publie le MSI.
+Le résultat (date, poste, version, cases cochées) est collé dans le message
+du commit qui publie le MSI.
 
 ## 5. Ce qu'il n'est PAS utile de tester
 
