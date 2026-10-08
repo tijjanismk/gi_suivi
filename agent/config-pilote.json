@@ -1,0 +1,13 @@
+{
+  "_commentaire": "Configuration du pilote (postes installés à la main, D02) : envoi vers l'environnement test. Racines = celles saisies dans l'administration (liste de contrôle § 3). Passer en https://suivi.giconseils.local pour la production.",
+  "url_api": "https://suivi-test.giconseils.local",
+  "intervalle_s": 5,
+  "seuil_inactivite_s": 300,
+  "envoi_toutes_les_s": 180,
+  "racines": [
+    {"chemin": "\\\\AD-SERVEUR\\GIC\\MISSIONS_EN_COURS", "profondeur": 1},
+    {"chemin": "\\\\AD-SERVEUR\\GIC\\AVIS", "profondeur": 3}
+  ],
+  "correspondance_lecteurs": {"H:": "\\\\AD-SERVEUR\\GIC"},
+  "journal_niveau": "INFO"
+}
