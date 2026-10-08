@@ -10,7 +10,8 @@
     # https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
     .\07-PostgreSQL.ps1 -Installateur "C:\GIC\installateurs\postgresql-18.x-windows-x64.exe"
     .\07-PostgreSQL.ps1 -Installateur "...postgresql-17.x-windows-x64.exe" -Version 17   # autre version majeure
-    .\07-PostgreSQL.ps1 -SeulementBases      # PostgreSQL déjà installé : rôle et bases seulement
+    .\07-PostgreSQL.ps1 -SeulementBases      # PostgreSQL déjà installé (à la main, assistant EDB) : rôle et bases seulement ;
+                                             # le mot de passe « postgres » est demandé une fois s'il n'est pas dans C:\GIC\secrets
 #>
 param(
     [string]$Installateur,
@@ -72,7 +73,22 @@ if (-not $SeulementBases) {
 # 2. Rôle et bases
 $psql = Join-Path $Prefixe "bin\psql.exe"
 if (-not (Test-Path $psql)) { throw "psql introuvable dans $Prefixe\bin." }
+if (-not (Test-Path $fichierSuper)) {
+    # PostgreSQL installé à la main (assistant EDB) : le mot de passe « postgres » choisi alors n'est
+    # pas connu du script ; on le demande une fois et on le range avec les autres secrets.
+    Write-Host "PostgreSQL a été installé sans ce script : saisissez le mot de passe du superutilisateur « postgres » choisi à l'installation."
+    $saisi = Read-Host "Mot de passe postgres" -AsSecureString
+    $clair = [Runtime.InteropServices.Marshal]::PtrToStringUni([Runtime.InteropServices.Marshal]::SecureStringToGlobalAllocUnicode($saisi))
+    if (-not $clair) { throw "Mot de passe vide." }
+    Set-Content $fichierSuper -Value "postgres`r`n$clair" -Encoding ASCII
+    & icacls $fichierSuper /inheritance:r /grant:r "BUILTIN\Administrateurs:F" "SYSTEM:F" | Out-Null
+    Write-Host "Mot de passe rangé dans $fichierSuper (administrateurs seulement)."
+}
 $env:PGPASSWORD = (Get-Content $fichierSuper)[1]
+# Pare-feu : 5432 bloqué depuis l'extérieur, même si l'installation a été faite à la main
+if (-not (Get-NetFirewallRule -DisplayName "GIC - Bloquer PostgreSQL externe" -ErrorAction SilentlyContinue)) {
+    New-NetFirewallRule -DisplayName "GIC - Bloquer PostgreSQL externe" -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Block -Profile Any | Out-Null
+}
 
 if (Test-Path $fichierApp) {
     $mdpApp = ((Get-Content $fichierApp) | Where-Object { $_ -match "^PGPASSWORD=" }) -replace "^PGPASSWORD=", ""
