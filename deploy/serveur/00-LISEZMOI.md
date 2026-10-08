@@ -17,9 +17,11 @@ dans `D:\SAUVEGARDES\journaux\`.
 | `07-PostgreSQL.ps1` | S07 | Installe PostgreSQL 17, crée rôle et bases, pare-feu | Installateur EDB téléchargé |
 | `08-Python-IIS.ps1` | S07 | Installe Python 3.14, configure IIS (Negotiate seul, ARR, sites), pare-feu | Installateurs Python, URL Rewrite et ARR téléchargés ; mémoire ≥ 16 Go pour la production |
 
-Les scripts d'installation de l'application (`installer.ps1`, service NSSM,
-tâches planifiées, sauvegarde PostgreSQL) arrivent avec le ticket S07, une
-fois le squelette du dépôt en place.
+Les scripts d'installation de l'application sont dans le dossier parent
+(`installer.ps1`, `service.ps1`, `taches.ps1`, `sauvegarde_pg.ps1`,
+`verifier.ps1`, voir `deploy/LISEZMOI.md`). Le serveur reçoit le code par
+`git` et n'a **aucun outil de développement** : Git pour Windows, Python,
+PostgreSQL, IIS, NSSM, rien d'autre.
 
 ## Conventions
 

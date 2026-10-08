@@ -1,4 +1,4 @@
-# Prépare le kit d'installation manuelle d'un poste pilote (sans GPO, sans MSI) :
+﻿# Prépare le kit d'installation manuelle d'un poste pilote (sans GPO, sans MSI) :
 # construit l'agent (tests compris), puis assemble dans une archive tout ce qu'il faut copier
 # sur le poste : dist\gisuivi-agent\, les scripts d'installation, la configuration à poser, le
 # mode d'emploi.

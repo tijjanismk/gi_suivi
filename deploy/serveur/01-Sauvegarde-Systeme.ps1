@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   P01 — Sauvegarde complète de l'état du système vers le second disque.
   Avec -Planifier : met en place les protections quotidiennes.

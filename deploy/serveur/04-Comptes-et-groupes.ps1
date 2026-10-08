@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   P04 — Crée dans l'annuaire : l'OU GIC, les six groupes de sécurité, le
   compte de service de l'application, et des comptes d'administration

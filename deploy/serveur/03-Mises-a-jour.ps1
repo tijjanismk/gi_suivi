@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   P03 — Recherche, télécharge et installe les mises à jour Windows en
   attente, puis programme les suivantes (installation automatique, redémarrage

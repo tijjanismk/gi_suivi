@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Serveur — Crée ou met à jour les tâches planifiées d'un environnement.
   Les tâches métier tournent sous le compte de service ; la sauvegarde

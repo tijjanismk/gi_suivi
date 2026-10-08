@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   S07 (b) — Installe PostgreSQL 17 (installateur EDB, mode silencieux),
   données sur D:, écoute locale seulement, puis crée le rôle « gic » et les

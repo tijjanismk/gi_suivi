@@ -1,4 +1,4 @@
-# Construit le MSI de l'agent (G07) à partir de dist\gisuivi-agent\ (lancer .\construire.ps1 -Tester avant).
+﻿# Construit le MSI de l'agent (G07) à partir de dist\gisuivi-agent\ (lancer .\construire.ps1 -Tester avant).
 #   .\construire-msi.ps1 -Wix C:\dev\outils\wix314
 # -Wix : dossier des binaires WiX 3 (heat.exe, candle.exe, light.exe), sans installation.
 # Résultat : dist\GiSuivi-<version>.msi, NON SIGNÉ tant qu'il n'y a pas de certificat de signature de code (A7).

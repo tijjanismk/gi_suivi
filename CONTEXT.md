@@ -109,9 +109,14 @@ pour le porteur) : totaux de la période, tableau jour par jour (arrivée → d�
 hors mesure, % prévu, mini-frise), chronologie du jour choisi bloc par bloc avec pauses, lien
 vers l'écran Journée ; le filtre dossier ne touche que fichiers et logiciels, la journée reste
 entière. Frise et couleurs partagées dans `suivi/vues/frise.py` (plus d'import croisé
-direction ↔ journee). **Déploiement par Git** : `deploy/installer.ps1 -Env test -Ref main`
+direction ↔ journee). **Déploiement par Git, et Git seul** : `deploy/installer.ps1 -Env test -Ref main`
 clone/met à jour `C:\GIC\depot` (jeton GitHub lecture seule, dépôt privé) ; en prod `-Ref` est un
-tag ; liste de contrôle imprimable `docs/exploitation/liste-de-controle-serveur.md`. **Agent
+tag ; liste de contrôle imprimable `docs/exploitation/liste-de-controle-serveur.md`. **Aucun
+outil de développement sur le serveur** (décision du porteur 08/10) : `gic.css`, `django.mo` et
+`deploy/requirements.txt` (généré par `scripts/dev/exporter_dependances.py`, contrôlé par
+`verifier.ps1`) sont construits sur le poste et commités ; le serveur fait `pip install
+--only-binary=:all: -r deploy/requirements.txt`, sans `pip install -e .`. `deploy/verifier.ps1`
+et `deploy/sauvegarde_pg.ps1` écrits ; la voie « archive zip » (`publier.ps1`) est supprimée. **Agent
 0.2.1**, kit d'installation manuelle `agent\preparer-kit.ps1` (pas de GPO pour l'instant, D02
 reporté) : `C:\dev\livraisons\agent\GiSuivi-agent-0.2.1-poste.zip`, premier poste Dicko.
 **Prochaine étape :** déploiement de l'environnement test sur AD-SERVEUR par le porteur en suivant

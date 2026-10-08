@@ -82,6 +82,14 @@ Le serveur tient un clone du dépôt privé (`C:\GIC\depot`, jeton GitHub en lec
 ce qui n'est pas dans GitHub n'existe pas pour le serveur. Liste de contrôle :
 `docs/exploitation/liste-de-controle-serveur.md`.
 
+**Aucun outil de développement sur le serveur.** Il n'y a ni Tailwind, ni gettext, ni pytest,
+ni compilateur : ce qui se construit l'est sur le poste et se commite — `interface/static/css/gic.css`
+(`scripts\dev\construire_css.ps1`), `locale/fr/LC_MESSAGES/django.mo`
+(`scripts/dev/compiler_traductions.py`), `deploy/requirements.txt`
+(`scripts/dev/exporter_dependances.py`, contrôlé par `verifier.ps1`). Le serveur installe les
+dépendances en roues binaires seulement. Seul l'agent (exécutable PyInstaller) reste hors Git :
+kit zip produit par `agent\preparer-kit.ps1`, copié sur le partage `GIC\deploy\agent\`.
+
 ## Versions et déploiement
 
 - Chaque déploiement en production correspond à un tag `vX.Y.Z` sur `main`

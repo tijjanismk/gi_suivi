@@ -1,4 +1,4 @@
-# Retire l'agent GI-Suivi et son service de CE poste (pilote, avant le MSI G07). En administrateur.
+﻿# Retire l'agent GI-Suivi et son service de CE poste (pilote, avant le MSI G07). En administrateur.
 #   .\desinstaller-poste.ps1            # garde les données (%ProgramData%\GiSuivi)
 # Les données ne sont jamais supprimées par ce script : le tampon peut contenir des segments non envoyés.
 param([string]$Cible = (Join-Path $env:ProgramFiles 'GI-CONSEILS\GiSuivi'))

@@ -1,4 +1,4 @@
-# Les contrôles de la CI (.github/workflows/ci.yml), sur le poste, avant chaque envoi vers GitHub.
+﻿# Les contrôles de la CI (.github/workflows/ci.yml), sur le poste, avant chaque envoi vers GitHub.
 #   .\scripts\dev\verifier.ps1
 # S'arrête au premier échec. Ne pousser que si la dernière ligne dit « Tout est vert ».
 # Prérequis : .venv à la racine (pip install -e ".[dev]") et la base locale (scripts\dev\creer_base_dev.sql).
@@ -17,6 +17,9 @@ function Etape([string]$nom, [scriptblock]$commande) {
 Etape 'Lint (ruff check)' { & $py -m ruff check . }
 Etape 'Format (ruff format --check)' { & $py -m ruff format --check . }
 Etape 'Migrations à jour' { & $py manage.py makemigrations --check --dry-run }
+Etape 'deploy/requirements.txt à jour (serveur sans outil de développement)' {
+    & $py scripts\dev\exporter_dependances.py --verifier
+}
 Etape 'Tests moteur et Django' {
     & $py -m pytest --cov=moteur --cov=suivi --cov=identite --cov-report=term-missing -m "not e2e and not windows" -q
 }

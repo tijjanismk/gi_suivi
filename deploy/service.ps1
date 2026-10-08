@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Serveur — Crée ou met à jour le service Windows GIC-Test / GIC-Prod qui
   exécute Uvicorn sous le compte de service, avec NSSM.

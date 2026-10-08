@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   P06 — Crée D:\GIC, son arborescence, le partage SMB « GIC » et les droits
   NTFS par groupe (matrice de l'état des lieux, section 6.2). Ne déplace

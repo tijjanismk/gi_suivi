@@ -1,4 +1,4 @@
-# Installe l'agent GI-Suivi et son service de supervision sur CE poste (pilote, avant le MSI G07).
+﻿# Installe l'agent GI-Suivi et son service de supervision sur CE poste (pilote, avant le MSI G07).
 # À lancer en administrateur, depuis le dossier agent, après .\construire.ps1 -Tester.
 #   .\installer-poste.ps1
 # Ce que fait le script :

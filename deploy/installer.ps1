@@ -1,12 +1,14 @@
-<#
+﻿<#
 .SYNOPSIS
-  Serveur — Installe ou met à jour l'application dans C:\GIC\<Env>\ depuis une
-  archive produite par publier.ps1. Conserve la version précédente.
+  Serveur — Installe ou met à jour l'application dans C:\GIC\<Env>\ depuis le dépôt Git
+  (C:\GIC\depot, clone privé). Conserve la version précédente. Le serveur n'a aucun outil de
+  développement : tout ce qui se construit (CSS, traductions, agent) est construit sur le poste
+  du développeur et commité ; ici on ne fait que copier, installer les dépendances (roues
+  binaires), migrer et redémarrer.
 
 .USAGE
-    .\installer.ps1 -Env test -Ref main          # depuis Git : C:\GIC\depot cloné puis mis à jour (recommandé)
+    .\installer.ps1 -Env test -Ref main          # test : la branche main
     .\installer.ps1 -Env prod -Ref v1.0.0        # production : toujours un tag
-    .\installer.ps1 -Env test -Zip \\AD-SERVEUR\GIC\deploy\app\gic-v0.3.0.zip   # ou depuis une archive de publier.ps1
     .\installer.ps1 -Env prod -RetourArriere
 
 .GIT
@@ -15,15 +17,14 @@
   Git pour Windows le mémorise pour le compte qui lance ce script. Git pour Windows doit être installé.
 
 .ETAPES
-  1. code dans app_nouveau\ (Git ou zip)  5. .env créé ou conservé
-  2. venv créé ou mis à jour              6. manage.py check --deploy (bloquant en prod)
-  3. pip install -e .                     7. migrate, collectstatic
-  4. arrêt du service                     8. bascule app -> app_precedent, app_nouveau -> app, redémarrage
+  1. code dans app_nouveau\ (fetch + checkout + copie sans .git)   5. .env créé ou conservé
+  2. venv créé ou mis à jour                                        6. manage.py check --deploy (bloquant en prod)
+  3. pip install -r deploy\requirements.txt --only-binary=:all:     7. migrate, collectstatic
+  4. arrêt du service                                               8. bascule app -> app_precedent, app_nouveau -> app, redémarrage
 #>
 param(
     [Parameter(Mandatory)][ValidateSet("test", "prod")][string]$Env,
     [string]$Ref,                                   # branche ou tag Git (main, v1.0.0)
-    [string]$Zip,                                   # ou archive produite par publier.ps1
     [switch]$RetourArriere,
     [string]$Python = "C:\Python314\python.exe",
     [string]$Depot = "C:\GIC\depot",
@@ -53,43 +54,39 @@ if ($RetourArriere) {
     Stop-Transcript | Out-Null; exit 0
 }
 
-if (-not $Ref -and (-not $Zip -or -not (Test-Path $Zip))) { throw "Indiquez -Ref <branche ou tag Git> ou -Zip <archive produite par publier.ps1>." }
-if ($Ref -and $Env -eq "prod" -and $Ref -notmatch '^v\d+\.\d+\.\d+$') { throw "En production, -Ref doit être un tag vX.Y.Z (docs/git.md)." }
+if (-not $Ref) { throw "Indiquez -Ref <branche ou tag Git> (main en test, vX.Y.Z en production)." }
+if ($Env -eq "prod" -and $Ref -notmatch '^v\d+\.\d+\.\d+$') { throw "En production, -Ref doit être un tag vX.Y.Z (docs/git.md)." }
 if (-not (Test-Path $Python)) { throw "Python introuvable : $Python (serveur\08-Python-IIS.ps1)." }
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "Git pour Windows absent : https://git-scm.com/download/win (puis rouvrir la console)." }
 
-# 1. Le code dans app_nouveau\
+# 1. Le code dans app_nouveau\ : le dépôt est mis à jour, la référence extraite, copiée sans .git
 if (Test-Path $nouveau) { Remove-Item $nouveau -Recurse -Force }
-if ($Ref) {
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "Git pour Windows absent : https://git-scm.com/download/win (puis rouvrir la console)." }
-    if (-not (Test-Path "$Depot\.git")) {
-        Write-Host "Premier clone de $Url dans $Depot (identifiant GitHub + jeton en lecture seule demandés une fois)..."
-        git clone --quiet $Url $Depot
-        if ($LASTEXITCODE -ne 0) { throw "git clone a échoué (jeton refusé ? réseau ?)." }
-    }
-    git -C $Depot fetch --all --tags --prune --quiet
-    if ($LASTEXITCODE -ne 0) { throw "git fetch a échoué." }
-    git -C $Depot checkout --detach --quiet "origin/$Ref" 2>$null
-    if ($LASTEXITCODE -ne 0) { git -C $Depot checkout --detach --quiet $Ref; if ($LASTEXITCODE -ne 0) { throw "Référence Git introuvable : $Ref" } }
-    New-Item -ItemType Directory -Path $nouveau -Force | Out-Null
-    & robocopy.exe $Depot $nouveau /MIR /XD .git /NFL /NDL /NJH /NJS /NP | Out-Null
-    if ($LASTEXITCODE -ge 8) { throw "Copie du dépôt en échec (robocopy $LASTEXITCODE)." }
-    $commit = git -C $Depot rev-parse --short HEAD
-    @{ ref = $Ref; commit = $commit; date = (Get-Date -Format s); source = "git" } | ConvertTo-Json | Set-Content "$nouveau\VERSION.json" -Encoding UTF8
-} else {
-    Expand-Archive -Path $Zip -DestinationPath "$base\_extraction" -Force
-    Move-Item "$base\_extraction\gic" $nouveau; Remove-Item "$base\_extraction" -Recurse -Force
+if (-not (Test-Path "$Depot\.git")) {
+    Write-Host "Premier clone de $Url dans $Depot (identifiant GitHub + jeton en lecture seule demandés une fois)..."
+    git clone --quiet $Url $Depot
+    if ($LASTEXITCODE -ne 0) { throw "git clone a échoué (jeton refusé ? réseau ?)." }
 }
-$version = Get-Content "$nouveau\VERSION.json" -Raw -ErrorAction SilentlyContinue
-Write-Host "Version à installer : $version"
+git -C $Depot fetch --all --tags --prune --quiet
+if ($LASTEXITCODE -ne 0) { throw "git fetch a échoué." }
+git -C $Depot checkout --detach --quiet "origin/$Ref" 2>$null
+if ($LASTEXITCODE -ne 0) { git -C $Depot checkout --detach --quiet $Ref; if ($LASTEXITCODE -ne 0) { throw "Référence Git introuvable : $Ref" } }
+New-Item -ItemType Directory -Path $nouveau -Force | Out-Null
+& robocopy.exe $Depot $nouveau /MIR /XD .git /NFL /NDL /NJH /NJS /NP | Out-Null
+if ($LASTEXITCODE -ge 8) { throw "Copie du dépôt en échec (robocopy $LASTEXITCODE)." }
+$commit = git -C $Depot rev-parse --short HEAD
+@{ ref = $Ref; commit = $commit; date = (Get-Date -Format s); source = "git" } | ConvertTo-Json | Set-Content "$nouveau\VERSION.json" -Encoding UTF8
+Write-Host "Version à installer : $Ref ($commit)"
+foreach ($construit in "interface\static\css\gic.css", "locale\fr\LC_MESSAGES\django.mo") {
+    if (-not (Test-Path "$nouveau\$construit")) { throw "$construit absent du dépôt : il se construit sur le poste du développeur et se commite (pas d'outil de développement ici)." }
+}
 
-# 2-3. venv et dépendances
+# 2-3. venv et dépendances d'exécution, roues binaires seulement (aucune compilation sur le serveur).
+# deploy\requirements.txt est généré sur le poste par scripts\dev\exporter_dependances.py.
 if (-not (Test-Path "$venv\Scripts\python.exe")) { & $Python -m venv $venv }
 $py = "$venv\Scripts\python.exe"
 & $py -m pip install --upgrade pip --quiet
-Push-Location $nouveau
-& $py -m pip install -e . --quiet
-if ($LASTEXITCODE -ne 0) { Pop-Location; throw "pip install a échoué." }
-Pop-Location
+& $py -m pip install --only-binary=:all: -r "$nouveau\deploy\requirements.txt" --quiet
+if ($LASTEXITCODE -ne 0) { throw "pip install a échoué (réseau vers pypi.org ? roue binaire manquante ?)." }
 
 # 5. .env : créé au premier déploiement, conservé ensuite
 if (-not (Test-Path $envFile)) {

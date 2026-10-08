@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   S07 (c) — Installe Python 3.14 pour tous les utilisateurs, configure IIS
   comme frontal d'authentification Windows (Kerberos seul) et proxy inverse

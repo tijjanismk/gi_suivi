@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   S07 (a) — Enregistrements DNS des sites de l'application et SPN Kerberos
   sur le compte de service. Sans SPN correct, IIS retombe en NTLM ou demande

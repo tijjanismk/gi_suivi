@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   P02 — Limite le Bureau à distance au réseau local et impose
   l'authentification au niveau du réseau (NLA). Ne désactive rien.

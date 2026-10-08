@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Poste Windows de construction — Construit l'agent (PyInstaller, --onedir).
   Le MSI (WiX) viendra avec le ticket G07 ; ce script produit déjà un dossier

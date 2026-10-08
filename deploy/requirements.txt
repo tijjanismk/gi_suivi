@@ -1,0 +1,10 @@
+# Généré par scripts/dev/exporter_dependances.py à partir de pyproject.toml — ne pas éditer.
+# Dépendances d'exécution seulement : le serveur les installe avec pip install -r, sans
+# outil de développement ni compilation (roues binaires uniquement, voir --only-binary).
+django-unfold~=0.108.0
+django>=6.0,<7.0
+environs>=11.0
+openpyxl>=3.1
+psycopg[binary]>=3.2
+pywin32>=306; sys_platform == 'win32'
+uvicorn[standard]>=0.30

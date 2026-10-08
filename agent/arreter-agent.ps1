@@ -1,4 +1,4 @@
-# Arrêt propre de l'agent : on lui envoie le message de fermeture de session (WM_QUERYENDSESSION) ;
+﻿# Arrêt propre de l'agent : on lui envoie le message de fermeture de session (WM_QUERYENDSESSION) ;
 # il écrit ses segments en attente (jusqu'à 5 min) dans le tampon, puis s'arrête.
 # Tuer le processus perdrait ces segments : ce n'est que le dernier recours, après 20 s.
 # Chargé par installer-poste.ps1 et desinstaller-poste.ps1 (. .\arreter-agent.ps1 ; Stop-AgentProprement).

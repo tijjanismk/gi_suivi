@@ -1,4 +1,4 @@
-# Compile le CSS du projet (ADR 0005, point 4) avec l'outil Tailwind autonome, sur le poste de
+﻿# Compile le CSS du projet (ADR 0005, point 4) avec l'outil Tailwind autonome, sur le poste de
 # développement seulement. Le résultat (interface/static/css/gic.css) est versionné : le serveur
 # ne compile rien.
 #   .\scripts\dev\construire_css.ps1            # une fois
