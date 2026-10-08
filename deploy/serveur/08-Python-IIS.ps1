@@ -132,11 +132,15 @@ foreach ($nom in $sites.Keys) {
         $b.AddSslCertificate($Empreinte, "My")
     }
     # Authentification : Windows seule, fournisseur Negotiate uniquement (pas de NTLM), anonyme désactivée
-    Set-WebConfigurationProperty -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $false
-    Set-WebConfigurationProperty -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $true
-    Set-WebConfigurationProperty -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/security/authentication/windowsAuthentication" -Name useAppPoolCredentials -Value $true
-    Clear-WebConfiguration -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/security/authentication/windowsAuthentication/providers"
-    Add-WebConfigurationProperty -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/security/authentication/windowsAuthentication/providers" -Name "." -Value @{ value = "Negotiate" }
+    # Les sections d'authentification sont verrouillées au niveau serveur (overrideModeDefault="Deny") :
+    # on les écrit dans applicationHost.config, dans un bloc <location path="<site>">, ce qui est toujours
+    # permis et ne touche que ce site — les autres sites IIS du serveur gardent leurs réglages.
+    $apphost = "MACHINE/WEBROOT/APPHOST"
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $false
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $true
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name useAppPoolCredentials -Value $true
+    Clear-WebConfiguration -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication/providers"
+    Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication/providers" -Name "." -Value @{ value = "Negotiate" }
 
     # web.config : statiques servis par IIS, tout le reste vers Uvicorn avec identité et protocole
     $port = $sites[$nom].port; $statiques = "C:\GIC\$($sites[$nom].env)\static_collecte"
@@ -169,8 +173,8 @@ foreach ($nom in $sites.Keys) {
     if (-not (Test-Path "$racine\static")) { New-Item -ItemType Junction -Path "$racine\static" -Target $statiques | Out-Null }
     # Autoriser les variables serveur réécrites (sinon IIS les ignore)
     foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
-        if (-not (Get-WebConfiguration -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/rewrite/allowedServerVariables/add[@name='$v']")) {
-            Add-WebConfigurationProperty -PSPath "IIS:\Sites\$nom" -Filter "system.webServer/rewrite/allowedServerVariables" -Name "." -Value @{ name = $v }
+        if (-not (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "system.webServer/rewrite/allowedServerVariables/add[@name='$v']")) {
+            Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/rewrite/allowedServerVariables" -Name "." -Value @{ name = $v }
         }
     }
     Write-Host "Site $nom : https://$hote -> 127.0.0.1:$port"
