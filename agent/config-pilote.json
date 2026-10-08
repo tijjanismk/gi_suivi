@@ -1,13 +1,16 @@
 {
-  "_commentaire": "Configuration du pilote (postes installés à la main, D02) : envoi vers l'environnement test. Racines = celles saisies dans l'administration (liste de contrôle § 3). Passer en https://suivi.giconseils.local pour la production.",
+  "_commentaire": "Configuration du pilote (postes installés à la main, D02) : envoi vers l'environnement test. Racines = les partages EXISTANTS, ceux sur lesquels l'équipe travaille (décision du 08/10 : rien ne change sur le serveur ; D:\\GIC servira à l'application d'avis plus tard). Les mêmes racines sont saisies côté serveur : manage.py suivi_racines agent\\config-pilote.json. correspondance_lecteurs : lettres mappées sur les postes (net use), à compléter.",
   "url_api": "https://suivi-test.giconseils.local",
   "intervalle_s": 5,
   "seuil_inactivite_s": 300,
   "envoi_toutes_les_s": 180,
   "racines": [
-    {"chemin": "\\\\AD-SERVEUR\\GIC\\MISSIONS_EN_COURS", "profondeur": 1},
-    {"chemin": "\\\\AD-SERVEUR\\GIC\\AVIS", "profondeur": 3}
+    {"chemin": "\\\\AD-SERVEUR\\ETUDES", "profondeur": 1},
+    {"chemin": "\\\\AD-SERVEUR\\SUIVI-CONTROLE", "profondeur": 1},
+    {"chemin": "\\\\AD-SERVEUR\\OFFRES", "profondeur": 2},
+    {"chemin": "\\\\AD-SERVEUR\\AMI", "profondeur": 4},
+    {"chemin": "\\\\AD-SERVEUR\\ESPACE DE TRAVAIL", "profondeur": 1}
   ],
-  "correspondance_lecteurs": {"H:": "\\\\AD-SERVEUR\\GIC"},
+  "correspondance_lecteurs": {},
   "journal_niveau": "INFO"
 }
