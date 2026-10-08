@@ -3,13 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from dataclasses import dataclass
+from datetime import date, datetime, time, timedelta
 
 from django.db import transaction
 from django.utils import timezone
 
+from moteur.suivi import indicateurs
 from moteur.suivi import types as m
 from moteur.suivi.classement import classer_observation, normaliser_chemin
-from suivi.models import DemandeRecalcul, Dossier, Parametre, Racine, RegleException, Segment
+from suivi.models import (
+    DemandeRecalcul,
+    Dossier,
+    Employe,
+    Parametre,
+    Racine,
+    RegleException,
+    Segment,
+)
 
 CORRESPONDANCE_LECTEURS = "correspondance_lecteurs"
 
@@ -65,6 +76,106 @@ def classer(observations: Iterable[m.Observation]) -> list[tuple[str, Dossier | 
         (c.statut, connus.get(c.dossier_chemin) if c.statut == "dossier" else None)
         for c in classements
     ]
+
+
+# -- ma journée (A04) ----------------------------------------------------------------------
+
+
+def employe_de(utilisateur) -> Employe | None:
+    """L'employé derrière un utilisateur : lié à la première ingestion, sinon par le login."""
+    return (
+        Employe.objects.filter(utilisateur=utilisateur).first()
+        or Employe.objects.filter(login__iexact=utilisateur.login_windows).first()
+    )
+
+
+@dataclass(frozen=True)
+class _Part:
+    debut: datetime
+    fin: datetime
+    etat: str
+
+
+def activite_du_jour(employe: Employe | None, jour: date | None = None) -> dict:
+    """Ce que voit la personne elle-même (règle de transparence) : ses heures du jour, par
+    dossier et par application, arrivée/départ. Une personne ne voit que ses segments."""
+    jour = jour or timezone.localdate()
+    debut = timezone.make_aware(datetime.combine(jour, time.min))
+    resultat: dict = {
+        "jour": jour.isoformat(),
+        "employe": str(employe) if employe else None,
+        "total_s": 0,
+        "total_hm": "0 h 00",
+        "arrivee": None,
+        "depart": None,
+        "amplitude_s": 0,
+        "occupation_pct": None,
+        "prevu_pct": None,
+        "par_dossier": [],
+        "a_classer_s": 0,
+        "sans_fichier_s": 0,
+        "par_application": [],
+    }
+    if employe is None:
+        return resultat
+    segments = list(
+        Segment.objects.filter(
+            employe=employe, debut__gte=debut, debut__lt=debut + timedelta(days=1)
+        )
+        .select_related("dossier")
+        .order_by("debut")
+    )
+    actifs = [s for s in segments if s.etat == Segment.Etat.ACTIF]
+
+    (j,) = indicateurs.journees(
+        [_Part(timezone.localtime(s.debut), timezone.localtime(s.fin), s.etat) for s in segments],
+        jour,
+        jour,
+        float(employe.heures_prevues_semaine),
+    )
+    resultat.update(
+        total_s=j.effectif_s,
+        total_hm=f"{j.effectif_s // 3600} h {j.effectif_s % 3600 // 60:02d}",
+        arrivee=j.arrivee.strftime("%H:%M") if j.arrivee else None,
+        depart=j.depart.strftime("%H:%M") if j.depart else None,
+        amplitude_s=j.amplitude_s,
+        occupation_pct=str(j.occupation_pct) if j.occupation_pct is not None else None,
+        prevu_pct=str(j.prevu_pct) if j.prevu_pct is not None else None,
+    )
+
+    par_dossier: dict[int, dict] = {}
+    par_app: dict[str, int] = {}
+    for s in actifs:
+        d = int(s.duree_s)
+        par_app[s.application] = par_app.get(s.application, 0) + d
+        if s.dossier_id:
+            entree = par_dossier.setdefault(
+                s.dossier_id, {"code": s.dossier.code, "nom": s.dossier.nom, "duree_s": 0}
+            )
+            entree["duree_s"] += d
+        elif s.fichier or s.chemin:
+            resultat["a_classer_s"] += d
+        else:
+            resultat["sans_fichier_s"] += d
+    resultat["par_dossier"] = sorted(par_dossier.values(), key=lambda x: -x["duree_s"])
+    resultat["par_application"] = [
+        {"application": a, "duree_s": d} for a, d in sorted(par_app.items(), key=lambda x: -x[1])
+    ]
+    return resultat
+
+
+def racines_pour_agent() -> dict:
+    """Ce que l'agent lit au démarrage, en plus du registre : racines telles que saisies dans
+    l'admin (pas normalisées), correspondances lettre → UNC, seuils."""
+    return {
+        "racines": [
+            {"chemin": r.chemin, "profondeur": r.profondeur, "motif_code": r.motif_code}
+            for r in Racine.objects.filter(active=True)
+        ],
+        "correspondance_lecteurs": correspondance_lecteurs(),
+        "seuil_inactivite_s": parametre("seuil_inactivite_s", 300),
+        "intervalle_s": parametre("intervalle_s", 5),
+    }
 
 
 # -- recalcul (A03) ------------------------------------------------------------------------

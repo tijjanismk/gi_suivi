@@ -102,9 +102,9 @@ Phase 0 (serveur) toujours à faire.
 lecture seule côté application (groupe AD à créer en P04) ; **A01 fait** : `POST /api/segments`
 (validation, idempotence par `lot_id`, identité = personne authentifiée, employé par SID ou
 login — `sid_ad` facultatif, migration 0003 —, poste tenu vivant, classement à la réception,
-1 000 segments < 1 s) ; **A02 fait** : dossier conforme jamais vu créé « détecté » à la réception, segments rattachés. **A03 fait** : file de recalcul (`DemandeRecalcul`, signaux sur exceptions et racines, `valider_dossier`), commande `suivi_recalculer`, action « Valider » dans l'admin, exception à effet immédiat. 99 tests, couverture 98 %. Vérifié aussi en direct contre le serveur de
+1 000 segments < 1 s) ; **A02 fait** : dossier conforme jamais vu créé « détecté » à la réception, segments rattachés. **A03 fait** : file de recalcul (`DemandeRecalcul`, signaux sur exceptions et racines, `valider_dossier`), commande `suivi_recalculer`, action « Valider » dans l'admin, exception à effet immédiat. **A04 fait** : `GET /api/moi/aujourdhui` (sa propre journée, rien d'autre), `GET /api/racines` (ce que l'agent lit), page `/moi` ouverte par l'icône de l'agent. 107 tests, couverture 98 %. Vérifié aussi en direct contre le serveur de
 développement. Un login propre à l'application a été écarté (CONTEXT.md r. 6 et 7, ADR 0001).
-**Prochaine étape :** A04 (`/api/moi/aujourdhui`, `/api/racines`) puis A05 (rapports) ; T02 vue
+**Prochaine étape :** A05 (points d'accès des rapports, réservés à la direction) puis A06 (actions) ; T02 vue
 d'ensemble ; décider la source des groupes AD (S02) ; P01 sauvegarde du serveur. Toujours
 `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la
 base de dev après chaque nouvelle migration (la base de test, elle, est recréée).

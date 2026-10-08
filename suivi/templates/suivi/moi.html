@@ -1,0 +1,72 @@
+{% extends "unfold/layouts/skeleton.html" %}
+{% load unfold %}
+
+{% block title %}Mon activité du jour | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+
+{% block base %}
+<div class="bg-base-50 min-h-screen dark:bg-base-900">
+  <div class="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
+    <div class="flex flex-col gap-1">
+      {% component "unfold/components/title.html" %}Mon activité du jour{% endcomponent %}
+      {% component "unfold/components/text.html" %}
+        {{ activite.jour }} — {{ activite.employe|default:user.login_windows }}.
+        Ce que l'agent de votre poste a mesuré ; vous seul voyez cette page.
+      {% endcomponent %}
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-3">
+      {% component "unfold/components/card.html" with icon="schedule" %}
+        {% component "unfold/components/text.html" %}Temps actif{% endcomponent %}
+        {% component "unfold/components/title.html" %}{{ activite.total_hm }}{% endcomponent %}
+      {% endcomponent %}
+      {% component "unfold/components/card.html" with icon="login" %}
+        {% component "unfold/components/text.html" %}Arrivée → départ{% endcomponent %}
+        {% component "unfold/components/title.html" %}{{ activite.arrivee|default:"—" }} → {{ activite.depart|default:"—" }}{% endcomponent %}
+      {% endcomponent %}
+      {% component "unfold/components/card.html" with icon="percent" %}
+        {% component "unfold/components/text.html" %}Occupation{% endcomponent %}
+        {% component "unfold/components/title.html" %}{% if activite.occupation_pct %}{{ activite.occupation_pct }} %{% else %}—{% endif %}{% endcomponent %}
+      {% endcomponent %}
+    </div>
+
+    {% component "unfold/components/card.html" with title="Par dossier" title_icon="folder" %}
+      {% if activite.par_dossier %}
+        <table class="w-full text-sm">
+          <tbody>
+          {% for d in activite.par_dossier %}
+            <tr class="border-b border-base-200 dark:border-base-800">
+              <td class="py-2 font-medium text-important">{{ d.code|default:"(sans code)" }}</td>
+              <td class="py-2 text-subtle">{{ d.nom }}</td>
+              <td class="py-2 text-right tabular-nums">{% widthratio d.duree_s 60 1 %} min</td>
+            </tr>
+          {% endfor %}
+          {% if activite.a_classer_s %}
+            <tr><td class="py-2" colspan="2">À classer</td><td class="py-2 text-right tabular-nums">{% widthratio activite.a_classer_s 60 1 %} min</td></tr>
+          {% endif %}
+          {% if activite.sans_fichier_s %}
+            <tr><td class="py-2 text-subtle" colspan="2">Sans fichier (navigateur, explorateur…)</td><td class="py-2 text-right tabular-nums text-subtle">{% widthratio activite.sans_fichier_s 60 1 %} min</td></tr>
+          {% endif %}
+          </tbody>
+        </table>
+      {% else %}
+        {% component "unfold/components/text.html" %}Rien de mesuré aujourd'hui pour l'instant.{% endcomponent %}
+      {% endif %}
+    {% endcomponent %}
+
+    {% if activite.par_application %}
+    {% component "unfold/components/card.html" with title="Par application" title_icon="apps" %}
+      <table class="w-full text-sm">
+        <tbody>
+        {% for a in activite.par_application %}
+          <tr class="border-b border-base-200 dark:border-base-800">
+            <td class="py-2">{{ a.application }}</td>
+            <td class="py-2 text-right tabular-nums">{% widthratio a.duree_s 60 1 %} min</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% endcomponent %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
