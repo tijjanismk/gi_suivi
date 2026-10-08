@@ -47,7 +47,8 @@ if (-not (Get-Service $service -ErrorAction SilentlyContinue)) {
 & $nssm set $service DisplayName "GIC - Application ($Env)" | Out-Null
 & $nssm set $service Description "GI-CONSEILS - suivi d'activité et avis - environnement $Env - port $port" | Out-Null
 & $nssm set $service Start SERVICE_AUTO_START | Out-Null
-& $nssm set $service DependOnService postgresql-x64-17 | Out-Null
+$pgService = (Get-Service | Where-Object Name -like "postgresql-x64-*" | Sort-Object Name -Descending | Select-Object -First 1).Name
+if ($pgService) { & $nssm set $service DependOnService $pgService | Out-Null } else { Write-Warning "Aucun service postgresql-x64-* : dépendance non posée (serveur\07-PostgreSQL.ps1)." }
 & $nssm set $service ObjectName $compte $mdp | Out-Null          # NSSM accorde le droit « ouvrir une session en tant que service »
 & $nssm set $service AppEnvironmentExtra "DJANGO_SETTINGS_MODULE=config.settings.prod" "PYTHONUNBUFFERED=1" | Out-Null
 & $nssm set $service AppStdout "$base\journaux\uvicorn.log" | Out-Null

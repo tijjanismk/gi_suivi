@@ -27,7 +27,7 @@ Navigateur (poste / VPN) ──────────────────�
                                                ├── /       (vues, HTMX)
                                                └── moteur/ (Python pur)
                                                             │
-                                                     PostgreSQL 17
+                                                     PostgreSQL 18
                                                             │
                                       \\SERVEUR\REFERENCES  (PDF, lecture seule)
 ```

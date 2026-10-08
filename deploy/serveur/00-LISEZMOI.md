@@ -14,7 +14,7 @@ dans `D:\SAUVEGARDES\journaux\`.
 | `04-Comptes-et-groupes.ps1` | P04 | OU `GIC`, six groupes, compte de service, comptes d'administration nominatifs | Liste des membres validée par la direction |
 | `05-Partage-GIC.ps1` | P06 | `D:\GIC`, arborescence, partage, droits par groupe | 04 fait |
 | `06-DNS-SPN.ps1` | S07 | Enregistrements DNS `suivi`, `suivi-test` ; SPN sur le compte de service | 04 fait |
-| `07-PostgreSQL.ps1` | S07 | Installe PostgreSQL 17, crée rôle et bases, pare-feu | Installateur EDB téléchargé |
+| `07-PostgreSQL.ps1` | S07 | Installe PostgreSQL 18 (ou -Version 17), crée rôle et bases, pare-feu | Installateur EDB téléchargé |
 | `08-Python-IIS.ps1` | S07 | Installe Python 3.14, configure IIS (Negotiate seul, ARR, sites), pare-feu | Installateurs Python, URL Rewrite et ARR téléchargés ; mémoire ≥ 16 Go pour la production |
 
 Les scripts d'installation de l'application sont dans le dossier parent

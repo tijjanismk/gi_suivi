@@ -1,23 +1,31 @@
 ﻿<#
 .SYNOPSIS
-  S07 (b) — Installe PostgreSQL 17 (installateur EDB, mode silencieux),
+  S07 (b) — Installe PostgreSQL (18 par défaut ; installateur EDB, mode silencieux),
   données sur D:, écoute locale seulement, puis crée le rôle « gic » et les
   bases « gic » et « gic_test ». Mots de passe générés et rangés dans
   C:\GIC\secrets.
 
 .USAGE
-    # Télécharger d'abord l'installateur Windows x86-64 de PostgreSQL 17 depuis
+    # Télécharger d'abord l'installateur Windows x86-64 de PostgreSQL 18 depuis
     # https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
-    .\07-PostgreSQL.ps1 -Installateur "C:\Users\adm-x\Downloads\postgresql-17.x-windows-x64.exe"
+    .\07-PostgreSQL.ps1 -Installateur "C:\GIC\installateurs\postgresql-18.x-windows-x64.exe"
+    .\07-PostgreSQL.ps1 -Installateur "...postgresql-17.x-windows-x64.exe" -Version 17   # autre version majeure
     .\07-PostgreSQL.ps1 -SeulementBases      # PostgreSQL déjà installé : rôle et bases seulement
 #>
 param(
     [string]$Installateur,
-    [string]$Donnees = "D:\PostgreSQL\17\data",
-    [string]$Prefixe = "C:\Program Files\PostgreSQL\17",
+    [int]$Version = 18,                                 # version majeure : service postgresql-x64-<Version>
+    [string]$Donnees,                                   # défaut : D:\PostgreSQL\<Version>\data
+    [string]$Prefixe,                                   # défaut : C:\Program Files\PostgreSQL\<Version>
     [switch]$SeulementBases
 )
 $ErrorActionPreference = "Stop"
+if (-not $Donnees) { $Donnees = "D:\PostgreSQL\$Version\data" }
+if (-not $Prefixe) { $Prefixe = "C:\Program Files\PostgreSQL\$Version" }
+$serviceNom = "postgresql-x64-$Version"
+if ($Installateur -and (Split-Path $Installateur -Leaf) -notmatch "postgresql-$Version\.") {
+    Write-Warning "L'installateur ne semble pas être un PostgreSQL $Version : $(Split-Path $Installateur -Leaf). Indiquez -Version si besoin."
+}
 $journaux = "D:\SAUVEGARDES\journaux"; New-Item -ItemType Directory -Path $journaux -Force | Out-Null
 Start-Transcript -Path "$journaux\07-postgresql_$(Get-Date -Format yyyyMMdd_HHmm).log" | Out-Null
 
@@ -36,25 +44,25 @@ $fichierApp   = "$secrets\pg.env"
 # 1. Installation
 if (-not $SeulementBases) {
     if (-not $Installateur -or -not (Test-Path $Installateur)) { throw "Indiquez -Installateur <chemin de l'exe EDB téléchargé>." }
-    if (Get-Service postgresql-x64-17 -ErrorAction SilentlyContinue) { Write-Host "Service postgresql-x64-17 déjà présent : installation sautée." }
+    if (Get-Service $serviceNom -ErrorAction SilentlyContinue) { Write-Host "Service $serviceNom déjà présent : installation sautée." }
     else {
         $mdpSuper = Nouveau-MotDePasse
         Set-Content $fichierSuper -Value "postgres`r`n$mdpSuper" -Encoding ASCII
         & icacls $fichierSuper /inheritance:r /grant:r "BUILTIN\Administrateurs:F" "SYSTEM:F" | Out-Null
         New-Item -ItemType Directory -Path (Split-Path $Donnees) -Force | Out-Null
-        Write-Host "Installation silencieuse de PostgreSQL 17 (données : $Donnees)..."
+        Write-Host "Installation silencieuse de PostgreSQL $Version (données : $Donnees)..."
         $args = @("--mode", "unattended", "--unattendedmodeui", "none", "--superpassword", $mdpSuper,
                   "--serverport", "5432", "--datadir", $Donnees, "--prefix", $Prefixe,
-                  "--servicename", "postgresql-x64-17", "--locale", "French_France", "--disable-components", "stackbuilder")
+                  "--servicename", $serviceNom, "--locale", "French_France", "--disable-components", "stackbuilder")
         $p = Start-Process -FilePath $Installateur -ArgumentList $args -Wait -PassThru
         if ($p.ExitCode -ne 0) { throw "Installateur terminé avec le code $($p.ExitCode)." }
-        Write-Host "PostgreSQL installé. Mot de passe superutilisateur dans $fichierSuper."
+        Write-Host "PostgreSQL $Version installé. Mot de passe superutilisateur dans $fichierSuper."
     }
     # Écoute locale seulement (valeur par défaut, on la force) + journaux
     $conf = Join-Path $Donnees "postgresql.conf"
     (Get-Content $conf) -replace "^#?listen_addresses\s*=.*", "listen_addresses = 'localhost'" |
         ForEach-Object { $_ -replace "^#?log_min_duration_statement\s*=.*", "log_min_duration_statement = 2000" } | Set-Content $conf -Encoding ASCII
-    Restart-Service postgresql-x64-17
+    Restart-Service $serviceNom
     # Pare-feu : 5432 bloqué depuis l'extérieur, explicitement
     if (-not (Get-NetFirewallRule -DisplayName "GIC - Bloquer PostgreSQL externe" -ErrorAction SilentlyContinue)) {
         New-NetFirewallRule -DisplayName "GIC - Bloquer PostgreSQL externe" -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Block -Profile Any | Out-Null

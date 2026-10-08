@@ -85,7 +85,7 @@ assemblés vont dans un dossier de sortie dédié.
 
 ### 3.5 Déploiement
 
-Windows Server 2025 : PostgreSQL 17 en service, Uvicorn en service Windows
+Windows Server 2025 : PostgreSQL 18 en service, Uvicorn en service Windows
 (NSSM), IIS en frontal avec Application Request Routing, authentification
 Windows et HTTPS (certificat de l'autorité interne). Accès distant par VPN.
 Voir `docs/exploitation.md`.

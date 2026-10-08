@@ -41,7 +41,7 @@ pour Claude et la note affichée à l'écran sortent de la même fonction.
 
 - Windows Server 2025 (production) ou Windows 11 / Linux (développement)
 - Python 3.14 (série courante ; 3.13 en repli)
-- PostgreSQL 17 en production ; 17 ou 18 en développement (SQLite refusé, même en local)
+- PostgreSQL 18 en production comme en développement (SQLite refusé, même en local)
 - Accès en lecture au partage `\\SERVEUR\REFERENCES` (module avis, plus tard)
 
 ## Installation (poste de développement)

@@ -18,16 +18,21 @@ param(
     [string[]]$Bases = @("gic", "gic_test"),
     [string]$Destination = "D:\SAUVEGARDES\pg",
     [int]$Conserver = 14,
-    [string]$Prefixe = "C:\Program Files\PostgreSQL\17",
+    [string]$Prefixe,                                  # par défaut : la version installée la plus récente sous C:\Program Files\PostgreSQL\
     [string]$Secret = "C:\GIC\secrets\pg.env"
 )
 $ErrorActionPreference = "Stop"
+if (-not $Prefixe) {
+    $Prefixe = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory -ErrorAction SilentlyContinue |
+        Where-Object { Test-Path (Join-Path $_.FullName "bin\pg_dump.exe") } | Sort-Object { [int]$_.Name } -Descending |
+        Select-Object -First 1 -ExpandProperty FullName
+}
 New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 $journal = Join-Path $Destination "sauvegarde.log"
 function Ecrire($texte) { $ligne = "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') $texte"; Write-Host $ligne; Add-Content $journal $ligne -Encoding UTF8 }
 
-$pgDump = Join-Path $Prefixe "bin\pg_dump.exe"
-if (-not (Test-Path $pgDump)) { Ecrire "ECHEC : pg_dump introuvable ($pgDump)"; exit 1 }
+$pgDump = if ($Prefixe) { Join-Path $Prefixe "bin\pg_dump.exe" } else { "" }
+if (-not $pgDump -or -not (Test-Path $pgDump)) { Ecrire "ECHEC : pg_dump introuvable (aucun PostgreSQL sous C:\Program Files\PostgreSQL ; -Prefixe ?)"; exit 1 }
 if (-not (Test-Path $Secret)) { Ecrire "ECHEC : $Secret absent (serveur\07-PostgreSQL.ps1)"; exit 1 }
 $pg = @{}; Get-Content $Secret | ForEach-Object { if ($_ -match "^([^=]+)=(.*)$") { $pg[$matches[1]] = $matches[2] } }
 $env:PGPASSWORD = $pg["PGPASSWORD"]
