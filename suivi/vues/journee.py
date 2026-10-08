@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from django.contrib import admin
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
+from django.utils.formats import date_format
 
 from identite.decorateurs import consultation_requise
 from suivi import rapports
@@ -73,7 +74,7 @@ def journee_personne(request, employe_id: int):
         request,
         "suivi/journee_personne.html",
         {
-            **_contexte_jour(request, jour, f"{personne} — {jour:%A %d %B %Y}"),
+            **_contexte_jour(request, jour, f"{personne} — {date_format(jour, 'l j F Y')}"),
             "personne": personne,
             "j": j,
             "graduations": graduations,

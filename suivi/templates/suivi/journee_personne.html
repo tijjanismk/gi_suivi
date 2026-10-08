@@ -58,7 +58,7 @@
       <thead>
         <tr class="gic:border-b border-base-200 dark:border-base-800">
           <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Heures</th>
-          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Durée</th>
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2 gic:pr-6">Durée</th>
           <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Activité</th>
           <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Logiciels</th>
           <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Fichiers</th>
@@ -68,7 +68,7 @@
       {% for b in j.blocs %}
         <tr class="gic:border-b border-base-200 dark:border-base-800 {% if b.type == 'pause' or b.type == 'hors_mesure' %}text-subtle gic:italic{% endif %}">
           <td class="gic:py-1.5 gic:tabular-nums gic:whitespace-nowrap">{{ b.debut|date:"H:i" }} → {{ b.fin|date:"H:i" }}</td>
-          <td class="gic:py-1.5 gic:text-right gic:tabular-nums">{{ b.heures }}</td>
+          <td class="gic:py-1.5 gic:pr-6 gic:text-right gic:tabular-nums">{{ b.heures }}</td>
           <td class="gic:py-1.5"><span class="gic:inline-block gic:w-2.5 gic:h-2.5 gic:rounded-full gic:align-middle gic:mr-1 {% if b.type == 'hors_mesure' %}border border-base-300{% endif %}" style="background: {{ b.couleur }}"></span>{{ b.libelle }}</td>
           <td class="gic:py-1.5 gic:text-xs">{{ b.applications|join:", " }}</td>
           <td class="gic:py-1.5 gic:text-xs gic:truncate gic:max-w-xs" title="{{ b.fichiers|join:', ' }}">{{ b.fichiers|join:", " }}</td>
