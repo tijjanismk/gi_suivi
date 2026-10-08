@@ -97,13 +97,17 @@ Mettre à jour la section « En cours » ci-dessous à la fin de chaque session.
 accueil à indicateurs, français, groupe de consultation seule `GI-Direction-Lecture`. Agent
 v0.2.0 en pilote sur le poste du développeur (service G06 installé, MSI G07 en attente de WiX).
 Phase 0 (serveur) toujours à faire.
-**Dernière session :** 2026-10-08 — interface Unfold fusionnée (73 tests, couverture 98 %),
-catalogue français du thème (`locale/fr`, compilé par `scripts/dev/compiler_traductions.py`),
-compte « visionneuse » en lecture seule côté application (groupe AD à créer en P04) ; un login
-propre à l'application a été écarté (CONTEXT.md r. 6 et 7, ADR 0001).
-**Prochaine étape :** décider la source des groupes AD (S02) ; phase 2, A01 ingestion des lots ;
-T02 vue d'ensemble ; P01 sauvegarde du serveur. Toujours `scripts\dev\verifier.ps1` avant
-d'envoyer (docs/git.md).
+**Dernière session :** 2026-10-08 — interface Unfold fusionnée, catalogue français du thème
+(`locale/fr`, compilé par `scripts/dev/compiler_traductions.py`), compte « visionneuse » en
+lecture seule côté application (groupe AD à créer en P04) ; **A01 fait** : `POST /api/segments`
+(validation, idempotence par `lot_id`, identité = personne authentifiée, employé par SID ou
+login — `sid_ad` facultatif, migration 0003 —, poste tenu vivant, classement à la réception,
+1 000 segments < 1 s). 85 tests, couverture 98 %. Vérifié aussi en direct contre le serveur de
+développement. Un login propre à l'application a été écarté (CONTEXT.md r. 6 et 7, ADR 0001).
+**Prochaine étape :** A02 (dossiers détectés à la réception, recalcul) puis A03 ; T02 vue
+d'ensemble ; décider la source des groupes AD (S02) ; P01 sauvegarde du serveur. Toujours
+`scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la
+base de dev après chaque nouvelle migration (la base de test, elle, est recréée).
 
 ## Ce que l'IA doit faire en début de session
 

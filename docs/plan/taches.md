@@ -35,7 +35,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
-| A01 | Ingestion des lots | `POST /api/segments` : validation, idempotence par `lot_id`, `bulk_create`, mise à jour de `Poste`, contrôle employé = identité | Tests : lot valide, doublon, usurpation refusée, lot vide ; 1 000 segments en moins d'une seconde | à faire |
+| A01 | Ingestion des lots | `POST /api/segments` : validation, idempotence par `lot_id`, `bulk_create`, mise à jour de `Poste`, contrôle employé = identité | Tests : lot valide, doublon, usurpation refusée, lot vide ; 1 000 segments en moins d'une seconde | fait (non tagué) |
 | A02 | Classement à l'ingestion et dossiers détectés | Appel de `moteur.suivi.classement` ; création des dossiers `detecte` ; statuts | Test : un lot crée un dossier détecté avec le bon code et un segment à classer | à faire |
 | A03 | Recalcul | Commande `suivi_recalculer` + file de recalcul déclenchée par validation d'un dossier ou création d'une exception | Test : validation → segments en attente rattachés ; segments bruts inchangés | à faire |
 | A04 | `/api/moi/aujourdhui` et `/api/racines` | Activité du jour de l'utilisateur courant ; liste des racines et correspondances pour l'agent | Un utilisateur ne voit que ses segments ; racines renvoyées telles que saisies dans l'admin | à faire |

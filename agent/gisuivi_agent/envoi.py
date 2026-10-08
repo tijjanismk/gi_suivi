@@ -46,6 +46,21 @@ class Envoyeur:
         """Attente avant nouvel essai après échec : 30 s, 60, 120 … plafonné à 30 min."""
         return min(1800, 30 * (2 ** min(self.echecs, 6))) if self.echecs else 0
 
+    @staticmethod
+    def _sid() -> str | None:
+        """SID de la session : clé stable de l'employé côté serveur (le login change parfois)."""
+        if sys.platform != "win32":
+            return None
+        try:
+            import win32api
+            import win32security
+
+            sid, _, _ = win32security.LookupAccountName(None, win32api.GetUserNameEx(2))
+            return win32security.ConvertSidToStringSid(sid)
+        except Exception as e:  # noqa: BLE001 — sans SID, le serveur reconnaît la personne au login
+            log.debug("SID indisponible : %s", e)
+            return None
+
     def envoyer(self, lot_id: str, segments: list[dict]) -> bool:
         import requests
 
@@ -53,6 +68,7 @@ class Envoyeur:
             "lot_id": lot_id,
             "poste": platform.node(),
             "utilisateur": os.environ.get("USERNAME", ""),
+            "sid": self._sid(),
             "version_agent": self.version,
             "segments": segments,
         }

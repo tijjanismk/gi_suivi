@@ -12,5 +12,6 @@ admin.site.site_header = "GI-CONSEILS — administration"
 urlpatterns = [
     path("sante/", sante, name="sante"),
     path("identite/", include("identite.urls")),
+    path("api/", include("suivi.api.urls")),
     path("admin/", admin.site.urls),
 ]

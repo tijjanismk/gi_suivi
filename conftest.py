@@ -84,6 +84,8 @@ def faire_lot():
         application: str = "WINWORD.EXE",
         chemin: str | None = PROJET_052 + r"\Rapports\rapport.docx",
         poste: str = "PC-ETUDES-01",
+        utilisateur: str = "a.traore",  # ce que l'agent lit dans %USERNAME% (sans domaine)
+        etat: str = "ACTIF",
     ) -> dict:
         segments = []
         for i in range(n):
@@ -93,7 +95,7 @@ def faire_lot():
                     "debut": d.isoformat(),
                     "fin": (d + timedelta(seconds=duree_s)).isoformat(),
                     "duree_s": duree_s,
-                    "etat": "ACTIF",
+                    "etat": etat,
                     "application": application,
                     "fichier": chemin.rsplit("\\", 1)[-1] if chemin else None,
                     "chemin": chemin,
@@ -102,6 +104,7 @@ def faire_lot():
         return {
             "lot_id": str(uuid.uuid4()),
             "poste": poste,
+            "utilisateur": utilisateur,
             "version_agent": "0.2.0",
             "segments": segments,
         }

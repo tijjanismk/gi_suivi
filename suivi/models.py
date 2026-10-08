@@ -15,7 +15,8 @@ from moteur.suivi.classement import normaliser_chemin
 class Employe(models.Model):
     """Une personne mesurée. Le SID AD est la clé stable : le login change parfois."""
 
-    sid_ad = models.CharField("SID AD", max_length=100, unique=True)
+    # Clé stable quand l'agent le transmet ; sinon la personne est reconnue par son login
+    sid_ad = models.CharField("SID AD", max_length=100, unique=True, null=True, blank=True)
     login = models.CharField(max_length=150)
     nom_affiche = models.CharField("nom affiché", max_length=200, blank=True)
     actif = models.BooleanField(default=True)
