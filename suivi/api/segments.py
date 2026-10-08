@@ -8,8 +8,8 @@ application, fichier, chemin}]}. Réponse 200 {recu, deja_recu, segments}.
 - L'identité vient d'IIS (middleware) ; le lot doit la désigner, sinon 403 : un agent ne peut
   pas envoyer les heures d'un autre.
 - Un lot vide est accepté : il tient le poste « vivant » (dernier_envoi).
-- Classement à la réception par le moteur ; un dossier inconnu reste « à classer » jusqu'à A02
-  (création des dossiers détectés et recalcul).
+- Classement à la réception par le moteur ; un dossier conforme jamais vu est créé « détecté »
+  et les segments y sont rattachés (A02) ; la direction le valide ensuite.
 """
 
 from __future__ import annotations
@@ -27,10 +27,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from identite.models import normaliser_login
-from moteur.suivi.classement import classer_observation
 from moteur.suivi.types import Observation
 from suivi.models import Dossier, Employe, Poste, Segment
-from suivi.services import correspondance_lecteurs, exceptions_moteur, racines_moteur
+from suivi.services import classer
 
 MAX_SEGMENTS_PAR_LOT = 5000
 ETATS = {Segment.Etat.ACTIF.value, Segment.Etat.INACTIF.value}
@@ -166,27 +165,11 @@ def _poste(lot: Lot) -> Poste:
 
 
 def _classer(segments: list[SegmentRecu]) -> list[tuple[str, Dossier | None]]:
-    racines, lecteurs, exceptions = racines_moteur(), correspondance_lecteurs(), exceptions_moteur()
-    classements = [
-        classer_observation(
-            Observation(s.debut, s.application, s.fichier or None, s.chemin or None, 0.0),
-            racines,
-            lecteurs,
-            exceptions,
-        )
+    """Classement par le moteur ; un dossier conforme jamais vu est créé « détecté » (A02)."""
+    return classer(
+        Observation(s.debut, s.application, s.fichier or None, s.chemin or None, 0.0)
         for s in segments
-    ]
-    chemins = {c.dossier_chemin for c in classements if c.statut == "dossier"}
-    connus = {d.chemin_windows: d for d in Dossier.objects.filter(chemin_windows__in=chemins)}
-    resultat: list[tuple[str, Dossier | None]] = []
-    for c in classements:
-        dossier = connus.get(c.dossier_chemin) if c.statut == "dossier" else None
-        # Dossier jamais vu : « à classer » jusqu'à ce que A02 le crée comme détecté
-        statut = (
-            c.statut if (c.statut != "dossier" or dossier) else Segment.StatutClassement.A_CLASSER
-        )
-        resultat.append((statut, dossier))
-    return resultat
+    )
 
 
 @csrf_exempt

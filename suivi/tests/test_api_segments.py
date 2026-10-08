@@ -108,8 +108,8 @@ def test_classement_a_la_reception(client, dossiers, faire_lot):
     assert statuts[r"C:\Users\awa\Desktop\notes.pdf"] == "a_classer"
     assert statuts["explorer.exe"] == "application"
     assert statuts["Document1"] == "brouillon"
-    # dossier conforme mais jamais vu : à classer jusqu'à A02 (dossiers détectés)
-    assert statuts[inconnu["segments"][0]["chemin"]] == "a_classer"
+    # dossier conforme mais jamais vu : créé « détecté », segment rattaché (A02)
+    assert statuts[inconnu["segments"][0]["chemin"]] == "dossier"
 
 
 @override_settings(**IIS)
