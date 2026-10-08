@@ -178,6 +178,11 @@ UNFOLD = {
                         "icon": "folder_open",
                         "link": _lien("suivi:dossiers"),
                     },
+                    {
+                        "title": "Personnes",
+                        "icon": "groups",
+                        "link": _lien("suivi:employes"),
+                    },
                 ],
             },
             {

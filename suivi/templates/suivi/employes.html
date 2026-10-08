@@ -1,0 +1,44 @@
+{% extends "suivi/base_direction.html" %}
+{% load unfold %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="Personnes suivies" title_icon="badge" %}
+  {% if employes %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Personne</th>
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">État</th>
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Heures</th>
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Du prévu</th>
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Jours</th>
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Dernière activité</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in employes %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:hover:bg-gray-50 gic:dark:hover:bg-gray-800/40">
+          <td class="gic:py-2"><a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'suivi:employe' e.employe_id %}?{{ requete_periode }}">{{ e.employe }}</a></td>
+          <td class="gic:py-2">
+            {% if e.etat == 'bien' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-green-100 gic:text-green-900">dans le prévu</span>
+            {% elif e.etat == 'moyen' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-amber-100 gic:text-amber-900">en dessous</span>
+            {% elif e.etat == 'faible' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">très en dessous</span>
+            {% elif e.etat == 'absent' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">rien de mesuré</span>
+            {% else %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-gray-100 text-subtle">—</span>{% endif %}
+          </td>
+          <td class="gic:py-2 gic:text-right gic:tabular-nums text-important">{{ e.heures }}</td>
+          <td class="gic:py-2 gic:text-right gic:tabular-nums">{% if e.prevu_pct %}{{ e.prevu_pct }} %{% else %}—{% endif %}</td>
+          <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ e.jours_travailles }}</td>
+          <td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle">{% if e.derniere_activite %}{{ e.derniere_activite|date:"D j M H:i" }}{% else %}—{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="gic:mt-3 gic:text-xs text-subtle">L'état compare les heures mesurées aux heures prévues de la personne sur la période ; il est indicatif, pas une évaluation (voir la note à l'équipe).</p>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucune personne suivie pour l'instant.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+{% endblock %}

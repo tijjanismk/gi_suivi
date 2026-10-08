@@ -4,11 +4,16 @@ HTML + SVG côté serveur (ADR 0002 : pas de bibliothèque JavaScript de graphiq
 
 from __future__ import annotations
 
+from datetime import date
+
 from django.contrib import admin
-from django.shortcuts import render
+from django.db.models import Max
+from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 
 from identite.decorateurs import consultation_requise
 from suivi import rapports
+from suivi.models import Employe, Segment
 from suivi.services import journaliser
 from suivi.vues.periode import selection_de
 
@@ -83,6 +88,118 @@ def dossiers(request):
             a_classer_heures=_hm(rapport["a_classer_s"]),
             brouillon_heures=_hm(rapport["brouillon_s"]),
             sans_fichier_heures=_hm(rapport["sans_fichier_s"]),
+        ),
+    )
+
+
+PALETTE = ["#2563eb", "#059669", "#7c3aed", "#d97706", "#db2777", "#0891b2", "#4f46e5", "#65a30d"]
+COULEUR_INACTIF, COULEUR_A_CLASSER, COULEUR_SANS_FICHIER, COULEUR_BROUILLON = (
+    "#e5e7eb",
+    "#9ca3af",
+    "#cbd5e1",
+    "#fbbf24",
+)
+HEURE_MIN, HEURE_MAX = 7, 19  # fenêtre de la chronologie (élargie si l'activité déborde)
+
+
+@consultation_requise
+def employes(request):
+    """T04 : liste des personnes avec un état indicatif sur la période."""
+    selection = selection_de(request.GET)
+    journaliser(
+        request, "consulter:employes", f"{selection.periode.debut}..{selection.periode.fin}"
+    )
+    synthese = rapports.synthese(selection.periode)
+    debut, fin = rapports._bornes(selection.periode)
+    dernieres = dict(
+        Segment.objects.filter(debut__gte=debut, debut__lt=fin, etat=Segment.Etat.ACTIF)
+        .values_list("employe_id")
+        .annotate(d=Max("fin"))
+        .values_list("employe_id", "d")
+    )
+    for e in synthese["employes"]:
+        e["heures"] = _hm(e["effectif_s"])
+        e["etat"] = _couleur(e["prevu_pct"], e["effectif_s"])
+        derniere = dernieres.get(e["employe_id"])
+        e["derniere_activite"] = timezone.localtime(derniere) if derniere else None
+    return render(
+        request,
+        "suivi/employes.html",
+        _contexte(request, selection, titre="Personnes", employes=synthese["employes"]),
+    )
+
+
+@consultation_requise
+def employe(request, employe_id: int):
+    """T04 : fiche d'une personne — journées, chronologie d'un jour colorée par dossier,
+    fichiers et applications."""
+    selection = selection_de(request.GET)
+    personne = get_object_or_404(Employe, pk=employe_id)
+    jour = None
+    if request.GET.get("jour"):
+        try:
+            jour = date.fromisoformat(request.GET["jour"])
+        except ValueError:
+            jour = None
+    journaliser(
+        request,
+        "consulter:employe",
+        f"employé {personne.pk} {selection.periode.debut}..{selection.periode.fin}",
+    )
+    rapport = rapports.activite_employe(personne, selection.periode, jour)
+
+    couleurs: dict[str, str] = {}
+    for j in rapport["journees"]:
+        j["couleur"] = _couleur(j["prevu_pct"], j["effectif_s"])
+        j["heures"] = _hm(j["effectif_s"]) if j["effectif_s"] else ""
+        j["actif"] = j["jour"] == rapport["jour"]
+    for f in rapport["fichiers"]:
+        f["heures"] = _hm(f["duree_s"])
+        if f["dossier"] and f["dossier"] not in couleurs:
+            couleurs[f["dossier"]] = PALETTE[len(couleurs) % len(PALETTE)]
+    for a in rapport["applications"]:
+        a["heures"] = _hm(a["duree_s"])
+
+    heures = [int(s["debut"][:2]) for s in rapport["chronologie"]] + [
+        int(s["fin"][:2]) + 1 for s in rapport["chronologie"]
+    ]
+    h_min = min([HEURE_MIN, *heures]) if heures else HEURE_MIN
+    h_max = max([HEURE_MAX, *heures]) if heures else HEURE_MAX
+    etendue = max(1, (h_max - h_min) * 60)
+    for s in rapport["chronologie"]:
+        d_min = int(s["debut"][:2]) * 60 + int(s["debut"][3:5]) - h_min * 60
+        f_min = int(s["fin"][:2]) * 60 + int(s["fin"][3:5]) - h_min * 60
+        s["x"] = round(100 * d_min / etendue, 2)
+        s["largeur"] = round(100 * max(f_min - d_min, 1) / etendue, 2)
+        if s["etat"] != "ACTIF":
+            s["couleur"] = COULEUR_INACTIF
+        elif s["dossier"]:
+            s["couleur"] = couleurs.setdefault(s["dossier"], PALETTE[len(couleurs) % len(PALETTE)])
+        elif s["statut"] == "a_classer":
+            s["couleur"] = COULEUR_A_CLASSER
+        elif s["statut"] == "brouillon":
+            s["couleur"] = COULEUR_BROUILLON
+        else:
+            s["couleur"] = COULEUR_SANS_FICHIER
+    graduations = [
+        {"heure": h, "x": round(100 * (h - h_min) * 60 / etendue, 2)}
+        for h in range(h_min, h_max + 1)
+    ]
+    return render(
+        request,
+        "suivi/employe.html",
+        _contexte(
+            request,
+            selection,
+            titre=str(personne),
+            personne=personne,
+            rapport=rapport,
+            legende=[{"dossier": d, "couleur": c} for d, c in couleurs.items()],
+            graduations=graduations,
+            couleur_inactif=COULEUR_INACTIF,
+            couleur_a_classer=COULEUR_A_CLASSER,
+            couleur_sans_fichier=COULEUR_SANS_FICHIER,
+            couleur_brouillon=COULEUR_BROUILLON,
         ),
     )
 

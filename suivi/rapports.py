@@ -261,6 +261,10 @@ def activite_employe(employe: Employe, p: Periode, jour: date | None = None) -> 
             },
         )
         f["duree_s"] += int(s.duree_s)
+    applications: dict[str, int] = {}
+    for s in segments:
+        if s.etat == Segment.Etat.ACTIF:
+            applications[s.application] = applications.get(s.application, 0) + int(s.duree_s)
     jour = jour or p.fin
     chronologie = [
         {
@@ -281,6 +285,10 @@ def activite_employe(employe: Employe, p: Periode, jour: date | None = None) -> 
         "periode": {"debut": p.debut.isoformat(), "fin": p.fin.isoformat()},
         "journees": [_journee_dict(j) for j in js],
         "fichiers": sorted(fichiers.values(), key=lambda f: -f["duree_s"])[:50],
+        "applications": [
+            {"application": a, "duree_s": d}
+            for a, d in sorted(applications.items(), key=lambda x: -x[1])
+        ],
         "jour": jour.isoformat(),
         "chronologie": chronologie,
     }

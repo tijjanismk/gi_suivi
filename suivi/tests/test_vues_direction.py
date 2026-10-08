@@ -64,6 +64,51 @@ def test_ecran_dossiers(client, jeu_de_segments):
 
 
 @override_settings(**IIS)
+def test_ecran_personnes(client, jeu_de_segments, employes):
+    assert client.get("/suivi/personnes/", **AWA).status_code == 403
+    html = client.get("/suivi/personnes/" + PERIODE, **VUE).content.decode()
+    assert "Personnes suivies" in html and "Awa Traoré" in html and "Moussa Keïta" in html
+    assert "18 h 00" in html and "75.0 %" in html and "12 h 00" in html and "50.0 %" in html
+    assert "en dessous" in html  # Awa 75 % → moyen ; Moussa 50 % → moyen
+    assert f"/suivi/personnes/{employes[0].pk}/?debut=2026-10-05" in html
+    assert "mer. 7 oct. 16:30" in html.lower() or "16:30" in html  # dernière activité d'Awa
+
+
+@override_settings(**IIS)
+def test_fiche_personne(client, jeu_de_segments, employes):
+    awa = employes[0]
+    assert client.get(f"/suivi/personnes/{awa.pk}/", **AWA).status_code == 403
+    r = client.get(f"/suivi/personnes/{awa.pk}/{PERIODE}&jour=2026-10-06", **DIR)
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert "Awa Traoré" in html and "Chronologie du 2026-10-06" in html
+    assert "09:00 → 09:30" in html and "notes.pdf" in html and "a_classer" in html
+    assert "Document1" in html and "chrome.exe" in html
+    assert "GIC-HYD-ETU-052" in html and "13 h 00" in html  # fichier rapport.docx sur la période
+    assert "WINWORD.EXE" in html and "Acrobat.exe" in html  # applications
+    assert 'style="background: #2563eb"' in html  # légende du premier dossier
+    assert "gic:ring-2" in html  # le jour choisi est marqué
+    # jour par défaut : dernier jour de la période ; jour invalide : idem, pas d'erreur
+    assert (
+        "Chronologie du 2026-10-07"
+        in client.get(f"/suivi/personnes/{awa.pk}/{PERIODE}", **DIR).content.decode()
+    )
+    assert client.get(f"/suivi/personnes/{awa.pk}/{PERIODE}&jour=hier", **DIR).status_code == 200
+    assert client.get("/suivi/personnes/9999/", **DIR).status_code == 404
+    assert JournalAcces.objects.filter(
+        action="consulter:employe", cible__startswith=f"employé {awa.pk}"
+    ).exists()
+
+
+@override_settings(**IIS)
+def test_fiche_personne_jour_sans_activite(client, jeu_de_segments, employes):
+    html = client.get(
+        f"/suivi/personnes/{employes[1].pk}/{PERIODE}&jour=2026-10-07", **DIR
+    ).content.decode()
+    assert "Rien de mesuré ce jour-là" in html
+
+
+@override_settings(**IIS)
 def test_ecran_dossiers_vide(client):
     html = client.get("/suivi/dossiers/", **DIR).content.decode()
     assert "Aucun temps rattaché" in html

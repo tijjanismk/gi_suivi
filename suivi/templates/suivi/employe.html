@@ -1,0 +1,92 @@
+{% extends "suivi/base_direction.html" %}
+{% load unfold %}
+
+{% block ecran %}
+<p class="gic:text-sm"><a class="text-primary-600 gic:hover:underline" href="{% url 'suivi:employes' %}?{{ requete_periode }}">← Toutes les personnes</a> <span class="text-subtle">· {{ personne.login }}{% if personne.heures_prevues_semaine %} · {{ personne.heures_prevues_semaine }} h prévues par semaine{% endif %}</span></p>
+
+{# Journées de la période : cliquer un jour change la chronologie #}
+{% component "unfold/components/card.html" with title="Journées" title_icon="calendar_view_week" %}
+  <div class="gic:flex gic:flex-wrap gic:gap-1">
+    {% for j in rapport.journees %}
+    <a href="?{{ requete_periode }}&jour={{ j.jour }}" title="{{ j.jour }}{% if j.arrivee %} · {{ j.arrivee }} → {{ j.depart }}{% endif %}{% if j.prevu_pct %} · {{ j.prevu_pct }} % du prévu{% endif %}"
+       class="gic:flex gic:flex-col gic:items-center gic:rounded gic:px-2 gic:py-1.5 gic:text-xs gic:min-w-[4.5rem] {% if j.actif %}gic:ring-2 gic:ring-blue-600{% endif %}
+       {% if j.couleur == 'bien' %}gic:bg-green-100 gic:text-green-900{% elif j.couleur == 'moyen' %}gic:bg-amber-100 gic:text-amber-900{% elif j.couleur == 'faible' or j.couleur == 'absent' %}gic:bg-red-100 gic:text-red-900{% elif j.couleur == 'hors_prevu' %}gic:bg-sky-100 gic:text-sky-900{% else %}gic:bg-gray-100 text-subtle{% endif %}">
+      <span class="gic:font-medium">{{ j.jour|date:"D j" }}</span>
+      <span>{{ j.heures|default:"·" }}</span>
+    </a>
+    {% endfor %}
+  </div>
+{% endcomponent %}
+
+{# Chronologie du jour choisi #}
+{% component "unfold/components/card.html" with title="Chronologie du "|add:rapport.jour title_icon="timeline" %}
+  {% if rapport.chronologie %}
+  <svg viewBox="0 0 100 14" preserveAspectRatio="none" class="gic:h-16 gic:w-full" role="img" aria-label="Chronologie de la journée">
+    {% for g in graduations %}<line x1="{{ g.x }}" y1="0" x2="{{ g.x }}" y2="10" stroke="#e5e7eb" stroke-width="0.15" />{% endfor %}
+    {% for s in rapport.chronologie %}
+    <rect x="{{ s.x }}" y="1" width="{{ s.largeur }}" height="8" fill="{{ s.couleur }}">
+      <title>{{ s.debut }} → {{ s.fin }} · {{ s.application }}{% if s.fichier %} · {{ s.fichier }}{% endif %}{% if s.dossier %} · {{ s.dossier }}{% elif s.etat != 'ACTIF' %} · inactif{% else %} · {{ s.statut }}{% endif %}</title>
+    </rect>
+    {% endfor %}
+  </svg>
+  <div class="gic:relative gic:h-4 gic:text-[10px] text-subtle">
+    {% for g in graduations %}<span class="gic:absolute" style="left: {{ g.x }}%">{{ g.heure }}h</span>{% endfor %}
+  </div>
+  <div class="gic:mt-3 gic:flex gic:flex-wrap gic:gap-x-4 gic:gap-y-1 gic:text-xs text-subtle">
+    {% for l in legende %}<span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ l.couleur }}"></span> {{ l.dossier }}</span>{% endfor %}
+    <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_a_classer }}"></span> à classer</span>
+    <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_brouillon }}"></span> brouillon</span>
+    <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_sans_fichier }}"></span> sans fichier</span>
+    <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_inactif }}"></span> inactif</span>
+  </div>
+  <div class="gic:mt-4 gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-xs">
+      <tbody>
+      {% for s in rapport.chronologie %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 {% if s.etat != 'ACTIF' %}text-subtle{% endif %}">
+          <td class="gic:py-1 gic:tabular-nums gic:whitespace-nowrap">{{ s.debut }} → {{ s.fin }}</td>
+          <td class="gic:py-1"><span class="gic:inline-block gic:w-2 gic:h-2 gic:rounded-full gic:align-middle" style="background: {{ s.couleur }}"></span> {{ s.dossier|default:s.statut }}</td>
+          <td class="gic:py-1">{{ s.application }}</td>
+          <td class="gic:py-1 gic:truncate gic:max-w-xs" title="{{ s.fichier }}">{{ s.fichier }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Rien de mesuré ce jour-là.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
+<div class="gic:grid gic:gap-4 gic:lg:grid-cols-2">
+  {% component "unfold/components/card.html" with title="Fichiers les plus travaillés" title_icon="description" %}
+    {% if rapport.fichiers %}
+    <table class="gic:w-full gic:text-sm">
+      <tbody>
+      {% for f in rapport.fichiers|slice:":15" %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <td class="gic:py-1.5 gic:truncate gic:max-w-xs" title="{{ f.chemin|default:f.fichier }}">{{ f.fichier }}</td>
+          <td class="gic:py-1.5 text-subtle gic:whitespace-nowrap">{{ f.dossier|default:f.statut }}</td>
+          <td class="gic:py-1.5 gic:text-right gic:tabular-nums">{{ f.heures }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}{% component "unfold/components/text.html" %}Aucun fichier sur la période.{% endcomponent %}{% endif %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with title="Applications" title_icon="apps" %}
+    {% if rapport.applications %}
+    <table class="gic:w-full gic:text-sm">
+      <tbody>
+      {% for a in rapport.applications %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <td class="gic:py-1.5">{{ a.application }}</td>
+          <td class="gic:py-1.5 gic:text-right gic:tabular-nums">{{ a.heures }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}{% component "unfold/components/text.html" %}Rien sur la période.{% endcomponent %}{% endif %}
+  {% endcomponent %}
+</div>
+{% endblock %}

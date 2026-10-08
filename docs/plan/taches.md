@@ -63,7 +63,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | T01 | Gabarit et navigation | `base.html` mobile d'abord, menu des huit écrans, page de refus hors `GI-Direction`, HTMX local | Toutes les pages s'affichent avec le bon utilisateur ; refus propre | en cours |
 | T02 | Vue d'ensemble | Quatre indicateurs, barres par employé (SVG serveur), tableau jour × employé coloré, % prévu, arrivée/départ | Validée par la direction sur `test` avec la fixture | fait (non tagué) |
 | T03 | Dossiers | Barres par dossier, tableau dossier × employé | idem | fait (non tagué) |
-| T04 | Employés et fiche employé | Liste avec état indicatif ; fiche : chronologie colorée par dossier, fichiers et applications | idem | à faire |
+| T04 | Employés et fiche employé | Liste avec état indicatif ; fiche : chronologie colorée par dossier, fichiers et applications | idem | fait (non tagué) |
 | T05 | Gestion dossiers | Racines (lecture), nouveaux dossiers détectés avec temps déjà enregistré, bouton Valider, dossiers actifs éditables | Validation d'un dossier déclenche le recalcul et met à jour les écrans | à faire |
 | T06 | À classer | File groupée, rattachement en un clic, création d'exception, brouillons signalés | Le compteur baisse après rattachement | à faire |
 | T07 | État des postes | Version, dernier envoi, démarrages, alertes orange et rouge | Un poste muet depuis 24 h ouvrées apparaît en rouge | à faire |
