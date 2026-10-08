@@ -30,11 +30,24 @@ param(
     [string]$Installateurs = "C:\GIC\installateurs",
     [string]$Ref = "main",
     [switch]$SansSauvegarde, [switch]$AvecRDP, [switch]$AvecMisesAJour, [switch]$AvecPartageGIC,
+    [switch]$SansMiseAJour,                                   # ne pas mettre le clone à jour avant de commencer
     [switch]$Simuler
 )
 $ErrorActionPreference = "Stop"
 $ici = $PSScriptRoot; $deploy = Split-Path $ici -Parent; $depot = Split-Path $deploy -Parent   # racine du clone, quel que soit son nom
 if (-not (Test-Path "$depot\manage.py")) { throw "Arborescence inattendue : $depot\manage.py absent. Ce script doit être lancé depuis <clone>\deploy\serveur\." }
+
+# Mise à jour du clone avant tout (installer.ps1 le laisse « détaché » sur origin/<Ref> : git pull n'y marche
+# pas, on fait fetch + checkout). Si ce script lui-même a changé, on s'arrête pour qu'il soit relancé à jour.
+if (-not $SansMiseAJour -and (Test-Path "$depot\.git") -and (Get-Command git -ErrorAction SilentlyContinue)) {
+    $avant = (Get-FileHash $PSCommandPath).Hash
+    git -C $depot fetch --all --tags --prune --quiet
+    if ($LASTEXITCODE -eq 0) {
+        git -C $depot checkout --detach --quiet "origin/$Ref"
+        Write-Host "Dépôt : origin/$Ref = $(git -C $depot rev-parse --short HEAD)"
+        if ((Get-FileHash $PSCommandPath).Hash -ne $avant) { Write-Host "Tout-en-un.ps1 a été mis à jour : relancez la même commande." -ForegroundColor Yellow; exit 2 }
+    } else { Write-Warning "git fetch a échoué (réseau, jeton ?) : on continue avec la version présente." }
+}
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) { throw "À lancer en administrateur." }
 

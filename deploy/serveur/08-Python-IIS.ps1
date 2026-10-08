@@ -145,15 +145,20 @@ $sites = @{ "suivi-test" = @{ port = 8001; env = "test" }; "suivi" = @{ port = 8
 foreach ($nom in $sites.Keys) {
     $hote = "$nom.$zone"; $racine = "C:\GIC\$($sites[$nom].env)\site"; New-Item -ItemType Directory -Path $racine -Force | Out-Null
     if (-not (Get-Website -Name $nom -ErrorAction SilentlyContinue)) {
-        New-Website -Name $nom -PhysicalPath $racine -ApplicationPool "GIC" -HostHeader $hote -Port 80 | Out-Null
+        # -Id explicite : sans lui, New-Website échoue parfois avec « La référence d'objet n'est pas définie »
+        $id = ((Get-Website | Measure-Object -Property Id -Maximum).Maximum + 1)
+        New-Website -Name $nom -Id $id -PhysicalPath $racine -ApplicationPool "GIC" -HostHeader $hote -Port 80 | Out-Null
     }
     if (-not $SansHttps) {
         if (-not $Empreinte) { throw "Indiquez -Empreinte du certificat, -AutoSigne (pas d'autorité interne) ou -SansHttps." }
-        if (-not (Get-WebBinding -Name $nom -Protocol https -ErrorAction SilentlyContinue)) {
+        $b = Get-WebBinding -Name $nom -Protocol https -HostHeader $hote -ErrorAction SilentlyContinue
+        if (-not $b) {
             New-WebBinding -Name $nom -Protocol https -Port 443 -HostHeader $hote -SslFlags 1 | Out-Null
+            $b = Get-WebBinding -Name $nom -Protocol https -HostHeader $hote
         }
-        $b = Get-WebBinding -Name $nom -Protocol https
-        $b.AddSslCertificate($Empreinte, "My")
+        if (-not $b) { throw "Liaison https de $nom ($hote) introuvable après création : vérifier dans le Gestionnaire IIS qu'aucune autre liaison *:443 sans SNI ne bloque." }
+        # Certificat déjà attaché ? (relancement) — sinon on l'attache
+        if (-not ($b.certificateHash -and $b.certificateHash -eq $Empreinte)) { $b.AddSslCertificate($Empreinte, "My") }
     }
     # Authentification : Windows seule, fournisseur Negotiate uniquement (pas de NTLM), anonyme désactivée
     # Les sections d'authentification sont verrouillées au niveau serveur (overrideModeDefault="Deny") :
