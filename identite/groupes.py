@@ -3,12 +3,9 @@
 En développement, les groupes sont ceux de `GROUPES_DEV`. Sur le serveur, la source est
 choisie par `IDENTITE_LECTEUR_GROUPES` (chemin pointé d'une fonction `login -> list[str]`).
 
-À DÉCIDER avant S07 (aucune source serveur n'est branchée par défaut) :
-- requête LDAP vers l'annuaire (dépendance `ldap3`) ;
-- ou API Windows du contrôleur de domaine (`win32net.NetUserGetGroups`, dépendance `pywin32`
-  côté serveur, possible parce que le serveur est aussi le contrôleur de domaine).
-Les deux ajoutent une dépendance : ADR à écrire. Sans source, l'utilisateur n'a aucun groupe,
-donc aucun droit direction — l'application échoue fermée, jamais ouverte.
+Décidé (ADR 0006) : en production, `identite.groupes_windows.groupes_de` (API Windows du
+contrôleur de domaine, `pywin32`). Sans source, l'utilisateur n'a aucun groupe, donc aucun droit
+direction — l'application échoue fermée, jamais ouverte.
 """
 
 from __future__ import annotations

@@ -75,7 +75,9 @@ if (-not (Test-Path $envFile)) {
         "ALLOWED_HOSTS=$hote,127.0.0.1,localhost",
         "DATABASE_URL=postgres://gic:$($pg['PGPASSWORD'])@localhost:5432/$bdd",
         "GROUPE_DIRECTION=GI-Direction",
+        "GROUPE_DIRECTION_LECTURE=GI-Direction-Lecture",
         "GROUPE_OFFRES=GI-Offres",
+        "IDENTITE_LECTEUR_GROUPES=identite.groupes_windows.groupes_de",   # ADR 0006 : API Windows du DC
         "PARTAGE_GIC=\\AD-SERVEUR\GIC",
         "STATIC_ROOT=$base\static_collecte",
         "JOURNAUX=$base\journaux",

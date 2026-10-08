@@ -9,6 +9,11 @@ if not SECRET_KEY:  # noqa: F405
     raise ImproperlyConfigured("SECRET_KEY manquante dans .env (production).")
 
 IDENTITE_SOURCE = "iis"
+# Groupes AD lus par l'API Windows du serveur, qui est le contrôleur de domaine (ADR 0006)
+IDENTITE_LECTEUR_GROUPES = env.str(
+    "IDENTITE_LECTEUR_GROUPES", "identite.groupes_windows.groupes_de"
+)
+IDENTITE_SERVEUR_GROUPES = env.str("IDENTITE_SERVEUR_GROUPES", "") or None
 
 # IIS termine le HTTPS et transmet en HTTP local à Uvicorn
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")

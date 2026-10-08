@@ -18,6 +18,7 @@ dependencies = [
     "uvicorn[standard]>=0.30",
     "environs>=11.0",
     "django-unfold~=0.108.0",  # interface (ADR 0005) ; versions mineures souvent incompatibles : figée
+    "pywin32>=306; sys_platform == 'win32'",  # groupes AD par l'API Windows du serveur (ADR 0006)
 ]
 
 [project.optional-dependencies]
