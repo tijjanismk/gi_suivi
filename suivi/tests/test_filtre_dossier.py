@@ -55,8 +55,11 @@ def test_personnes_et_fiche_filtrees(client, jeu_de_segments, dossiers, employes
     html = client.get(
         f"/suivi/personnes/{employes[0].pk}/?{PERIODE}&dossier={dsom.pk}&jour=2026-10-05", **DIR
     ).content.decode()
-    assert "methodo.docx" in html and "rapport.docx" not in html
-    assert "14:00 → 14:30" in html and "08:00 → 08:30" not in html
+    # la liste des fichiers suit le filtre ; la journée (arrivée, pauses, chronologie) reste entière
+    fichiers = html.split("Fichiers les plus travaillés")[1]
+    assert "methodo.docx" in fichiers and "rapport.docx" not in fichiers
+    assert "08:00 →" in html and "rapport.docx" in html
+    assert "s'applique aux fichiers et aux logiciels" in html
 
 
 @override_settings(**IIS)

@@ -9,7 +9,10 @@
 # Les données (%ProgramData%\GiSuivi : config.json, tampon, journaux) ne sont pas touchées.
 param(
     [string]$Source = (Join-Path $PSScriptRoot 'dist\gisuivi-agent'),
-    [string]$Cible = (Join-Path $env:ProgramFiles 'GI-CONSEILS\GiSuivi')
+    [string]$Cible = (Join-Path $env:ProgramFiles 'GI-CONSEILS\GiSuivi'),
+    # Configuration à poser dans %ProgramData%\GiSuivi\config.json (racines, url_api). Sans GPO,
+    # c'est elle que l'agent lit. Par défaut : le config.json livré avec le kit, s'il existe.
+    [string]$Config = (Join-Path $PSScriptRoot 'config.json')
 )
 $ErrorActionPreference = 'Stop'
 $service = 'GiSuivi'
@@ -30,6 +33,20 @@ New-Item -ItemType Directory -Force $Cible | Out-Null
 & robocopy.exe $Source $Cible /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copie en echec (robocopy $LASTEXITCODE)." }
 Write-Host "Copie : $Cible"
+
+# Configuration commune au poste (lue par l'agent de chaque session)
+$dossierDonnees = Join-Path $env:ProgramData 'GiSuivi'
+New-Item -ItemType Directory -Force $dossierDonnees | Out-Null
+if ($Config -and (Test-Path $Config)) {
+    $json = Get-Content $Config -Raw -Encoding UTF8
+    try { $null = $json | ConvertFrom-Json } catch { throw "Le fichier de configuration n'est pas un JSON valide : $Config" }
+    [IO.File]::WriteAllText((Join-Path $dossierDonnees 'config.json'), $json, (New-Object Text.UTF8Encoding $false))  # sans BOM
+    Write-Host "Configuration posee : $dossierDonnees\config.json"
+} elseif (Test-Path (Join-Path $dossierDonnees 'config.json')) {
+    Write-Host "Configuration existante conservee : $dossierDonnees\config.json"
+} else {
+    Write-Warning "Aucune configuration : l'agent demarrera avec 0 racine et en mode local. Posez $dossierDonnees\config.json (voir config.exemple.json) puis tuez gisuivi-agent.exe : le service le relance."
+}
 
 $exe = Join-Path $Cible 'gisuivi-agent.exe'
 $binPath = "`"$exe`" --service"

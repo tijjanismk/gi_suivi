@@ -74,6 +74,14 @@ qui a déjà passé en local.
    privé (il décrit le serveur et le réseau du bureau). La branche locale est
    supprimée.
 
+## Déploiement par Git (décision du 08/10/2026)
+
+Le serveur tient un clone du dépôt privé (`C:\GIC\depot`, jeton GitHub en lecture seule) :
+`deploy\installer.ps1 -Env test -Ref main` met l'environnement test au niveau de `main` ;
+`-Env prod -Ref vX.Y.Z` exige un tag. Rien n'est copié à la main entre le poste et le serveur ;
+ce qui n'est pas dans GitHub n'existe pas pour le serveur. Liste de contrôle :
+`docs/exploitation/liste-de-controle-serveur.md`.
+
 ## Versions et déploiement
 
 - Chaque déploiement en production correspond à un tag `vX.Y.Z` sur `main`

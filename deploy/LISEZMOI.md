@@ -5,18 +5,27 @@ Deux environnements sur le serveur, `test` (port 8001, base `gic_test`, site
 `C:\GIC\<env>\`. Tout passe par les scripts de ce dossier ; rien ne se fait à
 la main.
 
-## Flux normal
+## Flux normal : Git entre le poste et le serveur (décision du 08/10/2026)
 
 ```
 Poste du développeur                        Serveur (console ou RDP local)
 ────────────────────                        ──────────────────────────────
-git tag v0.3.0 ; git push --tags
-.\deploy\publier.ps1 -Tag v0.3.0  ──zip──►  \\AD-SERVEUR\GIC\deploy\app\gic-v0.3.0.zip
-                                            .\deploy\installer.ps1 -Env test -Zip ...\gic-v0.3.0.zip
+scripts\dev\verifier.ps1 (tout vert)
+fusion dans main ; git push         ──────► C:\GIC\depot  (clone privé, jeton GitHub lecture seule)
+                                            .\deploy\installer.ps1 -Env test -Ref main
                                             validation sur https://suivi-test.giconseils.local
-                                            .\deploy\installer.ps1 -Env prod -Zip ...\gic-v0.3.0.zip
+git tag -a v1.0.0 ; git push --tags ──────► .\deploy\installer.ps1 -Env prod -Ref v1.0.0
                                             .\deploy\verifier.ps1 -Env prod
 ```
+
+Le serveur ne reçoit que ce qui est dans GitHub : rien n'est copié à la main. `publier.ps1`
+(archive zip sur le partage) reste disponible pour un serveur sans accès à GitHub.
+
+Premier clone sur le serveur : Git pour Windows installé ; un **jeton d'accès GitHub à
+granularité fine** (ce dépôt seulement, « Contents : read-only », expiration un an) créé par le
+porteur, saisi une fois à la demande de Git, mémorisé par le gestionnaire d'identifiants Windows
+pour le compte d'administration qui lance les scripts. Le serveur doit joindre `github.com` et
+`pypi.org` (installation des dépendances).
 
 ## Scripts
 

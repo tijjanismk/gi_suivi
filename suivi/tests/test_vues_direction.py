@@ -82,12 +82,21 @@ def test_fiche_personne(client, jeu_de_segments, employes):
     assert r.status_code == 200
     html = r.content.decode()
     assert "Awa Traoré" in html and "Chronologie du 2026-10-06" in html
-    assert "09:00 → 09:30" in html and "notes.pdf" in html and "a_classer" in html
+    assert "09:00 → 10:00" in html and "À classer — notes.pdf" in html  # blocs fusionnés
     assert "Document1" in html and "chrome.exe" in html
     assert "GIC-HYD-ETU-052" in html and "13 h 00" in html  # fichier rapport.docx sur la période
     assert "WINWORD.EXE" in html and "Acrobat.exe" in html  # applications
     assert 'style="background: #2563eb"' in html  # légende du premier dossier
-    assert "gic:ring-2" in html  # le jour choisi est marqué
+    assert "gic:bg-blue-50" in html  # le jour choisi est marqué dans le tableau
+    assert (
+        "Pause (aucune action)"
+        in client.get(
+            f"/suivi/personnes/{awa.pk}/{PERIODE}&jour=2026-10-05", **DIR
+        ).content.decode()
+    )  # lundi : pause 12 h–14 h
+    assert (
+        "2 h 00 <span" in html or "2 h 00" in html
+    )  # pauses du lundi dans le tableau jour par jour
     # jour par défaut : dernier jour de la période ; jour invalide : idem, pas d'erreur
     assert (
         "Chronologie du 2026-10-07"

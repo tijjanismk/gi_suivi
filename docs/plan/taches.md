@@ -63,7 +63,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | T01 | Gabarit et navigation | `base.html` mobile d'abord, menu des huit écrans, page de refus hors `GI-Direction`, HTMX local | Toutes les pages s'affichent avec le bon utilisateur ; refus propre | fait (non tagué) |
 | T02 | Vue d'ensemble | Quatre indicateurs, barres par employé (SVG serveur), tableau jour × employé coloré, % prévu, arrivée/départ | Validée par la direction sur `test` avec la fixture | fait (non tagué) |
 | T03 | Dossiers | Barres par dossier, tableau dossier × employé | idem | fait (non tagué) |
-| T04 | Employés et fiche employé | Liste avec état indicatif ; fiche : chronologie colorée par dossier, fichiers et applications | idem | fait (non tagué) |
+| T04 | Employés et fiche employé | Liste avec état indicatif ; fiche (écran prioritaire pour le porteur) : tableau jour par jour (arrivée → départ, actif, pauses, hors mesure, % prévu, frise), chronologie du jour bloc par bloc avec pauses, fichiers et applications | idem | fait (non tagué) ; fiche enrichie le 08/10 |
 | T05 | Gestion dossiers | Racines (lecture), nouveaux dossiers détectés avec temps déjà enregistré, bouton Valider, dossiers actifs éditables | Validation d'un dossier déclenche le recalcul et met à jour les écrans | fait (non tagué) |
 | T06 | À classer | File groupée, rattachement en un clic, création d'exception, brouillons signalés | Le compteur baisse après rattachement | fait (non tagué) |
 | T07 | État des postes | Version, dernier envoi, démarrages, alertes orange et rouge | Un poste muet depuis 24 h ouvrées apparaît en rouge | fait (non tagué) |
@@ -75,7 +75,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
 | D01 | Note à l'équipe et réunion | Rédiger avec la direction la note d'information (ce qui est collecté, ce qui ne l'est pas, à quoi ça sert, qui voit quoi, durée de conservation) ; réunion ; volontaires désignés | Note signée et diffusée avant tout déploiement d'agent | en cours (projet rédigé dans docs/pilote/) |
-| D02 | GPO pilote | OU `Postes-Pilote`, GPO liée, paramètres registre, exclusion Defender | Agent installé automatiquement sur les 2-3 postes au redémarrage | à faire |
+| D02 | Installation pilote | **Reportée (décision du porteur 08/10) : pas de GPO pour le moment.** Installation manuelle, poste par poste, avec le kit `agent\preparer-kit.ps1` → `C:\dev\livraisons\agent\GiSuivi-agent-<version>-poste.zip` (`installer-poste.ps1`, `LISEZMOI-poste.md`). Premier poste : Dicko. La GPO reste pour D07. | Agent installé et visible en vert dans « État des postes » sur chaque poste pilote | kit 0.2.1 prêt ; installation chez Dicko à faire |
 | D03 | Relevé manuel des volontaires | Modèle d'une page : heures et dossiers par jour, une semaine | Trois relevés remplis | en cours (projet rédigé dans docs/pilote/) |
 | D04 | Comparaison et corrections | Heures mesurées vs relevés ; écart par jour et par personne ; file à classer ; retours | Écart < 10 % ; < 10 % du temps à classer après une semaine ; aucune gêne signalée | à faire |
 | D05 | Rapport de pilote | Résultats, corrections faites, décision de généraliser ou non | Validé par la direction | à faire |

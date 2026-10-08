@@ -4,7 +4,7 @@ HTML + SVG côté serveur (ADR 0002 : pas de bibliothèque JavaScript de graphiq
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib import admin
 from django.db.models import Max
@@ -15,6 +15,7 @@ from identite.decorateurs import consultation_requise
 from suivi import rapports
 from suivi.models import Dossier, Employe, Segment
 from suivi.services import journaliser
+from suivi.vues.frise import _hm, contexte_couleurs, couleur_dossier, frise, legende
 from suivi.vues.periode import selection_de
 
 
@@ -39,10 +40,6 @@ def _filtre_dossier(selection) -> dict:
         "dossier_filtre": choisi,
         "dossier_id": choisi.pk if choisi else None,
     }
-
-
-def _hm(secondes: int) -> str:
-    return f"{secondes // 3600} h {secondes % 3600 // 60:02d}"
 
 
 def _couleur(prevu_pct: str | None, effectif_s: int) -> str:
@@ -104,16 +101,6 @@ def dossiers(request):
     )
 
 
-PALETTE = ["#2563eb", "#059669", "#7c3aed", "#d97706", "#db2777", "#0891b2", "#4f46e5", "#65a30d"]
-COULEUR_INACTIF, COULEUR_A_CLASSER, COULEUR_SANS_FICHIER, COULEUR_BROUILLON = (
-    "#e5e7eb",
-    "#9ca3af",
-    "#cbd5e1",
-    "#fbbf24",
-)
-HEURE_MIN, HEURE_MAX = 7, 19  # fenêtre de la chronologie (élargie si l'activité déborde)
-
-
 @consultation_requise
 def employes(request):
     """T04 : liste des personnes avec un état indicatif sur la période."""
@@ -167,44 +154,35 @@ def employe(request, employe_id: int):
     )
     filtre = _filtre_dossier(selection)
     rapport = rapports.activite_employe(personne, selection.periode, jour, filtre["dossier_id"])
+    jour_choisi = date.fromisoformat(rapport["jour"])
 
     couleurs: dict[str, str] = {}
-    for j in rapport["journees"]:
-        j["couleur"] = _couleur(j["prevu_pct"], j["effectif_s"])
-        j["heures"] = _hm(j["effectif_s"]) if j["effectif_s"] else ""
-        j["actif"] = j["jour"] == rapport["jour"]
     for f in rapport["fichiers"]:
         f["heures"] = _hm(f["duree_s"])
-        if f["dossier"] and f["dossier"] not in couleurs:
-            couleurs[f["dossier"]] = PALETTE[len(couleurs) % len(PALETTE)]
+        if f["dossier"]:
+            couleur_dossier(couleurs, f["dossier"])
     for a in rapport["applications"]:
         a["heures"] = _hm(a["duree_s"])
 
-    heures = [int(s["debut"][:2]) for s in rapport["chronologie"]] + [
-        int(s["fin"][:2]) + 1 for s in rapport["chronologie"]
-    ]
-    h_min = min([HEURE_MIN, *heures]) if heures else HEURE_MIN
-    h_max = max([HEURE_MAX, *heures]) if heures else HEURE_MAX
-    etendue = max(1, (h_max - h_min) * 60)
-    for s in rapport["chronologie"]:
-        d_min = int(s["debut"][:2]) * 60 + int(s["debut"][3:5]) - h_min * 60
-        f_min = int(s["fin"][:2]) * 60 + int(s["fin"][3:5]) - h_min * 60
-        s["x"] = round(100 * d_min / etendue, 2)
-        s["largeur"] = round(100 * max(f_min - d_min, 1) / etendue, 2)
-        if s["etat"] != "ACTIF":
-            s["couleur"] = COULEUR_INACTIF
-        elif s["dossier"]:
-            s["couleur"] = couleurs.setdefault(s["dossier"], PALETTE[len(couleurs) % len(PALETTE)])
-        elif s["statut"] == "a_classer":
-            s["couleur"] = COULEUR_A_CLASSER
-        elif s["statut"] == "brouillon":
-            s["couleur"] = COULEUR_BROUILLON
-        else:
-            s["couleur"] = COULEUR_SANS_FICHIER
-    graduations = [
-        {"heure": h, "x": round(100 * (h - h_min) * 60 / etendue, 2)}
-        for h in range(h_min, h_max + 1)
-    ]
+    # Jour par jour : arrivée, départ, actif, pauses, hors mesure (indépendants du filtre dossier)
+    prevu = {j["jour"]: j for j in rapport["journees"]}
+    jours: list[dict] = []
+    d = selection.periode.debut
+    while d <= selection.periode.fin:
+        jd = rapports.journee_personne(personne, d)
+        info = prevu.get(d.isoformat(), {})
+        jd["prevu_pct"] = info.get("prevu_pct")
+        jd["couleur"] = _couleur(jd["prevu_pct"], jd["actif_s"])
+        jd["actif"] = d == jour_choisi
+        jours.append(jd)
+        d += timedelta(days=1)
+    detail = next((jd for jd in jours if jd["actif"]), None) or rapports.journee_personne(
+        personne, jour_choisi
+    )
+    graduations = frise([*jours, detail] if detail not in jours else jours, couleurs)
+
+    prevu_total = sum(j["prevu_s"] for j in rapport["journees"])
+    actif_total = sum(jd["actif_s"] for jd in jours)
     return render(
         request,
         "suivi/employe.html",
@@ -213,14 +191,24 @@ def employe(request, employe_id: int):
             selection,
             titre=str(personne),
             **filtre,
+            **contexte_couleurs(),
             personne=personne,
             rapport=rapport,
-            legende=[{"dossier": d, "couleur": c} for d, c in couleurs.items()],
+            jours=jours,
+            detail=detail,
+            jour_choisi=jour_choisi,
+            titre_chronologie=f"Chronologie du {jour_choisi.isoformat()}",
             graduations=graduations,
-            couleur_inactif=COULEUR_INACTIF,
-            couleur_a_classer=COULEUR_A_CLASSER,
-            couleur_sans_fichier=COULEUR_SANS_FICHIER,
-            couleur_brouillon=COULEUR_BROUILLON,
+            legende=legende(couleurs),
+            totaux={
+                "actif": _hm(actif_total),
+                "pauses": _hm(sum(jd["pause_s"] for jd in jours)),
+                "hors_mesure": _hm(sum(jd["hors_mesure_s"] for jd in jours)),
+                "jours_travailles": sum(1 for jd in jours if jd["actif_s"]),
+                "prevu_pct": str(indicateurs_pct(actif_total, prevu_total))
+                if prevu_total
+                else None,
+            },
         ),
     )
 

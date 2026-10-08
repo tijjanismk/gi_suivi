@@ -26,7 +26,8 @@ if (-not (Test-Path .venv)) { Invoke-Expression "$py -m venv .venv" }
 
 # Le moteur partagé est pris dans le dépôt : PYTHONPATH sur la racine
 $env:PYTHONPATH = "$depot;$PSScriptRoot"
-if ($Tester) { & .\.venv\Scripts\python.exe -m pytest "$depot\moteur" tests -q; if ($LASTEXITCODE -ne 0) { throw "Tests en échec." } }
+# --noconftest : le conftest.py de la racine (fixtures Django) ne concerne pas l'agent, dont l'environnement n'a pas Django
+if ($Tester) { & .\.venv\Scripts\python.exe -m pytest "$depot\moteur" tests -q --noconftest -p no:cacheprovider; if ($LASTEXITCODE -ne 0) { throw "Tests en échec." } }
 
 $version = (Select-String -Path gisuivi_agent\__init__.py -Pattern '__version__ = "([^"]+)"').Matches[0].Groups[1].Value
 Write-Host "Construction de gisuivi-agent $version ..."
