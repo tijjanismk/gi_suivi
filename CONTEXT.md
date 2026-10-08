@@ -118,7 +118,9 @@ outil de développement sur le serveur** (décision du porteur 08/10) : `gic.css
 --only-binary=:all: -r deploy/requirements.txt`, sans `pip install -e .`. `deploy/verifier.ps1`
 et `deploy/sauvegarde_pg.ps1` écrits ; la voie « archive zip » (`publier.ps1`) est supprimée. **Serveur : on ne touche à
 rien de ce qui existe** (décision du porteur 08/10) : partages, droits, fichiers et disques restent
-tels quels (deux disques de 2 To, pas de repartitionnement) ; les scripts n'**ajoutent** que
+tels quels (inventaire du 06/10 : HP ProLiant ML350e Gen8 v2, Windows Server 2025, 8 Go, deux SSD
+TEAM de 1 908 Go sains, `C:` = disque 1 à 98 % libre, `D:` = disque 2 à 85 % libre, soit déjà la
+séparation système/données que les scripts supposent — pas de repartitionnement) ; les scripts n'**ajoutent** que
 `C:\GIC`, `D:\GIC` (par copie, duplication acceptée), PostgreSQL, IIS ; `Rangement-GIC.ps1
 -GelerAnciens` désactivé, plus de passage en `_ANCIEN` ni de suppression de partages. Même règle
 pour l'application d'avis à venir. **Agent
