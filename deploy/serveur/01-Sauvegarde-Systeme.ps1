@@ -24,6 +24,7 @@ param(
     [string]$Cible = "D:",
     [switch]$Planifier,
     [switch]$Verifier,
+    [switch]$Forcer,                                   # refaire la sauvegarde complète même si une a réussi aujourd'hui
     [string[]]$ExclureDeD = @("ALASSANE", "SAUVEGARDES", "WindowsImageBackup")
 )
 $ErrorActionPreference = "Stop"
@@ -42,10 +43,17 @@ if (-not (Get-WindowsFeature Windows-Server-Backup).Installed) {
     Install-WindowsFeature Windows-Server-Backup | Out-Null
 }
 
-# 2. Sauvegarde complète unique (système + état du contrôleur de domaine)
-Write-Host "Sauvegarde complète vers $Cible — comptez 20 à 60 minutes."
-& wbadmin start backup -backupTarget:$Cible -include:C: -exclude:C:\SAUVEGARDES_D -allCritical -systemState -vssFull -quiet
-if ($LASTEXITCODE -ne 0) { throw "wbadmin a échoué (code $LASTEXITCODE). Voir le journal." }
+# 2. Sauvegarde complète unique (système + état du contrôleur de domaine) — sautée si une
+#    sauvegarde réussie date d'aujourd'hui (le script se relance sans tout refaire) ; -Forcer pour la refaire
+$derniere = $null
+try { $derniere = (Get-WBSummary -ErrorAction Stop).LastSuccessfulBackupTime } catch { }
+if (-not $Forcer -and $derniere -and $derniere.Date -eq (Get-Date).Date) {
+    Write-Host "Sauvegarde réussie déjà faite aujourd'hui ($($derniere.ToString('HH:mm'))) : étape sautée (-Forcer pour la refaire)."
+} else {
+    Write-Host "Sauvegarde complète vers $Cible — comptez 20 à 60 minutes."
+    & wbadmin start backup -backupTarget:$Cible -include:C: -exclude:C:\SAUVEGARDES_D -allCritical -systemState -vssFull -quiet
+    if ($LASTEXITCODE -ne 0) { throw "wbadmin a échoué (code $LASTEXITCODE). Voir le journal." }
+}
 Write-Host "`nSauvegardes disponibles :"
 & wbadmin get versions -backupTarget:$Cible | Select-String "sauvegarde|Backup time|Version"
 
@@ -70,14 +78,17 @@ Register-ScheduledTask -TaskName "GIC - Donnees D vers C" -Force `
     -User "SYSTEM" -RunLevel Highest | Out-Null
 Write-Host "Tâche « GIC - Donnees D vers C » : chaque nuit 23:30 (exclus : $($ExclureDeD -join ', '))."
 
-# 5. Clichés instantanés sur D:, 7h30 et 13h30 (Versions précédentes)
+# 5. Clichés instantanés sur D:, 7h30 et 13h30 (Versions précédentes).
+#    wmic n'existe plus sur Windows Server 2025 : on passe par la classe WMI Win32_ShadowCopy.
 & vssadmin add shadowstorage /for=D: /on=D: /maxsize=10% 2>$null | Out-Null
+$cmdCliche = "Invoke-CimMethod -ClassName Win32_ShadowCopy -MethodName Create -Arguments @{ Volume = 'D:\'; Context = 'ClientAccessible' } | Out-Null"
 $decl = @((New-ScheduledTaskTrigger -Daily -At 07:30), (New-ScheduledTaskTrigger -Daily -At 13:30))
 Register-ScheduledTask -TaskName "GIC - Cliches D" -Force `
-    -Action (New-ScheduledTaskAction -Execute "wmic.exe" -Argument "shadowcopy call create Volume=D:\") `
+    -Action (New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-NoProfile -ExecutionPolicy Bypass -Command `"$cmdCliche`"") `
     -Trigger $decl -User "SYSTEM" -RunLevel Highest | Out-Null
-& wmic shadowcopy call create Volume=D:\ | Out-Null
-Write-Host "Tâche « GIC - Cliches D » : 07:30 et 13:30. Premier cliché créé."
+$res = Invoke-CimMethod -ClassName Win32_ShadowCopy -MethodName Create -Arguments @{ Volume = "D:\"; Context = "ClientAccessible" }
+if ($res.ReturnValue -ne 0) { Write-Warning "Cliché instantané non créé (code $($res.ReturnValue)) ; la tâche réessaiera à 07:30 et 13:30." }
+else { Write-Host "Tâche « GIC - Cliches D » : 07:30 et 13:30. Premier cliché créé." }
 
 Write-Host "`nÀ FAIRE À LA MAIN : restaurer un fichier de test depuis C:\SAUVEGARDES_D et depuis « Versions précédentes », puis noter le résultat dans docs/exploitation.md."
 Stop-Transcript | Out-Null
