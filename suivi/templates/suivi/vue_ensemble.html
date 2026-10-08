@@ -12,7 +12,8 @@
     {% component "unfold/components/text.html" %}Du temps prévu{% endcomponent %}
     {% component "unfold/components/title.html" %}{% if synthese.prevu_pct %}{{ synthese.prevu_pct }} %{% else %}—{% endif %}{% endcomponent %}
   {% endcomponent %}
-  {% component "unfold/components/card.html" with icon="inbox" href="#" %}
+  {% url 'suivi:a_classer' as url_a_classer %}
+  {% component "unfold/components/card.html" with icon="inbox" href=url_a_classer|add:"?"|add:requete_periode %}
     {% component "unfold/components/text.html" %}À classer{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ a_classer_heures }}{% endcomponent %}
   {% endcomponent %}

@@ -11,7 +11,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from django.db.models import Count, Max, Q, Sum
+from django.db.models import Count, Max, Min, Q, Sum
 from django.utils import timezone
 
 from moteur.suivi import indicateurs
@@ -302,7 +302,9 @@ def a_classer(p: Periode) -> dict:
     groupes = (
         _actifs(p, statut_classement=Segment.StatutClassement.A_CLASSER)
         .values("fichier", "chemin", "employe_id", "employe__nom_affiche", "employe__login")
-        .annotate(duree_s=Sum("duree_s"), segments=Count("id"), dernier=Max("fin"))
+        .annotate(
+            duree_s=Sum("duree_s"), segments=Count("id"), dernier=Max("fin"), segment_id=Min("id")
+        )
         .order_by("-duree_s")
     )
     brouillons = _actifs(p, statut_classement=Segment.StatutClassement.BROUILLON).aggregate(
@@ -312,6 +314,7 @@ def a_classer(p: Periode) -> dict:
         "periode": {"debut": p.debut.isoformat(), "fin": p.fin.isoformat()},
         "groupes": [
             {
+                "segment_id": g["segment_id"],  # représentant du groupe, pour rattacher
                 "fichier": g["fichier"],
                 "chemin": g["chemin"],
                 "employe_id": g["employe_id"],

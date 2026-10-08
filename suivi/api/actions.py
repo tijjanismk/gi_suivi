@@ -21,8 +21,9 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods, require_POST
 
 from identite.decorateurs import groupe_requis
-from suivi.models import Dossier, Employe, RegleException, Segment
-from suivi.services import journaliser, recalculer, valider_dossier
+from suivi.models import Dossier, Employe, Segment
+from suivi.services import journaliser, valider_dossier
+from suivi.services import rattacher as rattacher_par_exception
 
 CHAMPS_DOSSIER = {"nom", "client", "responsable_id"}
 STATUTS_MODIFIABLES = {Dossier.Statut.ACTIF, Dossier.Statut.CLOS}
@@ -130,39 +131,22 @@ def rattacher(request, segment_id: int):
     if segment.statut_classement != Segment.StatutClassement.A_CLASSER:
         return JsonResponse({"erreur": "ce segment n'est pas à classer"}, status=400)
     dossier = get_object_or_404(Dossier, pk=data.get("dossier_id"))
-
-    type_regle = data.get("type") or ("chemin" if segment.chemin else "mot_cle")
-    if type_regle not in RegleException.Type.values:
-        return JsonResponse({"erreur": "type : chemin, prefixe ou mot_cle"}, status=400)
-    motif = (data.get("motif") or "").strip()
-    if not motif:
-        if type_regle == "chemin":
-            motif = segment.chemin
-        elif type_regle == "prefixe":
-            motif = segment.chemin.rsplit("\\", 1)[0] if "\\" in segment.chemin else segment.chemin
-        else:
-            motif = (segment.fichier or segment.chemin).rsplit(".", 1)[0]
-    if not motif:
-        return JsonResponse({"erreur": "motif introuvable : précisez-le"}, status=400)
-
-    with transaction.atomic():
-        regle, creee = RegleException.objects.get_or_create(
-            motif=motif, type=type_regle, defaults={"dossier": dossier, "cree_par": request.user}
+    try:
+        regle, resultat = rattacher_par_exception(
+            segment, dossier, data.get("type"), data.get("motif") or "", request.user
         )
-        if not creee and regle.dossier_id != dossier.pk:
-            regle.dossier = dossier
-            regle.save(update_fields=["dossier"])
-        resultat = recalculer()
-        journaliser(
-            request,
-            "rattacher",
-            f"segment {segment.pk} → dossier {dossier.pk} par {type_regle} « {motif} »",
-        )
+    except ValueError as e:
+        return JsonResponse({"erreur": str(e)}, status=400)
+    journaliser(
+        request,
+        "rattacher",
+        f"segment {segment.pk} → dossier {dossier.pk} par {regle.type} « {regle.motif} »",
+    )
     return JsonResponse(
         {
             "exception_id": regle.pk,
-            "type": type_regle,
-            "motif": motif,
+            "type": regle.type,
+            "motif": regle.motif,
             "dossier": _dossier_dict(dossier),
             "segments_reclasses": resultat["modifies"],
         }

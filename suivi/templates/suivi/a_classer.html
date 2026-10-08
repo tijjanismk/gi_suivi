@@ -1,0 +1,71 @@
+{% extends "suivi/base_direction.html" %}
+{% load unfold %}
+
+{% block ecran %}
+{% if messages %}
+<div class="gic:flex gic:flex-col gic:gap-2">
+  {% for m in messages %}
+    <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm {% if m.tags == 'error' %}gic:bg-red-100 gic:text-red-900{% elif m.tags == 'warning' %}gic:bg-amber-100 gic:text-amber-900{% else %}gic:bg-green-100 gic:text-green-900{% endif %}">{{ m }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="gic:grid gic:gap-4 gic:md:grid-cols-3">
+  {% component "unfold/components/card.html" with icon="inbox" %}
+    {% component "unfold/components/text.html" %}Groupes à classer{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ nb_groupes }}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="schedule" %}
+    {% component "unfold/components/text.html" %}Heures à classer{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ total_heures }}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="draft" %}
+    {% component "unfold/components/text.html" %}Brouillons (jamais enregistrés){% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ brouillons_heures }}{% endcomponent %}
+  {% endcomponent %}
+</div>
+
+{% component "unfold/components/card.html" with title="Fichiers hors convention" title_icon="rule" %}
+  {% if groupes %}
+  <p class="gic:mb-3 gic:text-sm text-subtle">Rattacher crée une règle (exception) : les segments du groupe passent dans le dossier, et les prochains suivront la même règle.{% if not peut_agir %} <strong>Consultation seule : pas d'action depuis ce compte.</strong>{% endif %}</p>
+  <div class="gic:flex gic:flex-col gic:gap-3">
+    {% for g in groupes %}
+    <div class="gic:rounded-md gic:border border-base-200 dark:border-base-800 gic:p-3 gic:grid gic:gap-3 gic:lg:grid-cols-[1fr_auto] gic:items-center">
+      <div class="gic:text-sm gic:min-w-0">
+        <div class="text-important gic:font-medium gic:truncate" title="{{ g.chemin|default:g.fichier }}">{{ g.fichier|default:g.chemin }}</div>
+        <div class="text-subtle gic:text-xs gic:break-all">{{ g.chemin|default:"nom seul — fichier vu dans un navigateur, sans chemin" }}</div>
+        <div class="text-subtle gic:text-xs gic:mt-1">{{ g.employe }} · {{ g.heures }} sur {{ g.segments }} segment{{ g.segments|pluralize }} · dernier le {{ g.dernier_local|date:"j M H:i" }}</div>
+      </div>
+      {% if g.rattachable and peut_agir %}
+      <form method="post" action="{% url 'suivi:a_classer_rattacher' %}" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2 gic:text-sm">
+        {% csrf_token %}
+        <input type="hidden" name="segment" value="{{ g.segment_id }}">
+        <input type="hidden" name="retour" value="{% url 'suivi:a_classer' %}?{{ requete_periode }}">
+        <select name="dossier" required class="gic:rounded-md gic:px-2 gic:py-1.5 border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <option value="">Dossier…</option>
+          {% for d in dossiers %}<option value="{{ d.pk }}">{{ d.code|default:"(sans code)" }} — {{ d.nom }}{% if d.statut == 'detecte' %} (détecté){% endif %}</option>{% endfor %}
+        </select>
+        <select name="type" class="gic:rounded-md gic:px-2 gic:py-1.5 border border-base-200 dark:border-base-700 dark:bg-base-900" title="Portée de la règle">
+          {% for cle, libelle in types %}<option value="{{ cle }}">{{ libelle }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Rattacher</button>
+      </form>
+      {% elif not g.rattachable %}
+      <span class="gic:text-xs text-subtle gic:max-w-xs">Sans chemin, aucune règle automatique ne peut s'appliquer : ce temps reste « à classer ».</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Rien à classer sur la période : tout le temps mesuré est rattaché ou identifié.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
+{% if brouillons.segments %}
+{% component "unfold/components/card.html" with title="Brouillons" title_icon="draft" %}
+  {% component "unfold/components/text.html" %}
+    {{ brouillons.segments }} segment{{ brouillons.segments|pluralize }} ({{ brouillons_heures }}) sur des documents jamais enregistrés (Document1, Classeur2…) : ils ne peuvent pas être rattachés. Rappel utile à l'équipe : enregistrer un document dans son dossier dès sa création.
+  {% endcomponent %}
+{% endcomponent %}
+{% endif %}
+{% endblock %}

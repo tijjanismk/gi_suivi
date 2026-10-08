@@ -188,6 +188,11 @@ UNFOLD = {
                         "icon": "rule_folder",
                         "link": _lien("suivi:gestion_dossiers"),
                     },
+                    {
+                        "title": "À classer",
+                        "icon": "inbox",
+                        "link": _lien("suivi:a_classer"),
+                    },
                 ],
             },
             {

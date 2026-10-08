@@ -231,6 +231,40 @@ def recalculer() -> dict[str, int]:
     return {"examines": len(segments), "modifies": len(modifies), "demandes": demandes}
 
 
+def motif_par_defaut(segment: Segment, type_regle: str) -> str:
+    if type_regle == "chemin":
+        return segment.chemin
+    if type_regle == "prefixe":
+        return segment.chemin.rsplit("\\", 1)[0] if "\\" in segment.chemin else segment.chemin
+    return (segment.fichier or segment.chemin).rsplit(".", 1)[0]
+
+
+def rattacher(
+    segment: Segment,
+    dossier: Dossier,
+    type_regle: str | None = None,
+    motif: str = "",
+    utilisateur=None,
+) -> tuple[RegleException, dict[str, int]]:
+    """Rattache un groupe « à classer » à un dossier par une exception, puis recalcule : tous
+    les segments concernés, passés et futurs, suivent. ValueError si la demande est incomplète."""
+    type_regle = type_regle or ("chemin" if segment.chemin else "mot_cle")
+    if type_regle not in RegleException.Type.values:
+        raise ValueError("type : chemin, prefixe ou mot_cle")
+    motif = (motif or "").strip() or motif_par_defaut(segment, type_regle)
+    if not motif:
+        raise ValueError("motif introuvable : précisez-le")
+    with transaction.atomic():
+        regle, creee = RegleException.objects.get_or_create(
+            motif=motif, type=type_regle, defaults={"dossier": dossier, "cree_par": utilisateur}
+        )
+        if not creee and regle.dossier_id != dossier.pk:
+            regle.dossier = dossier
+            regle.save(update_fields=["dossier"])
+        resultat = recalculer()
+    return regle, resultat
+
+
 def valider_dossier(dossier: Dossier, utilisateur, **champs) -> Dossier:
     """La direction confirme un dossier détecté (et peut corriger nom, client, responsable).
     Le dossier devient actif ; un recalcul est demandé."""
