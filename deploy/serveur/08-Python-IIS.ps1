@@ -37,11 +37,30 @@ $zone = (Get-ADDomain).DNSRoot; $dom = (Get-ADDomain).NetBIOSName
 # 1. Python 3.14 pour tous les utilisateurs, hors profil. S'il a été installé à la main (assistant
 #    python.org, « pour tous les utilisateurs »), on le retrouve par le registre et on le garde ;
 #    l'installer une seconde fois échouerait (code 1603).
+function Python-Fonctionne($exe) {
+    # Une installation interrompue laisse un python.exe sans bibliothèque (« Could not find platform
+    # independent libraries ») : on ne retient qu'un Python qui démarre vraiment.
+    if (-not (Test-Path $exe)) { return $false }
+    $null = & $exe -c "import sys, encodings; print(sys.prefix)" 2>&1
+    return ($LASTEXITCODE -eq 0)
+}
 function Trouver-Python314 {
-    if (Test-Path "C:\Python314\python.exe") { return "C:\Python314\python.exe" }
+    $candidats = @("C:\Python314\python.exe")
     foreach ($cle in "HKLM:\SOFTWARE\Python\PythonCore\3.14\InstallPath", "HKLM:\SOFTWARE\WOW6432Node\Python\PythonCore\3.14\InstallPath") {
         $p = (Get-ItemProperty $cle -ErrorAction SilentlyContinue).'(default)'
-        if ($p -and (Test-Path (Join-Path $p "python.exe"))) { return (Join-Path $p "python.exe") }
+        if ($p) { $candidats += (Join-Path $p "python.exe") }
+    }
+    foreach ($c in $candidats) {
+        if (Test-Path $c) {
+            if (Python-Fonctionne $c) { return $c }
+            Write-Warning "Python présent mais inutilisable (installation incomplète) : $c"
+            if ($c -eq "C:\Python314\python.exe") {
+                # reste d'une installation silencieuse échouée (code 1603) : écarté, pas supprimé
+                $casse = "C:\Python314_incomplet_$(Get-Date -Format yyyyMMdd_HHmm)"
+                Rename-Item "C:\Python314" $casse
+                Write-Host "C:\Python314 renommé en $casse."
+            }
+        }
     }
     return $null
 }

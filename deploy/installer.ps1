@@ -56,17 +56,27 @@ if ($RetourArriere) {
 }
 
 if ($Env -eq "prod" -and $Ref -notmatch '^v\d+\.\d+\.\d+$') { throw "En production, -Ref doit être un tag vX.Y.Z (docs/git.md)." }
-if (-not (Test-Path $Python)) {
-    # Python installé ailleurs qu'en C:\Python314 (à la main) : 08-Python-IIS.ps1 a noté son chemin
-    $note = "C:\GIC\outils\python.txt"
-    if ((Test-Path $note) -and (Test-Path (Get-Content $note -First 1))) { $Python = Get-Content $note -First 1 }
-    else {
-        $p = (Get-ItemProperty "HKLM:\SOFTWARE\Python\PythonCore\3.14\InstallPath" -ErrorAction SilentlyContinue).'(default)'
-        if ($p -and (Test-Path (Join-Path $p "python.exe"))) { $Python = Join-Path $p "python.exe" }
-    }
+function Python-Fonctionne($exe) {
+    if (-not $exe -or -not (Test-Path $exe)) { return $false }
+    $null = & $exe -c "import sys, encodings; print(sys.prefix)" 2>&1   # un python.exe orphelin (installation interrompue) échoue ici
+    return ($LASTEXITCODE -eq 0)
 }
-if (-not (Test-Path $Python)) { throw "Python introuvable : $Python (serveur\08-Python-IIS.ps1)." }
+if (-not (Python-Fonctionne $Python)) {
+    # Python installé ailleurs qu'en C:\Python314 (à la main) : 08-Python-IIS.ps1 a noté son chemin
+    $candidats = @()
+    $note = "C:\GIC\outils\python.txt"
+    if (Test-Path $note) { $candidats += (Get-Content $note -First 1) }
+    $p = (Get-ItemProperty "HKLM:\SOFTWARE\Python\PythonCore\3.14\InstallPath" -ErrorAction SilentlyContinue).'(default)'
+    if ($p) { $candidats += (Join-Path $p "python.exe") }
+    $Python = $candidats | Where-Object { Python-Fonctionne $_ } | Select-Object -First 1
+}
+if (-not $Python) { throw "Aucun Python 3.14 fonctionnel (serveur\08-Python-IIS.ps1 l'installe pour tous les utilisateurs)." }
 Write-Host "Python : $Python"
+# Un venv créé à partir d'un Python cassé est inutilisable : on le refait si son python ne démarre pas
+if ((Test-Path "$venv\Scripts\python.exe") -and -not (Python-Fonctionne "$venv\Scripts\python.exe")) {
+    Write-Warning "Environnement virtuel $venv inutilisable : recréé."
+    Remove-Item $venv -Recurse -Force
+}
 $git = Get-Command git -ErrorAction SilentlyContinue
 
 # 1. Le code dans app_nouveau\
