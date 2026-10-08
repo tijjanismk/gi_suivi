@@ -32,6 +32,16 @@ Start-Transcript -Path "$journaux\04-comptes_$(Get-Date -Format yyyyMMdd_HHmm).l
 
 $domaine = Get-ADDomain
 $dn      = $domaine.DistinguishedName          # DC=GICONSEILS,DC=LOCAL
+
+# Les logins passés en paramètre doivent exister avant qu'on ne crée quoi que ce soit
+$inconnus = @()
+foreach ($login in (@($Membres.Values | ForEach-Object { $_ }) + $Administrateurs)) {
+    if ($login -and -not (Get-ADUser -Filter "SamAccountName -eq '$login'" -ErrorAction SilentlyContinue)) { $inconnus += $login }
+}
+if ($inconnus) {
+    $actifs = (Get-ADUser -Filter 'Enabled -eq $true' | Where-Object SamAccountName -notin 'krbtgt', 'Guest', 'Invité' | Sort-Object SamAccountName | ForEach-Object { $_.SamAccountName }) -join ', '
+    throw "Login(s) inconnu(s) dans l'annuaire : $($inconnus -join ', '). Comptes actifs : $actifs. Remplacez les paramètres -Directeur / -Administrateur (ou -Membres) par de vrais logins."
+}
 $ouGic   = "OU=GIC,$dn"
 $ouGrp   = "OU=Groupes,$ouGic"
 $ouSvc   = "OU=Comptes de service,$ouGic"
