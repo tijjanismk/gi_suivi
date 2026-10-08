@@ -1,0 +1,71 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <div class="gic:flex gic:flex-col gic:gap-1">
+    {% component "unfold/components/title.html" %}{{ titre }}{% endcomponent %}
+    {% component "unfold/components/text.html" %}
+      Chaque poste du bureau fait tourner l'agent GI-Suivi. Rouge : muet depuis plus de 24 h ouvrées (ou jamais vu envoyer) ; orange : l'agent redémarre trop souvent dans la semaine.
+      {% if versions %}Versions en service : {{ versions|join:", " }}.{% endif %}
+    {% endcomponent %}
+  </div>
+
+  <div class="gic:grid gic:gap-4 gic:md:grid-cols-3">
+    {% component "unfold/components/card.html" with icon="check_circle" %}
+      {% component "unfold/components/text.html" %}Postes sains{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ sains }}{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" with icon="warning" %}
+      {% component "unfold/components/text.html" %}Orange — redémarrages{% endcomponent %}
+      {% component "unfold/components/title.html" %}<span class="gic:text-amber-700">{{ oranges }}</span>{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" with icon="desktop_access_disabled" %}
+      {% component "unfold/components/text.html" %}Rouge — muets{% endcomponent %}
+      {% component "unfold/components/title.html" %}<span class="gic:text-red-700">{{ rouges }}</span>{% endcomponent %}
+    {% endcomponent %}
+  </div>
+
+  {% component "unfold/components/card.html" with title="Postes" title_icon="computer" %}
+    {% if postes %}
+    <div class="gic:overflow-x-auto">
+      <table class="gic:w-full gic:text-sm">
+        <thead>
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Poste</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Alerte</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Dernière personne</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Agent</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Dernier envoi</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Muet depuis</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Démarrages / sem.</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in postes %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800 {% if p.alerte == 'rouge' %}gic:bg-red-50 gic:dark:bg-red-950/30{% elif p.alerte == 'orange' %}gic:bg-amber-50 gic:dark:bg-amber-950/30{% endif %}">
+            <td class="gic:py-2 text-important gic:font-medium gic:whitespace-nowrap">{{ p.nom }}</td>
+            <td class="gic:py-2">
+              {% if p.alerte == 'rouge' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">rouge — muet</span>
+              {% elif p.alerte == 'orange' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-amber-100 gic:text-amber-900">orange — instable</span>
+              {% else %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-green-100 gic:text-green-900">sain</span>{% endif %}
+            </td>
+            <td class="gic:py-2">{{ p.personne|default:"—" }}</td>
+            <td class="gic:py-2 gic:tabular-nums">{{ p.version_agent|default:"—" }}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums gic:whitespace-nowrap">{% if p.dernier_envoi_local %}{{ p.dernier_envoi_local|date:"D j M H:i" }}{% else %}jamais{% endif %}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{% if p.muet_depuis_h_ouvrees is not None %}{{ p.muet_depuis_h_ouvrees }} h ouvrées{% else %}—{% endif %}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ p.demarrages_semaine }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      {% component "unfold/components/text.html" %}Aucun poste n'a encore envoyé de lot.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+</div>
+{% endblock %}

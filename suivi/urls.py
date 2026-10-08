@@ -13,4 +13,5 @@ urlpatterns = [
     path("dossiers/", direction.dossiers, name="dossiers"),
     path("personnes/", direction.employes, name="employes"),
     path("personnes/<int:employe_id>/", direction.employe, name="employe"),
+    path("postes/", direction.postes, name="postes"),
 ]

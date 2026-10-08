@@ -204,6 +204,38 @@ def employe(request, employe_id: int):
     )
 
 
+@consultation_requise
+def postes(request):
+    """T07 : état des postes — version de l'agent, dernier envoi, démarrages, alertes."""
+    journaliser(request, "consulter:postes")
+    etats = rapports.etat_postes()
+    derniers = {
+        s.poste_id: s
+        for s in Segment.objects.order_by("poste_id", "-debut")
+        .distinct("poste_id")
+        .select_related("employe")
+    }
+    for p in etats:
+        dernier = derniers.get(p["id"])
+        p["personne"] = str(dernier.employe) if dernier else None
+        p["dernier_envoi_local"] = (
+            timezone.datetime.fromisoformat(p["dernier_envoi"]) if p["dernier_envoi"] else None
+        )
+    return render(
+        request,
+        "suivi/postes.html",
+        {
+            **admin.site.each_context(request),
+            "titre": "État des postes",
+            "postes": etats,
+            "rouges": sum(1 for p in etats if p["alerte"] == "rouge"),
+            "oranges": sum(1 for p in etats if p["alerte"] == "orange"),
+            "sains": sum(1 for p in etats if p["alerte"] is None),
+            "versions": sorted({p["version_agent"] for p in etats if p["version_agent"]}),
+        },
+    )
+
+
 def indicateurs_pct(part: int, total: int):
     from moteur.suivi.indicateurs import pourcentage
 

@@ -17,7 +17,8 @@
     {% component "unfold/components/text.html" %}À classer{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ a_classer_heures }}{% endcomponent %}
   {% endcomponent %}
-  {% component "unfold/components/card.html" with icon="desktop_access_disabled" %}
+  {% url 'suivi:postes' as url_postes %}
+  {% component "unfold/components/card.html" with icon="desktop_access_disabled" href=url_postes %}
     {% component "unfold/components/text.html" %}Postes muets{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ postes_rouges }}{% endcomponent %}
   {% endcomponent %}

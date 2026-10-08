@@ -109,6 +109,25 @@ def test_fiche_personne_jour_sans_activite(client, jeu_de_segments, employes):
 
 
 @override_settings(**IIS)
+def test_etat_des_postes(client, jeu_de_segments):
+    assert client.get("/suivi/postes/", **AWA).status_code == 403
+    html = client.get("/suivi/postes/", **VUE).content.decode()
+    assert "État des postes" in html and "PC-ETUDES-01" in html and "PC-ETUDES-02" in html
+    assert "rouge — muet" in html and "sain" in html and "Versions en service : 0.2.0" in html
+    assert "Awa Traoré" in html and "Moussa Keïta" in html  # dernière personne sur chaque poste
+    assert "h ouvrées" in html and ">14<" in html  # démarrages de PC-ETUDES-02
+    assert JournalAcces.objects.filter(action="consulter:postes").exists()
+    html = client.get("/suivi/" + PERIODE, **DIR).content.decode()
+    assert 'href="/suivi/postes/"' in html
+
+
+@override_settings(**IIS)
+def test_etat_des_postes_vide(client):
+    html = client.get("/suivi/postes/", **DIR).content.decode()
+    assert "Aucun poste" in html
+
+
+@override_settings(**IIS)
 def test_ecran_dossiers_vide(client):
     html = client.get("/suivi/dossiers/", **DIR).content.decode()
     assert "Aucun temps rattaché" in html

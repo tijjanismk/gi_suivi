@@ -193,6 +193,11 @@ UNFOLD = {
                         "icon": "inbox",
                         "link": _lien("suivi:a_classer"),
                     },
+                    {
+                        "title": "État des postes",
+                        "icon": "computer",
+                        "link": _lien("suivi:postes"),
+                    },
                 ],
             },
             {
