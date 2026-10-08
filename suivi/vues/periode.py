@@ -67,6 +67,11 @@ class Selection:
         """Paramètres à reporter dans les liens vers les autres écrans."""
         return urlencode(self._params())
 
+    @property
+    def requete_sans_dossier(self) -> str:
+        """Même période, filtre dossier retiré (lien « tous » du sélecteur)."""
+        return urlencode(self._params(dossier=None))
+
 
 def selection_de(params) -> Selection:
     """Pré-réglage `p` s'il est connu ; sinon debut/fin ; sinon 7 derniers jours.

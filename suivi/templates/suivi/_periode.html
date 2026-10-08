@@ -1,24 +1,33 @@
-{% comment %} Sélecteur de période (T09) : pré-réglages + dates libres, tout dans l'URL. {% endcomment %}
-<form method="get" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
-  <div class="gic:flex gic:rounded-md gic:overflow-hidden border border-base-200 dark:border-base-700">
-    {% for l in liens_periode %}
-      <a href="{{ l.url }}"
-         class="gic:px-3 gic:py-1.5 gic:text-sm {% if l.actif %}bg-primary-600 gic:text-white{% else %}bg-white text-subtle dark:bg-base-900 gic:hover:bg-gray-50{% endif %}">{{ l.libelle }}</a>
-    {% endfor %}
+{% comment %} Sélecteur de période (T09) : pré-réglages + dates libres + filtre dossier, tout dans
+l'URL. Deux lignes fixes, alignées à gauche, largeurs fixes : changer un filtre ne déplace pas les
+autres (le libellé « Dossier : … » et le message d'erreur viennent en fin de ligne). {% endcomment %}
+<form method="get" class="gic:flex gic:flex-col gic:gap-2" id="filtres-periode">
+  <div class="gic:flex gic:flex-wrap gic:items-center gic:gap-3">
+    <div class="gic:flex gic:rounded-md gic:overflow-hidden border border-base-200 dark:border-base-700">
+      {% for l in liens_periode %}
+        <a href="{{ l.url }}"
+           class="gic:px-3 gic:py-1.5 gic:text-sm gic:whitespace-nowrap {% if l.actif %}bg-primary-600 gic:text-white{% else %}bg-white text-subtle dark:bg-base-900 gic:hover:bg-gray-50{% endif %}">{{ l.libelle }}</a>
+      {% endfor %}
+    </div>
+    <a href="{% url 'suivi:export_excel' %}?{{ requete_periode }}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50" title="Classeur Excel de la période : synthèse, dossiers, journées, fichiers, à classer, postes">
+      <span class="material-symbols-outlined gic:text-base!">download</span> Excel
+    </a>
   </div>
-  <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">du
-    <input type="date" name="debut" value="{{ periode.debut|date:'Y-m-d' }}" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
-  </label>
-  <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">au
-    <input type="date" name="fin" value="{{ periode.fin|date:'Y-m-d' }}" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
-  </label>
-  {% if dossiers_filtre is not None %}
-  <select name="dossier" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900" title="Limiter au temps passé sur un dossier">
-    <option value="">Tous les dossiers</option>
-    {% for d in dossiers_filtre %}<option value="{{ d.pk }}" {% if dossier_filtre and dossier_filtre.pk == d.pk %}selected{% endif %}>{{ d.code|default:"(sans code)" }} — {{ d.nom }}</option>{% endfor %}
-  </select>
-  {% endif %}
-  <button type="submit" class="gic:px-3 gic:py-1.5 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Appliquer</button>
-  {% if dossier_filtre %}<span class="gic:text-sm text-subtle">Dossier : <strong class="text-important">{{ dossier_filtre.code|default:dossier_filtre.nom }}</strong></span>{% endif %}
-  {% if selection.erreur %}<span class="gic:text-sm gic:text-red-600">{{ selection.erreur }} — 7 derniers jours affichés.</span>{% endif %}
+  <div class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+    <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">du
+      <input type="date" name="debut" value="{{ periode.debut|date:'Y-m-d' }}" class="gic:w-36 gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">au
+      <input type="date" name="fin" value="{{ periode.fin|date:'Y-m-d' }}" class="gic:w-36 gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    {% if dossiers_filtre is not None %}
+    <select name="dossier" class="gic:w-64 gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900" title="Limiter au temps passé sur un dossier">
+      <option value="">Tous les dossiers</option>
+      {% for d in dossiers_filtre %}<option value="{{ d.pk }}" {% if dossier_filtre and dossier_filtre.pk == d.pk %}selected{% endif %}>{{ d.code|default:"(sans code)" }} — {{ d.nom }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <button type="submit" class="gic:px-3 gic:py-1.5 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Appliquer</button>
+    {% if dossier_filtre %}<span class="gic:text-sm text-subtle gic:whitespace-nowrap">Dossier : <strong class="text-important">{{ dossier_filtre.code|default:dossier_filtre.nom }}</strong> · <a class="text-primary-600 gic:hover:underline" href="?{{ selection.requete_sans_dossier }}">tous</a></span>{% endif %}
+    {% if selection.erreur %}<span class="gic:text-sm gic:text-red-600">{{ selection.erreur }} — 7 derniers jours affichés.</span>{% endif %}
+  </div>
 </form>

@@ -6,19 +6,16 @@
 
 {% block content %}
 <div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
-  <div class="gic:flex gic:flex-wrap gic:items-end gic:justify-between gic:gap-4">
+  {% comment %} Titre, puis la barre de filtres sur sa propre ligne, alignée à gauche : un filtre
+  qui change de largeur (dossier choisi, message) ne déplace pas ceux qui le précèdent. {% endcomment %}
+  <div class="gic:flex gic:flex-col gic:gap-3">
     <div class="gic:flex gic:flex-col gic:gap-1">
       {% component "unfold/components/title.html" %}{{ titre }}{% endcomponent %}
       {% component "unfold/components/text.html" %}
         Du {{ periode.debut|date:"l j F Y" }} au {{ periode.fin|date:"l j F Y" }} ({{ periode.jours }} jour{{ periode.jours|pluralize }}).
       {% endcomponent %}
     </div>
-    <div class="gic:flex gic:flex-wrap gic:items-center gic:gap-3">
-      {% include "suivi/_periode.html" %}
-      <a href="{% url 'suivi:export_excel' %}?{{ requete_periode }}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50" title="Classeur Excel de la période : synthèse, dossiers, journées, fichiers, à classer, postes">
-        <span class="material-symbols-outlined gic:text-base!">download</span> Excel
-      </a>
-    </div>
+    {% include "suivi/_periode.html" %}
   </div>
   {% block ecran %}{% endblock %}
 </div>

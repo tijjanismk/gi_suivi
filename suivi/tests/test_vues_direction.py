@@ -37,6 +37,7 @@ def test_vue_ensemble_reservee_puis_affichee(client, jeu_de_segments):
     assert r.status_code == 200
     html = r.content.decode()
     assert "Vue d'ensemble" in html and "30 h 00" in html and "62.5 %" in html
+    assert "{#" not in html and "{%" not in html  # aucun commentaire de gabarit rendu
     assert "Awa Traoré" in html and "Moussa Keïta" in html
     assert "18 h 00" in html and "12 h 00" in html  # barres
     assert "08:00–17:00" in html  # lundi d'Awa dans le tableau
@@ -164,6 +165,8 @@ def test_prereglages_de_periode(client):
         and s.periode == s.periode
         and s.requete == "debut=2026-10-05&fin=2026-10-07"
     )
+    s = selection_de({"p": "7j", "dossier": "4"})
+    assert s.requete == "p=7j&dossier=4" and s.requete_sans_dossier == "p=7j"
     assert selection_de({}).prereglage == "7j" and selection_de({"p": "inconnu"}).prereglage == "7j"
     # période invalide : repli sur 7 jours avec un message, pas d'erreur 400 sur un écran
     s = selection_de({"debut": "2026-10-07", "fin": "2026-10-05"})
