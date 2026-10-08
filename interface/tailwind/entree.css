@@ -1,0 +1,18 @@
+/* CSS propre au projet (ADR 0005, point 4).
+
+   Unfold livre un CSS Tailwind précompilé qui ne contient que les classes de SES gabarits. Nos
+   pages ont besoin de classes de disposition qu'il n'a pas (grilles, largeurs, variantes
+   sm:/md:/xl:…). Compiler un second Tailwind avec les mêmes noms de classes casse la mise en
+   page d'Unfold (constaté le 08/10/2026 : menu latéral disparu). D'où le PRÉFIXE `gic` :
+   nos classes s'écrivent `gic:grid`, `gic:max-w-3xl`, `gic:sm:grid-cols-3`… et ne peuvent
+   entrer en collision avec rien. Les classes sémantiques d'Unfold (text-subtle, bg-base-50,
+   border-base-200, text-important, text-primary-600, rounded-default…) restent sans préfixe :
+   c'est son CSS qui les fournit.
+
+   Compiler : .\scripts\dev\construire_css.ps1  →  interface/static/css/gic.css (versionné). */
+
+@import "tailwindcss" prefix(gic);
+
+@source "../../interface/templates/**/*.html";
+@source "../../identite/templates/**/*.html";
+@source "../../suivi/templates/**/*.html";

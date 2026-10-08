@@ -30,10 +30,17 @@ interface en français, mobile d'abord, impression propre.
    de GNU gettext sous Windows). `.mo` versionné : le serveur n'a pas gettext
    non plus. `scripts/dev/chaines_unfold.py` liste les textes à revoir quand
    Unfold change de version.
-4. **CSS propre au projet, si besoin, avec l'outil Tailwind** autonome
+4. **CSS propre au projet avec l'outil Tailwind** autonome
    (`tailwindcss-windows-x64.exe`, sur le poste de développement seulement,
-   dans `C:\dev\outils\tailwind`, hors dépôt). Il produit un fichier CSS
+   dans `C:\dev\outils\tailwind`, hors dépôt). `scripts/dev/construire_css.ps1`
+   compile `interface/tailwind/entree.css` en `interface/static/css/gic.css`,
    versionné ; le serveur ne compile rien. Pas d'outillage Node.
+   **Nos classes sont préfixées `gic:`** (`gic:grid`, `gic:max-w-3xl`,
+   `gic:sm:grid-cols-3`…) : un second Tailwind non préfixé redéfinit `hidden`,
+   `flex`… et casse la mise en page d'Unfold (constaté le 08/10/2026). Les
+   classes sémantiques d'Unfold (`text-subtle`, `bg-base-50`, `text-important`,
+   `text-primary-600`…) restent sans préfixe, fournies par son CSS. Le lien
+   vers `gic.css` porte la date du fichier (`?v=`) pour casser le cache.
 
 ## Conséquences
 

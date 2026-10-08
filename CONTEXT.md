@@ -107,7 +107,9 @@ développement. Un login propre à l'application a été écarté (CONTEXT.md r.
 **Prochaine étape :** A05 (points d'accès des rapports, réservés à la direction) puis A06 (actions) ; T02 vue
 d'ensemble ; décider la source des groupes AD (S02) ; P01 sauvegarde du serveur. Toujours
 `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la
-base de dev après chaque nouvelle migration (la base de test, elle, est recréée).
+base de dev après chaque nouvelle migration (la base de test, elle, est recréée). Après un
+changement de gabarit ou de classes : `scripts\dev\construire_css.ps1` (classes préfixées
+`gic:`, ADR 0005) puis redémarrer le serveur de dev (cache des gabarits, `--noreload`).
 
 ## Ce que l'IA doit faire en début de session
 

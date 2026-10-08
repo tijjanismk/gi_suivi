@@ -4,16 +4,16 @@
 {% block title %}Qui suis-je ? | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
 
 {% block content %}
-<div class="flex flex-col gap-6 max-w-2xl py-8">
+<div class="gic:flex gic:flex-col gic:gap-6 gic:max-w-2xl gic:py-8">
     {% component "unfold/components/title.html" %}Qui suis-je ?{% endcomponent %}
 
     {% component "unfold/components/card.html" with title="Identité vue par l'application" title_icon="fingerprint" %}
-        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+        <dl class="gic:grid gic:grid-cols-1 gic:gap-x-6 gic:gap-y-3 gic:sm:grid-cols-3">
             <dt class="text-subtle">Login Windows</dt>
-            <dd class="font-medium text-important sm:col-span-2">{{ user.login_windows }}</dd>
+            <dd class="gic:font-medium text-important gic:sm:col-span-2">{{ user.login_windows }}</dd>
 
             <dt class="text-subtle">Groupes</dt>
-            <dd class="flex flex-wrap gap-2 sm:col-span-2">
+            <dd class="gic:flex gic:flex-wrap gic:gap-2 gic:sm:col-span-2">
                 {% for g in user.groupes %}
                     {% component "unfold/helpers/label.html" with variant="primary" text=g %}{% endcomponent %}
                 {% empty %}
@@ -22,7 +22,7 @@
             </dd>
 
             <dt class="text-subtle">Accès direction</dt>
-            <dd class="sm:col-span-2">
+            <dd class="gic:sm:col-span-2">
                 {% if direction %}
                     {% component "unfold/helpers/label.html" with variant="success" text="oui, avec les actions" %}{% endcomponent %}
                 {% elif lecture_seule %}
@@ -33,7 +33,7 @@
             </dd>
 
             <dt class="text-subtle">Source de l'identité</dt>
-            <dd class="sm:col-span-2">
+            <dd class="gic:sm:col-span-2">
                 {% if source == "dev" %}utilisateur fictif (développement){% else %}IIS, authentification Windows{% endif %}
             </dd>
         </dl>

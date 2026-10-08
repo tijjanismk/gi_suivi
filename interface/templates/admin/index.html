@@ -5,13 +5,13 @@
 {% block breadcrumbs %}{% endblock %}
 
 {% block content %}
-<div class="flex flex-col gap-8">
-    <div class="flex flex-col gap-1">
+<div class="gic:flex gic:flex-col gic:gap-8">
+    <div class="gic:flex gic:flex-col gic:gap-1">
         {% component "unfold/components/title.html" %}Bonjour {{ user.nom_affiche|default:user.login_windows }}{% endcomponent %}
         {% component "unfold/components/text.html" %}Activité mesurée par les agents de poste, aujourd'hui.{% endcomponent %}
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
         {% for i in indicateurs %}
             {% component "unfold/components/card.html" with href=i.lien icon=i.icone %}
                 {% component "unfold/components/text.html" %}{{ i.titre }}{% endcomponent %}
@@ -25,7 +25,7 @@
             {% component "unfold/components/text.html" %}
                 {{ dossiers_a_valider }} dossier{{ dossiers_a_valider|pluralize }} vu{{ dossiers_a_valider|pluralize }} par les agents,
                 pas encore validé{{ dossiers_a_valider|pluralize }}.
-                <a class="text-primary-600 underline" href="{% url 'admin:suivi_dossier_changelist' %}?statut__exact=detecte">Les voir</a>
+                <a class="text-primary-600 gic:underline" href="{% url 'admin:suivi_dossier_changelist' %}?statut__exact=detecte">Les voir</a>
             {% endcomponent %}
         {% endcomponent %}
     {% endif %}

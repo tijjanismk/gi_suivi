@@ -4,9 +4,9 @@
 {% block title %}Mon activité du jour | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
 
 {% block base %}
-<div class="bg-base-50 min-h-screen dark:bg-base-900">
-  <div class="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-6">
-    <div class="flex flex-col gap-1">
+<div class="bg-base-50 gic:min-h-screen dark:bg-base-900">
+  <div class="gic:max-w-3xl gic:mx-auto gic:px-4 gic:py-8 gic:flex gic:flex-col gic:gap-6">
+    <div class="gic:flex gic:flex-col gic:gap-1">
       {% component "unfold/components/title.html" %}Mon activité du jour{% endcomponent %}
       {% component "unfold/components/text.html" %}
         {{ activite.jour }} — {{ activite.employe|default:user.login_windows }}.
@@ -14,7 +14,7 @@
       {% endcomponent %}
     </div>
 
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="gic:grid gic:gap-4 gic:sm:grid-cols-3">
       {% component "unfold/components/card.html" with icon="schedule" %}
         {% component "unfold/components/text.html" %}Temps actif{% endcomponent %}
         {% component "unfold/components/title.html" %}{{ activite.total_hm }}{% endcomponent %}
@@ -30,21 +30,21 @@
     </div>
 
     {% component "unfold/components/card.html" with title="Par dossier" title_icon="folder" %}
-      {% if activite.par_dossier %}
-        <table class="w-full text-sm">
+      {% if activite.par_dossier or activite.a_classer_s or activite.sans_fichier_s %}
+        <table class="gic:w-full gic:text-sm">
           <tbody>
           {% for d in activite.par_dossier %}
-            <tr class="border-b border-base-200 dark:border-base-800">
-              <td class="py-2 font-medium text-important">{{ d.code|default:"(sans code)" }}</td>
-              <td class="py-2 text-subtle">{{ d.nom }}</td>
-              <td class="py-2 text-right tabular-nums">{% widthratio d.duree_s 60 1 %} min</td>
+            <tr class="gic:border-b border-base-200 dark:border-base-800">
+              <td class="gic:py-2 gic:font-medium text-important">{{ d.code|default:"(sans code)" }}</td>
+              <td class="gic:py-2 text-subtle">{{ d.nom }}</td>
+              <td class="gic:py-2 gic:text-right gic:tabular-nums">{% widthratio d.duree_s 60 1 %} min</td>
             </tr>
           {% endfor %}
           {% if activite.a_classer_s %}
-            <tr><td class="py-2" colspan="2">À classer</td><td class="py-2 text-right tabular-nums">{% widthratio activite.a_classer_s 60 1 %} min</td></tr>
+            <tr><td class="gic:py-2" colspan="2">À classer</td><td class="gic:py-2 gic:text-right gic:tabular-nums">{% widthratio activite.a_classer_s 60 1 %} min</td></tr>
           {% endif %}
           {% if activite.sans_fichier_s %}
-            <tr><td class="py-2 text-subtle" colspan="2">Sans fichier (navigateur, explorateur…)</td><td class="py-2 text-right tabular-nums text-subtle">{% widthratio activite.sans_fichier_s 60 1 %} min</td></tr>
+            <tr><td class="gic:py-2 text-subtle" colspan="2">Sans fichier (navigateur, explorateur…)</td><td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle">{% widthratio activite.sans_fichier_s 60 1 %} min</td></tr>
           {% endif %}
           </tbody>
         </table>
@@ -55,12 +55,12 @@
 
     {% if activite.par_application %}
     {% component "unfold/components/card.html" with title="Par application" title_icon="apps" %}
-      <table class="w-full text-sm">
+      <table class="gic:w-full gic:text-sm">
         <tbody>
         {% for a in activite.par_application %}
-          <tr class="border-b border-base-200 dark:border-base-800">
-            <td class="py-2">{{ a.application }}</td>
-            <td class="py-2 text-right tabular-nums">{% widthratio a.duree_s 60 1 %} min</td>
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <td class="gic:py-2">{{ a.application }}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{% widthratio a.duree_s 60 1 %} min</td>
           </tr>
         {% endfor %}
         </tbody>

@@ -8,6 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from urllib.parse import unquote, urlparse
 
+from django.templatetags.static import static
 from environs import Env
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -120,6 +121,14 @@ GROUPE_OFFRES = env.str("GROUPE_OFFRES", "GI-Offres")
 
 
 # --- Interface (Unfold, ADR 0005) -----------------------------------------------------
+def _version_fichier(chemin_statique: str) -> int:
+    """Date de modification d'un fichier de interface/static, pour casser le cache."""
+    try:
+        return int((BASE_DIR / "interface" / "static" / chemin_statique).stat().st_mtime)
+    except OSError:
+        return 0
+
+
 def _lien(nom: str):
     from django.urls import reverse_lazy
 
@@ -147,6 +156,9 @@ UNFOLD = {
     "SITE_SUBHEADER": "Suivi d'activité",
     "SITE_SYMBOL": "monitoring",
     "SHOW_VIEW_ON_SITE": False,
+    # CSS du projet (ADR 0005, point 4) : classes de nos gabarits absentes du CSS d'Unfold.
+    # ?v=<date du fichier> : une recompilation change l'URL, le navigateur ne garde pas l'ancien.
+    "STYLES": [lambda request: f"{static('css/gic.css')}?v={_version_fichier('css/gic.css')}"],
     "DASHBOARD_CALLBACK": "suivi.tableau_de_bord.contexte",
     "COLORS": {"primary": _BLEU},
     "SIDEBAR": {
