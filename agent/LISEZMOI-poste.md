@@ -10,6 +10,12 @@ l'agent et son service de supervision sur **un** poste Windows 10/11 du domaine.
 - Vous êtes **administrateur local** du poste.
 - Le fichier `config.json` du kit porte les bonnes **racines** (dossiers de projet du partage) et,
   si le serveur est prêt, `url_api` (sinon `null` : l'agent mesure en local et enverra plus tard).
+- Si le serveur utilise un **certificat auto-signé** (pas d'autorité de certification interne —
+  c'est le cas d'AD-SERVEUR), le fichier **`gic-serveur.cer`** doit être dans le dossier du kit,
+  à côté de `installer-poste.ps1` : il est produit sur le serveur par
+  `deploy\serveur\08-Python-IIS.ps1 -AutoSigne` (dans `C:\GIC\deploy\`). Le script l'importe dans
+  les autorités racines de confiance du poste ; sans lui, l'agent et le navigateur refuseront
+  `https://suivi-test.giconseils.local`.
 
 ## Installation (5 minutes)
 
@@ -22,13 +28,18 @@ l'agent et son service de supervision sur **un** poste Windows 10/11 du domaine.
    .\installer-poste.ps1
    ```
    Le script copie l'agent dans `C:\Program Files\GI-CONSEILS\GiSuivi\`, pose la configuration
-   dans `C:\ProgramData\GiSuivi\config.json`, crée et démarre le service `GiSuivi`.
+   dans `C:\ProgramData\GiSuivi\config.json`, approuve le certificat du serveur s'il est fourni,
+   crée et démarre le service `GiSuivi`.
 3. Dans les 15 secondes, l'icône GI-Suivi apparaît dans le tiroir « ^ » près de l'horloge, avec
    une notification. Clic droit → « Mon activité du jour ». Conseil à donner : glisser l'icône à
    côté du réseau pour la garder visible.
 4. Vérifier : `C:\ProgramData\GiSuivi\service.log` (« Agent lancé dans la session… ») et, dans la
-   session de la personne, `%LOCALAPPDATA%\GiSuivi\agent.log` (« Agent 0.2.1 démarré, mode local/connecté, N racines »).
+   session de la personne, `%LOCALAPPDATA%\GiSuivi\agent.log` (« Agent 0.2.2 démarré, mode local/connecté, N racines »).
    **« 0 racines » = configuration non lue** : vérifier `config.json`.
+5. En mode connecté, au bout de 3 minutes au plus : le poste apparaît dans « État des postes »
+   (`https://suivi-test.giconseils.local/suivi/postes/`). Si `agent.log` dit « réseau :
+   SSLError », le certificat n'est pas approuvé (point précédent) ; « 401 », le ticket Kerberos
+   ou le SPN (`deploy\serveur\06-DNS-SPN.ps1`).
 
 ## Changer la configuration plus tard (passer en mode connecté)
 

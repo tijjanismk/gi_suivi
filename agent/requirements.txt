@@ -4,6 +4,7 @@ pywin32>=306
 psutil>=5.9
 requests>=2.32
 requests-negotiate-sspi>=0.5 ; sys_platform == "win32"
+truststore>=0.9          # certificat du serveur vérifié avec le magasin Windows (auto-signé importé sur le poste)
 pystray>=0.19
 Pillow>=10.0
 pyinstaller>=6.6

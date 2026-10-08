@@ -5,8 +5,11 @@
 #   .\preparer-kit.ps1                                  # config = config.exemple.json
 #   .\preparer-kit.ps1 -Config .\config-pilote.json     # config du pilote (racines, url_api)
 #   .\preparer-kit.ps1 -SansConstruction                # réutilise dist\ tel quel
+#   .\preparer-kit.ps1 -Config .\config-pilote.json -Certificat C:\dev\livraisons\gic-serveur.cer
+#       # certificat auto-signé du serveur (08-Python-IIS.ps1 -AutoSigne) : installer-poste l'approuve sur le poste
 param(
     [string]$Config = (Join-Path $PSScriptRoot 'config.exemple.json'),
+    [string]$Certificat,
     [string]$Destination = 'C:\dev\livraisons\agent',
     [switch]$SansConstruction
 )
@@ -27,6 +30,13 @@ Copy-Item .\installer-poste.ps1, .\desinstaller-poste.ps1, .\arreter-agent.ps1, 
 # La configuration livrée est écrite sans BOM : l'agent la lit telle quelle
 $json = Get-Content $Config -Raw -Encoding UTF8
 [IO.File]::WriteAllText("$kit\config.json", $json, (New-Object Text.UTF8Encoding $false))
+if ($Certificat) {
+    if (-not (Test-Path $Certificat)) { throw "Certificat introuvable : $Certificat" }
+    Copy-Item $Certificat "$kit\gic-serveur.cer"
+    Write-Host "Certificat du serveur joint au kit : $Certificat"
+} else {
+    Write-Host "Sans certificat : poser gic-serveur.cer a cote d'installer-poste.ps1 avant l'installation si le serveur est auto-signe."
+}
 
 New-Item -ItemType Directory -Force $Destination | Out-Null
 $zip = Join-Path $Destination "GiSuivi-agent-$version-poste.zip"

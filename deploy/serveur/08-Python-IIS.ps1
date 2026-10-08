@@ -9,18 +9,24 @@
     #  - Python 3.14 Windows installer (64-bit) : https://www.python.org/downloads/windows/
     #  - URL Rewrite 2.1 et Application Request Routing 3.0 (x64) : https://www.iis.net/downloads
     .\08-Python-IIS.ps1 -Python ".\python-3.14.x-amd64.exe" -UrlRewrite ".\rewrite_amd64_fr-FR.msi" -ARR ".\requestRouter_amd64.msi" -Empreinte <empreinte du certificat>
+    .\08-Python-IIS.ps1 -Python ... -UrlRewrite ... -ARR ... -AutoSigne     # pas d'autorité interne : certificat auto-signé créé ici
     .\08-Python-IIS.ps1 -SeulementIIS -Empreinte <empreinte>     # Python déjà installé
     .\08-Python-IIS.ps1 -SansHttps                                  # test sans certificat (réseau local, provisoire)
 
 .CERTIFICAT
   -Empreinte : empreinte SHA1 d'un certificat déjà présent dans
   Cert:\LocalMachine\My couvrant suivi.giconseils.local et suivi-test.giconseils.local
-  (autorité interne AD CS, ou auto-signé déployé par GPO). Sans -Empreinte ni
-  -SansHttps, le script s'arrête : Kerberos sans HTTPS n'a pas de sens en production.
+  (autorité interne AD CS, ou auto-signé déployé par GPO).
+  -AutoSigne : AD-SERVEUR n'a pas d'autorité de certification (inventaire du 06/10). Le script
+  crée (ou réutilise) un certificat auto-signé pour les deux noms, valable 5 ans, et l'exporte
+  en C:\GIC\deploy\gic-serveur.cer : ce fichier est à copier dans le kit de l'agent
+  (installer-poste.ps1 l'approuve sur chaque poste) — plus tard, une GPO le fera.
+  Sans -Empreinte, -AutoSigne ni -SansHttps, le script s'arrête : Kerberos sans HTTPS n'a pas
+  de sens en production.
 #>
 param(
     [string]$Python, [string]$UrlRewrite, [string]$ARR,
-    [string]$Empreinte, [switch]$SansHttps, [switch]$SeulementIIS,
+    [string]$Empreinte, [switch]$AutoSigne, [switch]$SansHttps, [switch]$SeulementIIS,
     [string]$CompteService = "svc-application"
 )
 $ErrorActionPreference = "Stop"
@@ -75,6 +81,24 @@ if (-not (Test-Path "IIS:\AppPools\GIC")) { New-WebAppPool -Name "GIC" | Out-Nul
 Set-ItemProperty "IIS:\AppPools\GIC" -Name managedRuntimeVersion -Value ""     # pas de .NET : simple proxy
 Set-ItemProperty "IIS:\AppPools\GIC" -Name processModel -Value @{ userName = "$dom\$CompteService"; password = $mdp; identityType = 3 }
 
+# 4 bis. Certificat auto-signé (pas d'autorité interne) : créé une fois, réutilisé ensuite, exporté pour les postes
+if ($AutoSigne -and -not $SansHttps) {
+    $noms = @("suivi.$zone", "suivi-test.$zone")
+    $existant = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.Subject -eq "CN=suivi.$zone" -and $_.NotAfter -gt (Get-Date).AddMonths(6) } | Sort-Object NotAfter -Descending | Select-Object -First 1
+    if ($existant) { Write-Host "Certificat auto-signé existant réutilisé (expire le $($existant.NotAfter.ToShortDateString()))."; $certificat = $existant }
+    else {
+        $certificat = New-SelfSignedCertificate -DnsName $noms -CertStoreLocation Cert:\LocalMachine\My -FriendlyName "GIC - suivi (auto-signé)" `
+            -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -NotAfter (Get-Date).AddYears(5) -KeyExportPolicy NonExportable
+        Write-Host "Certificat auto-signé créé pour $($noms -join ', '), valable jusqu'au $($certificat.NotAfter.ToShortDateString())."
+    }
+    $Empreinte = $certificat.Thumbprint
+    New-Item -ItemType Directory -Path C:\GIC\deploy -Force | Out-Null
+    Export-Certificate -Cert $certificat -FilePath C:\GIC\deploy\gic-serveur.cer -Type CERT -Force | Out-Null
+    # Le serveur lui-même doit l'approuver (verifier.ps1 appelle https://suivi-test… depuis la console)
+    if (-not (Get-ChildItem Cert:\LocalMachine\Root | Where-Object Thumbprint -eq $Empreinte)) { Import-Certificate -FilePath C:\GIC\deploy\gic-serveur.cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null }
+    Write-Host "Empreinte : $Empreinte — fichier à joindre au kit de l'agent : C:\GIC\deploy\gic-serveur.cer"
+}
+
 # 5. Sites
 $sites = @{ "suivi-test" = @{ port = 8001; env = "test" }; "suivi" = @{ port = 8000; env = "prod" } }
 foreach ($nom in $sites.Keys) {
@@ -83,7 +107,7 @@ foreach ($nom in $sites.Keys) {
         New-Website -Name $nom -PhysicalPath $racine -ApplicationPool "GIC" -HostHeader $hote -Port 80 | Out-Null
     }
     if (-not $SansHttps) {
-        if (-not $Empreinte) { throw "Indiquez -Empreinte du certificat ou -SansHttps." }
+        if (-not $Empreinte) { throw "Indiquez -Empreinte du certificat, -AutoSigne (pas d'autorité interne) ou -SansHttps." }
         if (-not (Get-WebBinding -Name $nom -Protocol https -ErrorAction SilentlyContinue)) {
             New-WebBinding -Name $nom -Protocol https -Port 443 -HostHeader $hote -SslFlags 1 | Out-Null
         }

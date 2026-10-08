@@ -124,12 +124,18 @@ séparation système/données que les scripts supposent — pas de repartitionne
 `C:\GIC`, `D:\GIC` (par copie, duplication acceptée), PostgreSQL, IIS ; `Rangement-GIC.ps1
 -GelerAnciens` désactivé, plus de passage en `_ANCIEN` ni de suppression de partages. Même règle
 pour l'application d'avis à venir. **Agent
-0.2.1**, kit d'installation manuelle `agent\preparer-kit.ps1` (pas de GPO pour l'instant, D02
-reporté) : `C:\dev\livraisons\agent\GiSuivi-agent-0.2.1-poste.zip`, premier poste Dicko.
-**Prochaine étape :** déploiement de l'environnement test sur AD-SERVEUR par le porteur en suivant
-`docs/exploitation/liste-de-controle-serveur.md` (P01 sauvegarde d'abord, scripts 01→08, puis
-`installer.ps1 -Env test -Ref main`) ; installation manuelle de l'agent chez Dicko (note D01 signée
-avant) ; CONTROLE n° 6 ; WiX pour le MSI. Toujours
+0.2.2**, kit d'installation manuelle `agent\preparer-kit.ps1 -Config .\config-pilote.json` (pas de
+GPO pour l'instant, D02 reporté) : `C:\dev\livraisons\agent\GiSuivi-agent-0.2.2-poste.zip`,
+`url_api` = serveur test, premier poste Dicko. **HTTPS sans autorité interne** (inventaire 06/10 :
+pas d'AD CS ; IIS déjà en service sur 80/443 pour RDWeb — nos sites sont liés par nom d'hôte, SNI) :
+`08-Python-IIS.ps1 -AutoSigne` crée un certificat auto-signé 5 ans et l'exporte en
+`C:\GIC\deploy\gic-serveur.cer` ; `installer-poste.ps1` l'importe dans les autorités racines du
+poste ; l'agent vérifie avec le magasin Windows (`truststore`), plus avec certifi.
+**Prochaine étape (engagée le 08/10) :** déploiement de l'environnement test sur AD-SERVEUR par le
+porteur en suivant `docs/exploitation/liste-de-controle-serveur.md` (P01 sauvegarde d'abord,
+scripts 01→08 avec `-AutoSigne`, puis `installer.ps1 -Env test -Ref main`, `verifier.ps1`) ;
+rapporter `C:\GIC\deploy\gic-serveur.cer` dans le kit ; installation manuelle de l'agent chez Dicko
+(note D01 signée avant) ; puis reprise des étapes non faites (CONTROLE n° 6, WiX, P05, pilote D03-D05). Toujours
 `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la
 base de dev après chaque nouvelle migration (la base de test, elle, est recréée). Après un
 changement de gabarit ou de classes : `scripts\dev\construire_css.ps1` (classes préfixées

@@ -48,6 +48,22 @@ if ($Config -and (Test-Path $Config)) {
     Write-Warning "Aucune configuration : l'agent demarrera avec 0 racine et en mode local. Posez $dossierDonnees\config.json (voir config.exemple.json) puis tuez gisuivi-agent.exe : le service le relance."
 }
 
+# Certificat du serveur (auto-signé, pas d'autorité interne) : importé dans les autorités racines de
+# confiance de la machine, pour l'agent (truststore) comme pour le navigateur. Fichier gic-serveur.cer
+# exporté par deploy\serveur\08-Python-IIS.ps1 -AutoSigne, posé à côté de ce script.
+$cer = Join-Path $PSScriptRoot 'gic-serveur.cer'
+if (Test-Path $cer) {
+    $certificat = New-Object Security.Cryptography.X509Certificates.X509Certificate2 $cer
+    if (Get-ChildItem Cert:\LocalMachine\Root | Where-Object Thumbprint -eq $certificat.Thumbprint) {
+        Write-Host "Certificat du serveur deja approuve ($($certificat.Subject))."
+    } else {
+        Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null
+        Write-Host "Certificat du serveur importe dans les autorites racines de confiance : $($certificat.Subject), expire le $($certificat.NotAfter.ToShortDateString())."
+    }
+} else {
+    Write-Host "Pas de gic-serveur.cer dans le kit : le certificat du serveur doit venir d'une autorite deja approuvee par ce poste."
+}
+
 $exe = Join-Path $Cible 'gisuivi-agent.exe'
 $binPath = "`"$exe`" --service"
 # Pas de « sc.exe create binPath= ... » : PowerShell 5.1 transmet mal un argument qui contient

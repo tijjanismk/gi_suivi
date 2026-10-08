@@ -15,6 +15,7 @@ class Envoyeur:
     def __init__(self, url_api: str, version_agent: str) -> None:
         import requests
 
+        self._faire_confiance_au_magasin_windows()
         self.url = url_api.rstrip("/") + "/api/segments"
         self.version = version_agent
         self.session = requests.Session()
@@ -23,6 +24,20 @@ class Envoyeur:
         self.echecs = 0
         self.dernier_envoi: datetime | None = None
         self.derniere_erreur: str | None = None
+
+    @staticmethod
+    def _faire_confiance_au_magasin_windows() -> None:
+        """HTTPS : vérifier le certificat du serveur avec le magasin de certificats de Windows
+        (comme le navigateur), et non avec la liste figée de `certifi`. Le serveur n'a pas
+        d'autorité de certification : son certificat auto-signé est importé dans « Autorités
+        racines de confiance » du poste par installer-poste.ps1. Sans `truststore`, on retombe
+        sur certifi (autorités publiques seulement)."""
+        try:
+            import truststore
+
+            truststore.inject_into_ssl()
+        except ImportError:
+            log.warning("truststore absent : seul un certificat d'autorité publique sera accepté.")
 
     @staticmethod
     def _auth():
