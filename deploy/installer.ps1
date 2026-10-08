@@ -7,7 +7,8 @@
   binaires), migrer et redémarrer.
 
 .USAGE
-    .\installer.ps1 -Env test -Ref main          # test : la branche main
+    .\installer.ps1 -Env test -Ref main          # test : la branche main (flux normal, Git)
+    .\installer.ps1 -Env test                    # test : contenu de C:\GIC\depot tel quel (copie posée à la main, pas de GitHub)
     .\installer.ps1 -Env prod -Ref v1.0.0        # production : toujours un tag
     .\installer.ps1 -Env prod -RetourArriere
 
@@ -54,28 +55,45 @@ if ($RetourArriere) {
     Stop-Transcript | Out-Null; exit 0
 }
 
-if (-not $Ref) { throw "Indiquez -Ref <branche ou tag Git> (main en test, vX.Y.Z en production)." }
 if ($Env -eq "prod" -and $Ref -notmatch '^v\d+\.\d+\.\d+$') { throw "En production, -Ref doit être un tag vX.Y.Z (docs/git.md)." }
 if (-not (Test-Path $Python)) { throw "Python introuvable : $Python (serveur\08-Python-IIS.ps1)." }
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) { throw "Git pour Windows absent : https://git-scm.com/download/win (puis rouvrir la console)." }
+$git = Get-Command git -ErrorAction SilentlyContinue
 
-# 1. Le code dans app_nouveau\ : le dépôt est mis à jour, la référence extraite, copiée sans .git
+# 1. Le code dans app_nouveau\
+#    - avec -Ref : le dépôt Git est mis à jour (clone au premier passage), la référence extraite ;
+#    - sans -Ref (test seulement) : le contenu de $Depot est pris tel quel — pour un dépôt posé à la
+#      main (copie du poste) ou quand GitHub n'est pas joignable. La version est alors « copie locale ».
 if (Test-Path $nouveau) { Remove-Item $nouveau -Recurse -Force }
-if (-not (Test-Path "$Depot\.git")) {
-    Write-Host "Premier clone de $Url dans $Depot (identifiant GitHub + jeton en lecture seule demandés une fois)..."
-    git clone --quiet $Url $Depot
-    if ($LASTEXITCODE -ne 0) { throw "git clone a échoué (jeton refusé ? réseau ?)." }
+if ($Ref) {
+    if (-not $git) { throw "Git pour Windows absent : https://git-scm.com/download/win (puis rouvrir la console) — ou lancez sans -Ref pour installer le contenu de $Depot tel quel." }
+    if (-not (Test-Path "$Depot\.git")) {
+        if (Test-Path "$Depot\manage.py") { throw "$Depot contient le projet mais n'est pas un clone Git. Soit lancez sans -Ref (contenu pris tel quel), soit renommez ce dossier et laissez ce script cloner." }
+        Write-Host "Premier clone de $Url dans $Depot (identifiant GitHub + jeton en lecture seule demandés une fois)..."
+        git clone --quiet $Url $Depot
+        if ($LASTEXITCODE -ne 0) { throw "git clone a échoué (jeton refusé ? réseau ?)." }
+    }
+    git -C $Depot fetch --all --tags --prune --quiet
+    if ($LASTEXITCODE -ne 0) { throw "git fetch a échoué (jeton ? réseau ?). Sans GitHub : lancez sans -Ref pour installer le contenu actuel de $Depot." }
+    git -C $Depot checkout --detach --quiet "origin/$Ref" 2>$null
+    if ($LASTEXITCODE -ne 0) { git -C $Depot checkout --detach --quiet $Ref; if ($LASTEXITCODE -ne 0) { throw "Référence Git introuvable : $Ref" } }
+    $commit = git -C $Depot rev-parse --short HEAD
+    $version = @{ ref = $Ref; commit = $commit; date = (Get-Date -Format s); source = "git" }
+} else {
+    if (-not (Test-Path "$Depot\manage.py")) { throw "$Depot ne contient pas le projet (manage.py absent). Indiquez -Ref main pour cloner depuis GitHub, ou copiez le projet dans $Depot." }
+    $commit = "inconnu"
+    if ($git -and (Test-Path "$Depot\.git")) { $commit = (git -C $Depot rev-parse --short HEAD 2>$null); if (-not $commit) { $commit = "inconnu" } }
+    Write-Warning "Sans -Ref : installation du contenu actuel de $Depot tel quel (copie locale, commit $commit). Le flux normal reste Git (-Ref main)."
+    $version = @{ ref = "copie locale"; commit = $commit; date = (Get-Date -Format s); source = "copie" }
 }
-git -C $Depot fetch --all --tags --prune --quiet
-if ($LASTEXITCODE -ne 0) { throw "git fetch a échoué." }
-git -C $Depot checkout --detach --quiet "origin/$Ref" 2>$null
-if ($LASTEXITCODE -ne 0) { git -C $Depot checkout --detach --quiet $Ref; if ($LASTEXITCODE -ne 0) { throw "Référence Git introuvable : $Ref" } }
+# Copie sans ce qui n'a rien à faire sur le serveur : dépôt Git, environnements virtuels du poste,
+# caches, constructions de l'agent, .env du développeur (le .env du serveur est posé à l'étape 5)
 New-Item -ItemType Directory -Path $nouveau -Force | Out-Null
-& robocopy.exe $Depot $nouveau /MIR /XD .git /NFL /NDL /NJH /NJS /NP | Out-Null
+& robocopy.exe $Depot $nouveau /MIR /NFL /NDL /NJH /NJS /NP `
+    /XD .git .venv venv __pycache__ .pytest_cache .ruff_cache htmlcov node_modules dist build "agent\dist" "agent\build" "agent\.venv" `
+    /XF .env "*.pyc" "*.log" "*.db" "*.zip" | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copie du dépôt en échec (robocopy $LASTEXITCODE)." }
-$commit = git -C $Depot rev-parse --short HEAD
-@{ ref = $Ref; commit = $commit; date = (Get-Date -Format s); source = "git" } | ConvertTo-Json | Set-Content "$nouveau\VERSION.json" -Encoding UTF8
-Write-Host "Version à installer : $Ref ($commit)"
+$version | ConvertTo-Json | Set-Content "$nouveau\VERSION.json" -Encoding UTF8
+Write-Host "Version à installer : $($version.ref) ($($version.commit), source $($version.source))"
 foreach ($construit in "interface\static\css\gic.css", "locale\fr\LC_MESSAGES\django.mo") {
     if (-not (Test-Path "$nouveau\$construit")) { throw "$construit absent du dépôt : il se construit sur le poste du développeur et se commite (pas d'outil de développement ici)." }
 }
