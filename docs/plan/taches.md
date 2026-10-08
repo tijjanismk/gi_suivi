@@ -47,9 +47,9 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
-| G01 | Observation | `observation.py` : fenêtre active, processus, titre, inactivité, verrouillage/veille | Sur un poste de test, un journal d'observations toutes les 5 s correct pendant 30 min | en cours |
-| G02 | Reconnaissance des fichiers | `fichiers.py` : COM Office ; règles par titre pour AutoCAD, QGIS, Acrobat, Bloc-notes ; navigateurs sans titre | Tests hors Windows sur 30 titres enregistrés ; sur poste : Word, Excel, AutoCAD donnent le chemin exact ou le nom | en cours |
-| G03 | Tampon et lots | `tampon.py` : SQLite, `lot_id`, acquittement, purge 7 jours | Coupure simulée : rien de perdu, rien en double | à faire |
+| G01 | Observation | `observation.py` : fenêtre active, processus, titre, inactivité, verrouillage/veille | Sur un poste de test, un journal d'observations toutes les 5 s correct pendant 30 min | fait (non tagué) |
+| G02 | Reconnaissance des fichiers | `fichiers.py` : COM Office ; règles par titre pour AutoCAD, QGIS, Acrobat, Bloc-notes ; navigateurs sans titre | Tests hors Windows sur 30 titres enregistrés ; sur poste : Word, Excel, AutoCAD donnent le chemin exact ou le nom | fait (non tagué) |
+| G03 | Tampon et lots | `tampon.py` : SQLite, `lot_id`, acquittement, purge 7 jours | Coupure simulée : rien de perdu, rien en double | fait (non tagué) |
 | G04 | Envoi Negotiate | `envoi.py` : `requests` + `pyspnego`, repli NTLM journalisé, attente exponentielle | Lot reçu par l'API test avec l'identité Kerberos de la session ; 401 et 5xx gérés | à faire |
 | G05 | Icône et « mon activité du jour » | `pystray`, trois états, menu, ouverture du navigateur | Icône visible dès l'ouverture de session ; pas de « Quitter » | en cours |
 | G06 | Service de supervision | `gisuivi_service` : énumération des sessions, relance de la tâche | Agent tué → relancé en moins d'une minute | fait (non tagué) |
@@ -74,9 +74,9 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
-| D01 | Note à l'équipe et réunion | Rédiger avec la direction la note d'information (ce qui est collecté, ce qui ne l'est pas, à quoi ça sert, qui voit quoi, durée de conservation) ; réunion ; volontaires désignés | Note signée et diffusée avant tout déploiement d'agent | à faire |
+| D01 | Note à l'équipe et réunion | Rédiger avec la direction la note d'information (ce qui est collecté, ce qui ne l'est pas, à quoi ça sert, qui voit quoi, durée de conservation) ; réunion ; volontaires désignés | Note signée et diffusée avant tout déploiement d'agent | en cours (projet rédigé dans docs/pilote/) |
 | D02 | GPO pilote | OU `Postes-Pilote`, GPO liée, paramètres registre, exclusion Defender | Agent installé automatiquement sur les 2-3 postes au redémarrage | à faire |
-| D03 | Relevé manuel des volontaires | Modèle d'une page : heures et dossiers par jour, une semaine | Trois relevés remplis | à faire |
+| D03 | Relevé manuel des volontaires | Modèle d'une page : heures et dossiers par jour, une semaine | Trois relevés remplis | en cours (projet rédigé dans docs/pilote/) |
 | D04 | Comparaison et corrections | Heures mesurées vs relevés ; écart par jour et par personne ; file à classer ; retours | Écart < 10 % ; < 10 % du temps à classer après une semaine ; aucune gêne signalée | à faire |
 | D05 | Rapport de pilote | Résultats, corrections faites, décision de généraliser ou non | Validé par la direction | à faire |
 
