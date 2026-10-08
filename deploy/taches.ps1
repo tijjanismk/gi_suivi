@@ -35,6 +35,8 @@ function Tache($nom, $commande, $declencheurs, $compteExec = $compte, $mdpExec =
 Tache "purge"         "suivi_purger"        (New-ScheduledTaskTrigger -Daily -At 02:00)
 Tache "recalcul"      "suivi_recalculer"    (New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Minutes 10))
 Tache "postes muets"  "suivi_postes_muets"  (New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddHours(7) -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 12))
+# Le lundi à 00:05 : compteur hebdomadaire de démarrages des agents remis à zéro (alerte orange)
+Tache "démarrages hebdo" "suivi_postes_muets --remettre-demarrages" (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 00:05)
 
 # Sauvegarde PostgreSQL (commune aux deux bases), sous SYSTEM
 if (-not $SansSauvegarde) {

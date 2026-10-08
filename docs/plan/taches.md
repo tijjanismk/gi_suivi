@@ -41,7 +41,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | A04 | `/api/moi/aujourdhui` et `/api/racines` | Activité du jour de l'utilisateur courant ; liste des racines et correspondances pour l'agent | Un utilisateur ne voit que ses segments ; racines renvoyées telles que saisies dans l'admin | fait (non tagué) |
 | A05 | Points d'accès des rapports | `/api/rapports/synthese`, `/api/rapports/dossiers`, `/api/employes/{id}/activite`, `/api/dossiers`, `/api/aclasser`, `/api/postes/etat`, paramètres `debut`/`fin` | Tests sur la fixture de 50 segments ; réservé à `GI-Direction` | fait (non tagué) |
 | A06 | Actions direction | `POST /api/dossiers/{id}/valider`, `PUT /api/dossiers/{id}`, `POST /api/aclasser/{id}/rattacher` (dossier ou exception) ; journal d'accès | Chaque action journalisée avec utilisateur, cible, horodatage | fait (non tagué) |
-| A07 | Tâches planifiées | `suivi_purger`, `suivi_postes_muets` ; `/api/sante` | Tests de la purge (rien avant la rétention) et des seuils d'alerte | à faire |
+| A07 | Tâches planifiées | `suivi_purger`, `suivi_postes_muets` ; `/api/sante` | Tests de la purge (rien avant la rétention) et des seuils d'alerte | fait (non tagué) |
 
 ## Phase 3 — Agent (semaines 4-8, en parallèle de la phase 2)
 

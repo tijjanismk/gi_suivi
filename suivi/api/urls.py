@@ -1,11 +1,14 @@
 from django.urls import path
 
+from config.vues import sante
 from suivi.api import actions, rapports
 from suivi.api.moi import moi_aujourdhui, racines
 from suivi.api.segments import recevoir_segments
 
 app_name = "api"
 urlpatterns = [
+    # supervision IIS, sans identité (contrat d'API : /api/sante ; /sante/ reste valable)
+    path("sante", sante, name="sante"),
     # agents et toute personne authentifiée
     path("segments", recevoir_segments, name="segments"),
     path("moi/aujourdhui", moi_aujourdhui, name="moi_aujourdhui"),
