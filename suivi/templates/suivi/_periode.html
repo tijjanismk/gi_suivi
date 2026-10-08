@@ -12,6 +12,13 @@
   <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">au
     <input type="date" name="fin" value="{{ periode.fin|date:'Y-m-d' }}" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
   </label>
+  {% if dossiers_filtre is not None %}
+  <select name="dossier" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900" title="Limiter au temps passé sur un dossier">
+    <option value="">Tous les dossiers</option>
+    {% for d in dossiers_filtre %}<option value="{{ d.pk }}" {% if dossier_filtre and dossier_filtre.pk == d.pk %}selected{% endif %}>{{ d.code|default:"(sans code)" }} — {{ d.nom }}</option>{% endfor %}
+  </select>
+  {% endif %}
   <button type="submit" class="gic:px-3 gic:py-1.5 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Appliquer</button>
+  {% if dossier_filtre %}<span class="gic:text-sm text-subtle">Dossier : <strong class="text-important">{{ dossier_filtre.code|default:dossier_filtre.nom }}</strong></span>{% endif %}
   {% if selection.erreur %}<span class="gic:text-sm gic:text-red-600">{{ selection.erreur }} — 7 derniers jours affichés.</span>{% endif %}
 </form>

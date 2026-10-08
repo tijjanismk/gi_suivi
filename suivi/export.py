@@ -57,10 +57,10 @@ def _total(feuille, libelle: str, colonnes: list[int], derniere_ligne: int) -> N
         c.number_format = FORMAT_HEURES
 
 
-def construire(p: rapports.Periode) -> Workbook:
+def construire(p: rapports.Periode, dossier_id: int | None = None) -> Workbook:
     classeur = Workbook()
     classeur.remove(classeur.active)
-    synthese = rapports.synthese(p)
+    synthese = rapports.synthese(p, dossier_id)
     dossiers = rapports.dossiers(p)
 
     # 1. Synthèse ---------------------------------------------------------------------------
@@ -248,7 +248,7 @@ def nom_fichier(p: rapports.Periode) -> str:
     return f"GI-Suivi_{p.debut:%Y-%m-%d}_{p.fin:%Y-%m-%d}.xlsx"
 
 
-def octets(p: rapports.Periode) -> bytes:
+def octets(p: rapports.Periode, dossier_id: int | None = None) -> bytes:
     tampon = BytesIO()
-    construire(p).save(tampon)
+    construire(p, dossier_id).save(tampon)
     return tampon.getvalue()

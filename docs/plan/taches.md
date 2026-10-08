@@ -60,7 +60,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
-| T01 | Gabarit et navigation | `base.html` mobile d'abord, menu des huit écrans, page de refus hors `GI-Direction`, HTMX local | Toutes les pages s'affichent avec le bon utilisateur ; refus propre | en cours |
+| T01 | Gabarit et navigation | `base.html` mobile d'abord, menu des huit écrans, page de refus hors `GI-Direction`, HTMX local | Toutes les pages s'affichent avec le bon utilisateur ; refus propre | fait (non tagué) |
 | T02 | Vue d'ensemble | Quatre indicateurs, barres par employé (SVG serveur), tableau jour × employé coloré, % prévu, arrivée/départ | Validée par la direction sur `test` avec la fixture | fait (non tagué) |
 | T03 | Dossiers | Barres par dossier, tableau dossier × employé | idem | fait (non tagué) |
 | T04 | Employés et fiche employé | Liste avec état indicatif ; fiche : chronologie colorée par dossier, fichiers et applications | idem | fait (non tagué) |
@@ -68,7 +68,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | T06 | À classer | File groupée, rattachement en un clic, création d'exception, brouillons signalés | Le compteur baisse après rattachement | fait (non tagué) |
 | T07 | État des postes | Version, dernier envoi, démarrages, alertes orange et rouge | Un poste muet depuis 24 h ouvrées apparaît en rouge | fait (non tagué) |
 | T08 | Export Excel | `openpyxl`, six feuilles, formules, nom de fichier daté | Classeur ouvert dans Excel ; totaux recalculés si on modifie une cellule | fait (non tagué) |
-| T09 | Sélecteur de période et filtre dossier | 7 jours, semaine, 30 jours, mois, dates libres ; filtre dossier sur toutes les vues | Les URL portent la période (partageables) | en cours |
+| T09 | Sélecteur de période et filtre dossier | 7 jours, semaine, 30 jours, mois, dates libres ; filtre dossier sur toutes les vues | Les URL portent la période (partageables) | fait (non tagué) |
 
 ## Phase 5 — Pilote (semaines 9-11)
 

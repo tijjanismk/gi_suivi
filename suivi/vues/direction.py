@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from identite.decorateurs import consultation_requise
 from suivi import rapports
-from suivi.models import Employe, Segment
+from suivi.models import Dossier, Employe, Segment
 from suivi.services import journaliser
 from suivi.vues.periode import selection_de
 
@@ -26,6 +26,18 @@ def _contexte(request, selection, **extra) -> dict:
         "liens_periode": selection.liens(),
         "requete_periode": selection.requete,
         **extra,
+    }
+
+
+def _filtre_dossier(selection) -> dict:
+    """Pour les écrans qui acceptent le filtre dossier (T09) : la liste et le dossier choisi."""
+    dossiers = Dossier.objects.exclude(statut=Dossier.Statut.CLOS).order_by("code", "nom")
+    choisi = dossiers.filter(pk=selection.dossier_id).first() if selection.dossier_id else None
+    # un identifiant inconnu est ignoré : on montre tout, pas rien
+    return {
+        "dossiers_filtre": dossiers,
+        "dossier_filtre": choisi,
+        "dossier_id": choisi.pk if choisi else None,
     }
 
 
@@ -109,7 +121,8 @@ def employes(request):
     journaliser(
         request, "consulter:employes", f"{selection.periode.debut}..{selection.periode.fin}"
     )
-    synthese = rapports.synthese(selection.periode)
+    filtre = _filtre_dossier(selection)
+    synthese = rapports.synthese(selection.periode, filtre["dossier_id"])
     debut, fin = rapports._bornes(selection.periode)
     dernieres = dict(
         Segment.objects.filter(debut__gte=debut, debut__lt=fin, etat=Segment.Etat.ACTIF)
@@ -125,7 +138,13 @@ def employes(request):
     return render(
         request,
         "suivi/employes.html",
-        _contexte(request, selection, titre="Personnes", employes=synthese["employes"]),
+        _contexte(
+            request,
+            selection,
+            titre="Personnes",
+            employes=synthese["employes"],
+            **filtre,
+        ),
     )
 
 
@@ -146,7 +165,8 @@ def employe(request, employe_id: int):
         "consulter:employe",
         f"employé {personne.pk} {selection.periode.debut}..{selection.periode.fin}",
     )
-    rapport = rapports.activite_employe(personne, selection.periode, jour)
+    filtre = _filtre_dossier(selection)
+    rapport = rapports.activite_employe(personne, selection.periode, jour, filtre["dossier_id"])
 
     couleurs: dict[str, str] = {}
     for j in rapport["journees"]:
@@ -192,6 +212,7 @@ def employe(request, employe_id: int):
             request,
             selection,
             titre=str(personne),
+            **filtre,
             personne=personne,
             rapport=rapport,
             legende=[{"dossier": d, "couleur": c} for d, c in couleurs.items()],
@@ -248,7 +269,8 @@ def vue_ensemble(request):
     journaliser(
         request, "consulter:vue_ensemble", f"{selection.periode.debut}..{selection.periode.fin}"
     )
-    synthese = rapports.synthese(selection.periode)
+    filtre = _filtre_dossier(selection)
+    synthese = rapports.synthese(selection.periode, filtre["dossier_id"])
 
     maxi = max((e["effectif_s"] for e in synthese["employes"]), default=0) or 1
     for e in synthese["employes"]:
@@ -273,6 +295,7 @@ def vue_ensemble(request):
             request,
             selection,
             titre="Vue d'ensemble",
+            **filtre,
             synthese=synthese,
             jours=jours,
             total_heures=_hm(synthese["effectif_s"]),

@@ -57,9 +57,10 @@ def _bornes(p: Periode) -> tuple[datetime, datetime]:
     return debut, debut + timedelta(days=p.jours)
 
 
-def _segments(p: Periode, **filtres):
+def _segments(p: Periode, dossier_id: int | None = None, **filtres):
     debut, fin = _bornes(p)
-    return Segment.objects.filter(debut__gte=debut, debut__lt=fin, **filtres)
+    qs = Segment.objects.filter(debut__gte=debut, debut__lt=fin, **filtres)
+    return qs.filter(dossier_id=dossier_id) if dossier_id else qs
 
 
 def _actifs(p: Periode, **filtres):
@@ -104,11 +105,12 @@ def _journee_dict(j: indicateurs.Journee) -> dict:
 # -- synthèse ------------------------------------------------------------------------------
 
 
-def synthese(p: Periode) -> dict:
-    """Quatre indicateurs globaux + une ligne par employé actif, avec ses journées."""
+def synthese(p: Periode, dossier_id: int | None = None) -> dict:
+    """Quatre indicateurs globaux + une ligne par employé actif, avec ses journées.
+    Avec `dossier_id` (T09) : seulement le temps passé sur ce dossier."""
     feries = jours_feries()
     segments_par_employe: dict[int, list] = defaultdict(list)
-    for s in _segments(p).select_related("employe").order_by("debut"):
+    for s in _segments(p, dossier_id).select_related("employe").order_by("debut"):
         segments_par_employe[s.employe_id].append(s)
     employes = Employe.objects.filter(actif=True).order_by("nom_affiche", "login")
 
@@ -238,10 +240,14 @@ def liste_dossiers(p: Periode) -> list[dict]:
 # -- une personne --------------------------------------------------------------------------
 
 
-def activite_employe(employe: Employe, p: Periode, jour: date | None = None) -> dict:
+def activite_employe(
+    employe: Employe, p: Periode, jour: date | None = None, dossier_id: int | None = None
+) -> dict:
     """Journées de la période (indicateurs), fichiers les plus travaillés, et la chronologie
     d'un jour (par défaut le dernier de la période) colorée par dossier."""
-    segments = list(_segments(p, employe=employe).select_related("dossier").order_by("debut"))
+    segments = list(
+        _segments(p, dossier_id, employe=employe).select_related("dossier").order_by("debut")
+    )
     js = indicateurs.journees(
         _parts(segments), p.debut, p.fin, float(employe.heures_prevues_semaine), jours_feries()
     )
