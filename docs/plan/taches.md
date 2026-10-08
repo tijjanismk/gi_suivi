@@ -67,7 +67,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | T05 | Gestion dossiers | Racines (lecture), nouveaux dossiers détectés avec temps déjà enregistré, bouton Valider, dossiers actifs éditables | Validation d'un dossier déclenche le recalcul et met à jour les écrans | fait (non tagué) |
 | T06 | À classer | File groupée, rattachement en un clic, création d'exception, brouillons signalés | Le compteur baisse après rattachement | fait (non tagué) |
 | T07 | État des postes | Version, dernier envoi, démarrages, alertes orange et rouge | Un poste muet depuis 24 h ouvrées apparaît en rouge | fait (non tagué) |
-| T08 | Export Excel | `openpyxl`, six feuilles, formules, nom de fichier daté | Classeur ouvert dans Excel ; totaux recalculés si on modifie une cellule | à faire |
+| T08 | Export Excel | `openpyxl`, six feuilles, formules, nom de fichier daté | Classeur ouvert dans Excel ; totaux recalculés si on modifie une cellule | fait (non tagué) |
 | T09 | Sélecteur de période et filtre dossier | 7 jours, semaine, 30 jours, mois, dates libres ; filtre dossier sur toutes les vues | Les URL portent la période (partageables) | en cours |
 
 ## Phase 5 — Pilote (semaines 9-11)

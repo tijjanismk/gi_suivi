@@ -13,7 +13,12 @@
         Du {{ periode.debut|date:"l j F Y" }} au {{ periode.fin|date:"l j F Y" }} ({{ periode.jours }} jour{{ periode.jours|pluralize }}).
       {% endcomponent %}
     </div>
-    {% include "suivi/_periode.html" %}
+    <div class="gic:flex gic:flex-wrap gic:items-center gic:gap-3">
+      {% include "suivi/_periode.html" %}
+      <a href="{% url 'suivi:export_excel' %}?{{ requete_periode }}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50" title="Classeur Excel de la période : synthèse, dossiers, journées, fichiers, à classer, postes">
+        <span class="material-symbols-outlined gic:text-base!">download</span> Excel
+      </a>
+    </div>
   </div>
   {% block ecran %}{% endblock %}
 </div>
