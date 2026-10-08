@@ -144,27 +144,36 @@ if ($AutoSigne -and -not $SansHttps) {
 $sites = @{ "suivi-test" = @{ port = 8001; env = "test" }; "suivi" = @{ port = 8000; env = "prod" } }
 foreach ($nom in $sites.Keys) {
     $hote = "$nom.$zone"; $racine = "C:\GIC\$($sites[$nom].env)\site"; New-Item -ItemType Directory -Path $racine -Force | Out-Null
-    if (-not (Get-Website -Name $nom -ErrorAction SilentlyContinue)) {
-        # -Id explicite : sans lui, New-Website échoue parfois avec « La référence d'objet n'est pas définie »
-        $id = ((Get-Website | Measure-Object -Property Id -Maximum).Maximum + 1)
-        New-Website -Name $nom -Id $id -PhysicalPath $racine -ApplicationPool "GIC" -HostHeader $hote -Port 80 | Out-Null
-    }
+    # Création par le lecteur IIS:\ (New-Website / Get-Website -Name sont capricieux : « référence d'objet non définie »)
+    $existe = Get-ChildItem IIS:\Sites | Where-Object { $_.Name -eq $nom }
+    if (-not $existe) {
+        Write-Host "  $nom : création du site (http://$hote -> $racine)"
+        $id = ((Get-ChildItem IIS:\Sites | Measure-Object -Property Id -Maximum).Maximum + 1)
+        New-Item "IIS:\Sites\$nom" -Id $id -PhysicalPath $racine -Bindings @{ protocol = "http"; bindingInformation = "*:80:$hote" } | Out-Null
+    } else { Write-Host "  $nom : site existant" }
+    Set-ItemProperty "IIS:\Sites\$nom" -Name applicationPool -Value "GIC"
     if (-not $SansHttps) {
         if (-not $Empreinte) { throw "Indiquez -Empreinte du certificat, -AutoSigne (pas d'autorité interne) ou -SansHttps." }
-        $b = Get-WebBinding -Name $nom -Protocol https -HostHeader $hote -ErrorAction SilentlyContinue
-        if (-not $b) {
-            New-WebBinding -Name $nom -Protocol https -Port 443 -HostHeader $hote -SslFlags 1 | Out-Null
-            $b = Get-WebBinding -Name $nom -Protocol https -HostHeader $hote
+        $liaisons = (Get-ItemProperty "IIS:\Sites\$nom" -Name bindings).Collection
+        if (-not ($liaisons | Where-Object { $_.protocol -eq "https" -and $_.bindingInformation -eq "*:443:$hote" })) {
+            Write-Host "  $nom : liaison https *:443:$hote (SNI)"
+            New-ItemProperty "IIS:\Sites\$nom" -Name bindings -Value @{ protocol = "https"; bindingInformation = "*:443:$hote"; sslFlags = 1 } | Out-Null
         }
-        if (-not $b) { throw "Liaison https de $nom ($hote) introuvable après création : vérifier dans le Gestionnaire IIS qu'aucune autre liaison *:443 sans SNI ne bloque." }
-        # Certificat déjà attaché ? (relancement) — sinon on l'attache
-        if (-not ($b.certificateHash -and $b.certificateHash -eq $Empreinte)) { $b.AddSslCertificate($Empreinte, "My") }
+        # Certificat attaché au couple nom d'hôte:443 dans HTTP.sys (netsh : indépendant du module IIS)
+        $deja = & netsh http show sslcert hostnameport="${hote}:443" 2>$null | Select-String -Pattern $Empreinte -Quiet
+        if (-not $deja) {
+            Write-Host "  $nom : certificat $Empreinte attaché à ${hote}:443"
+            & netsh http delete sslcert hostnameport="${hote}:443" 2>$null | Out-Null
+            $r = & netsh http add sslcert hostnameport="${hote}:443" certhash=$Empreinte appid="{4dc3e181-e14b-4a21-b022-59fc669b0914}" certstorename=MY
+            if ($LASTEXITCODE -ne 0) { throw "netsh http add sslcert a échoué : $r" }
+        }
     }
     # Authentification : Windows seule, fournisseur Negotiate uniquement (pas de NTLM), anonyme désactivée
     # Les sections d'authentification sont verrouillées au niveau serveur (overrideModeDefault="Deny") :
     # on les écrit dans applicationHost.config, dans un bloc <location path="<site>">, ce qui est toujours
     # permis et ne touche que ce site — les autres sites IIS du serveur gardent leurs réglages.
     $apphost = "MACHINE/WEBROOT/APPHOST"
+    Write-Host "  $nom : authentification Windows (Negotiate seul), anonyme désactivée"
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $false
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $true
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name useAppPoolCredentials -Value $true
