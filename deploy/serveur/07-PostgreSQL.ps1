@@ -129,9 +129,9 @@ $sql | & $psql -U postgres -h localhost -d postgres -v ON_ERROR_STOP=1
 foreach ($b in "gic", "gic_test") {
     "CREATE EXTENSION IF NOT EXISTS unaccent; CREATE EXTENSION IF NOT EXISTS pg_trgm;" | & $psql -U postgres -h localhost -d $b -v ON_ERROR_STOP=1
 }
-Remove-Item Env:\PGPASSWORD
-
-Write-Host "`nVérification :"
+Write-Host "`nVérification (connexion avec le rôle gic, sans saisie) :"
+$env:PGPASSWORD = $mdpApp
 & $psql -U gic -h localhost -d gic -c "select current_user, version();" 2>&1 | Select-Object -First 3
+Remove-Item Env:\PGPASSWORD
 Write-Host "`nL'application lit DATABASE_URL dans $fichierApp. Sauvegarde pg_dump : voir deploy/sauvegarde_pg.ps1 (ticket S07)."
 Stop-Transcript | Out-Null
