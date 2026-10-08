@@ -56,7 +56,17 @@ if ($RetourArriere) {
 }
 
 if ($Env -eq "prod" -and $Ref -notmatch '^v\d+\.\d+\.\d+$') { throw "En production, -Ref doit être un tag vX.Y.Z (docs/git.md)." }
+if (-not (Test-Path $Python)) {
+    # Python installé ailleurs qu'en C:\Python314 (à la main) : 08-Python-IIS.ps1 a noté son chemin
+    $note = "C:\GIC\outils\python.txt"
+    if ((Test-Path $note) -and (Test-Path (Get-Content $note -First 1))) { $Python = Get-Content $note -First 1 }
+    else {
+        $p = (Get-ItemProperty "HKLM:\SOFTWARE\Python\PythonCore\3.14\InstallPath" -ErrorAction SilentlyContinue).'(default)'
+        if ($p -and (Test-Path (Join-Path $p "python.exe"))) { $Python = Join-Path $p "python.exe" }
+    }
+}
 if (-not (Test-Path $Python)) { throw "Python introuvable : $Python (serveur\08-Python-IIS.ps1)." }
+Write-Host "Python : $Python"
 $git = Get-Command git -ErrorAction SilentlyContinue
 
 # 1. Le code dans app_nouveau\

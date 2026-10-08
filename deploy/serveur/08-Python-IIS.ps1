@@ -34,16 +34,33 @@ $journaux = "D:\SAUVEGARDES\journaux"; New-Item -ItemType Directory -Path $journ
 Start-Transcript -Path "$journaux\08-python-iis_$(Get-Date -Format yyyyMMdd_HHmm).log" | Out-Null
 $zone = (Get-ADDomain).DNSRoot; $dom = (Get-ADDomain).NetBIOSName
 
-# 1. Python pour tous les utilisateurs, hors profil
+# 1. Python 3.14 pour tous les utilisateurs, hors profil. S'il a été installé à la main (assistant
+#    python.org, « pour tous les utilisateurs »), on le retrouve par le registre et on le garde ;
+#    l'installer une seconde fois échouerait (code 1603).
+function Trouver-Python314 {
+    if (Test-Path "C:\Python314\python.exe") { return "C:\Python314\python.exe" }
+    foreach ($cle in "HKLM:\SOFTWARE\Python\PythonCore\3.14\InstallPath", "HKLM:\SOFTWARE\WOW6432Node\Python\PythonCore\3.14\InstallPath") {
+        $p = (Get-ItemProperty $cle -ErrorAction SilentlyContinue).'(default)'
+        if ($p -and (Test-Path (Join-Path $p "python.exe"))) { return (Join-Path $p "python.exe") }
+    }
+    return $null
+}
+New-Item -ItemType Directory -Path C:\GIC\outils -Force | Out-Null
 if (-not $SeulementIIS) {
-    if (Test-Path "C:\Python314\python.exe") { Write-Host "Python 3.14 déjà installé." }
+    $pyExe = Trouver-Python314
+    if ($pyExe) { Write-Host "Python 3.14 déjà installé : $pyExe" }
     else {
+        $perso = (Get-ItemProperty "HKCU:\SOFTWARE\Python\PythonCore\3.14\InstallPath" -ErrorAction SilentlyContinue).'(default)'
+        if ($perso) { throw "Python 3.14 est installé pour votre seul compte ($perso) : le service (svc-application) ne pourra pas l'utiliser. Désinstallez-le (Applications installées) puis relancez : le script l'installera pour tous les utilisateurs." }
         if (-not $Python -or -not (Test-Path $Python)) { throw "Indiquez -Python <installateur>." }
         Write-Host "Installation de Python 3.14 dans C:\Python314..."
         $p = Start-Process $Python -ArgumentList "/quiet InstallAllUsers=1 TargetDir=C:\Python314 PrependPath=0 Include_test=0 Include_launcher=1 CompileAll=1" -Wait -PassThru
-        if ($p.ExitCode -ne 0) { throw "Installateur Python : code $($p.ExitCode)." }
+        if ($p.ExitCode -ne 0) { throw "Installateur Python : code $($p.ExitCode) (1603 = déjà installé ailleurs ou installation en conflit ; voir %TEMP%\Python 3.14*.log)." }
+        $pyExe = "C:\Python314\python.exe"
     }
-    & C:\Python314\python.exe --version
+    & $pyExe --version
+    # Retenu pour installer.ps1 (qui lit ce fichier si C:\Python314 n'existe pas)
+    Set-Content -Path C:\GIC\outils\python.txt -Value $pyExe -Encoding ASCII
 }
 
 # 2. IIS : fonctionnalités nécessaires (le rôle Web-Server est déjà présent sur ce serveur)
