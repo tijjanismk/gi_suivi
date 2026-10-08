@@ -217,8 +217,13 @@ foreach ($nom in $sites.Keys) {
   </system.webServer>
 </configuration>
 "@ | Set-Content "$racine\web.config" -Encoding UTF8
-    if (-not (Test-Path "$racine\static")) { New-Item -ItemType Junction -Path "$racine\static" -Target $statiques | Out-Null }
+    Write-Host "  $nom : web.config écrit (statiques par IIS, le reste vers 127.0.0.1:$port)"
+    if (-not (Test-Path "$racine\static")) {
+        Write-Host "  $nom : jonction $racine\static -> $statiques"
+        New-Item -ItemType Junction -Path "$racine\static" -Target $statiques | Out-Null
+    }
     # Autoriser les variables serveur réécrites (sinon IIS les ignore)
+    Write-Host "  $nom : variables serveur autorisées (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)"
     foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
         if (-not (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "system.webServer/rewrite/allowedServerVariables/add[@name='$v']")) {
             Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/rewrite/allowedServerVariables" -Name "." -Value @{ name = $v }
@@ -228,11 +233,15 @@ foreach ($nom in $sites.Keys) {
 }
 
 # 6. Pare-feu : 443 depuis le LAN ; 8000/8001 bloqués hors de la machine (Uvicorn n'écoute que sur 127.0.0.1, ceinture et bretelles)
+#    (sur un contrôleur de domaine, lire ou créer une règle peut prendre 10 à 30 s : on le dit)
+Write-Host "Pare-feu : règles GIC (peut prendre jusqu'à une minute)..."
 if (-not (Get-NetFirewallRule -DisplayName "GIC - HTTPS LAN" -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName "GIC - HTTPS LAN" -Direction Inbound -Protocol TCP -LocalPort 443 -RemoteAddress 192.168.2.0/24 -Action Allow | Out-Null
+    Write-Host "  règle « GIC - HTTPS LAN » créée"
 }
 if (-not (Get-NetFirewallRule -DisplayName "GIC - Bloquer Uvicorn externe" -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName "GIC - Bloquer Uvicorn externe" -Direction Inbound -Protocol TCP -LocalPort 8000,8001 -Action Block | Out-Null
+    Write-Host "  règle « GIC - Bloquer Uvicorn externe » créée"
 }
 
 Write-Host "`nTERMINÉ. Prochaine étape (ticket S07) : installer l'application dans C:\GIC\test\app, créer le service NSSM GIC-Test, puis ouvrir https://suivi-test.$zone/identite/qui-suis-je depuis un poste."
