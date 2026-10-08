@@ -23,7 +23,10 @@ CSRF_TRUSTED_ORIGINS = [
     f"https://{h}" for h in ALLOWED_HOSTS if h not in ("localhost", "127.0.0.1")
 ]
 
-DOSSIER_JOURNAUX = env.path("DOSSIER_JOURNAUX", BASE_DIR / "journaux")
+# Dossier des journaux : DOSSIER_JOURNAUX (ou JOURNAUX, nom écrit par les premiers installer.ps1) ;
+# créé s'il manque, sinon le gestionnaire de journal refuse de démarrer.
+DOSSIER_JOURNAUX = env.path("DOSSIER_JOURNAUX", env.path("JOURNAUX", BASE_DIR / "journaux"))
+DOSSIER_JOURNAUX.mkdir(parents=True, exist_ok=True)
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

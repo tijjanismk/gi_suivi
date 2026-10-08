@@ -101,7 +101,8 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "interface" / "static"]
-STATIC_ROOT = BASE_DIR / "static_collecte"
+# Sur le serveur : C:\GIC\<env>\static_collecte, hors du code, servi par IIS (installer.ps1)
+STATIC_ROOT = env.path("STATIC_ROOT", BASE_DIR / "static_collecte")
 
 # --- Identité (application identite) -------------------------------------------------
 # "dev" : utilisateur fictif ; "iis" : REMOTE_USER ou X-Remote-User posé par IIS.

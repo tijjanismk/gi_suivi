@@ -57,9 +57,14 @@ if ($RetourArriere) {
 
 if ($Env -eq "prod" -and $Ref -notmatch '^v\d+\.\d+\.\d+$') { throw "En production, -Ref doit être un tag vX.Y.Z (docs/git.md)." }
 function Python-Fonctionne($exe) {
+    # Refuse un python.exe orphelin (installation interrompue : « Could not find platform independent
+    # libraries ») et un Python installé dans le profil d'un utilisateur (C:\Users\…) : le service
+    # tourne sous svc-application, qui n'y a pas accès.
     if (-not $exe -or -not (Test-Path $exe)) { return $false }
-    $null = & $exe -c "import sys, encodings; print(sys.prefix)" 2>&1   # un python.exe orphelin (installation interrompue) échoue ici
-    return ($LASTEXITCODE -eq 0)
+    $base = & $exe -c "import sys, encodings; print(sys.base_prefix)" 2>&1
+    if ($LASTEXITCODE -ne 0) { return $false }
+    if ("$base" -like "C:\Users\*") { Write-Warning "Python installé pour un seul compte ($base) : inutilisable par le service."; return $false }
+    return $true
 }
 if (-not (Python-Fonctionne $Python)) {
     # Python installé ailleurs qu'en C:\Python314 (à la main) : 08-Python-IIS.ps1 a noté son chemin
@@ -131,7 +136,9 @@ if (-not (Test-Path $envFile)) {
     $pgEnv = "C:\GIC\secrets\pg.env"
     if (-not (Test-Path $pgEnv)) { throw "$pgEnv absent : lancez serveur\07-PostgreSQL.ps1." }
     $pg = @{}; Get-Content $pgEnv | ForEach-Object { if ($_ -match "^([^=]+)=(.*)$") { $pg[$matches[1]] = $matches[2] } }
-    $secret = -join ((1..60) | ForEach-Object { [char](Get-Random -Minimum 33 -Maximum 126) }) -replace "[`"'\\]", "x"
+    # lettres et chiffres seulement : pas de « # », « = » ni guillemet qui gêneraient la lecture du .env
+    $alphabet = ([char[]](48..57) + [char[]](65..90) + [char[]](97..122))
+    $secret = -join (1..60 | ForEach-Object { $alphabet | Get-Random })
     @(
         "DJANGO_SETTINGS_MODULE=config.settings.prod",
         "SECRET_KEY=$secret",
@@ -143,7 +150,7 @@ if (-not (Test-Path $envFile)) {
         "IDENTITE_LECTEUR_GROUPES=identite.groupes_windows.groupes_de",   # ADR 0006 : API Windows du DC
         "PARTAGE_GIC=\\AD-SERVEUR\GIC",
         "STATIC_ROOT=$base\static_collecte",
-        "JOURNAUX=$base\journaux",
+        "DOSSIER_JOURNAUX=$base\journaux",
         "ENVIRONNEMENT=$Env"
     ) | Set-Content $envFile -Encoding ASCII
     & icacls $envFile /inheritance:r /grant:r "BUILTIN\Administrateurs:F" "SYSTEM:F" "GICONSEILS\svc-application:R" | Out-Null

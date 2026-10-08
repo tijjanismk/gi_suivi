@@ -41,8 +41,11 @@ function Python-Fonctionne($exe) {
     # Une installation interrompue laisse un python.exe sans bibliothèque (« Could not find platform
     # independent libraries ») : on ne retient qu'un Python qui démarre vraiment.
     if (-not (Test-Path $exe)) { return $false }
-    $null = & $exe -c "import sys, encodings; print(sys.prefix)" 2>&1
-    return ($LASTEXITCODE -eq 0)
+    $base = & $exe -c "import sys, encodings; print(sys.base_prefix)" 2>&1
+    if ($LASTEXITCODE -ne 0) { return $false }
+    # Installé dans le profil d'un utilisateur (« pour moi seulement ») : le service n'y a pas accès
+    if ("$base" -like "C:\Users\*") { Write-Warning "Python installé pour un seul compte ($base) : inutilisable par le service svc-application."; return $false }
+    return $true
 }
 function Trouver-Python314 {
     $candidats = @("C:\Python314\python.exe")
@@ -70,7 +73,7 @@ if (-not $SeulementIIS) {
     if ($pyExe) { Write-Host "Python 3.14 déjà installé : $pyExe" }
     else {
         $perso = (Get-ItemProperty "HKCU:\SOFTWARE\Python\PythonCore\3.14\InstallPath" -ErrorAction SilentlyContinue).'(default)'
-        if ($perso) { throw "Python 3.14 est installé pour votre seul compte ($perso) : le service (svc-application) ne pourra pas l'utiliser. Désinstallez-le (Applications installées) puis relancez : le script l'installera pour tous les utilisateurs." }
+        if ($perso) { throw "Python 3.14 est installé pour votre seul compte ($perso) : le service (svc-application) ne pourra pas l'utiliser. Désinstallez-le (Paramètres > Applications installées > Python 3.14 (64-bit) > Désinstaller) puis relancez : le script l'installera pour tous les utilisateurs dans C:\Python314." }
         if (-not $Python -or -not (Test-Path $Python)) { throw "Indiquez -Python <installateur>." }
         Write-Host "Installation de Python 3.14 dans C:\Python314..."
         $p = Start-Process $Python -ArgumentList "/quiet InstallAllUsers=1 TargetDir=C:\Python314 PrependPath=0 Include_test=0 Include_launcher=1 CompileAll=1" -Wait -PassThru
