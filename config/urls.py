@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
+from django.views.generic import RedirectView
 
 from config.vues import sante
 from identite.vues import refus_admin
@@ -11,6 +12,8 @@ admin.site.login = refus_admin
 admin.site.site_header = "GI-CONSEILS — administration"
 
 urlpatterns = [
+    path("", RedirectView.as_view(pattern_name="suivi:vue_ensemble", permanent=False)),
+    path("suivi/", include("suivi.urls")),
     path("sante/", sante, name="sante"),
     path("identite/", include("identite.urls")),
     path("api/", include("suivi.api.urls")),

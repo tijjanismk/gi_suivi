@@ -166,6 +166,16 @@ UNFOLD = {
         "show_all_applications": False,
         "navigation": [
             {
+                "title": "Écrans",
+                "items": [
+                    {
+                        "title": "Vue d'ensemble",
+                        "icon": "insights",
+                        "link": _lien("suivi:vue_ensemble"),
+                    },
+                ],
+            },
+            {
                 "title": "Suivi",
                 "items": [
                     {

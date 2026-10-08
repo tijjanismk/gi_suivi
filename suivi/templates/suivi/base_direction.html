@@ -1,0 +1,20 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <div class="gic:flex gic:flex-wrap gic:items-end gic:justify-between gic:gap-4">
+    <div class="gic:flex gic:flex-col gic:gap-1">
+      {% component "unfold/components/title.html" %}{{ titre }}{% endcomponent %}
+      {% component "unfold/components/text.html" %}
+        Du {{ periode.debut|date:"l j F Y" }} au {{ periode.fin|date:"l j F Y" }} ({{ periode.jours }} jour{{ periode.jours|pluralize }}).
+      {% endcomponent %}
+    </div>
+    {% include "suivi/_periode.html" %}
+  </div>
+  {% block ecran %}{% endblock %}
+</div>
+{% endblock %}

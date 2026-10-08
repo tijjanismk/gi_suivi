@@ -1,0 +1,17 @@
+{% comment %} Sélecteur de période (T09) : pré-réglages + dates libres, tout dans l'URL. {% endcomment %}
+<form method="get" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+  <div class="gic:flex gic:rounded-md gic:overflow-hidden border border-base-200 dark:border-base-700">
+    {% for l in liens_periode %}
+      <a href="{{ l.url }}"
+         class="gic:px-3 gic:py-1.5 gic:text-sm {% if l.actif %}bg-primary-600 gic:text-white{% else %}bg-white text-subtle dark:bg-base-900 gic:hover:bg-gray-50{% endif %}">{{ l.libelle }}</a>
+    {% endfor %}
+  </div>
+  <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">du
+    <input type="date" name="debut" value="{{ periode.debut|date:'Y-m-d' }}" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
+  </label>
+  <label class="gic:flex gic:items-center gic:gap-1 gic:text-sm text-subtle">au
+    <input type="date" name="fin" value="{{ periode.fin|date:'Y-m-d' }}" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
+  </label>
+  <button type="submit" class="gic:px-3 gic:py-1.5 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Appliquer</button>
+  {% if selection.erreur %}<span class="gic:text-sm gic:text-red-600">{{ selection.erreur }} — 7 derniers jours affichés.</span>{% endif %}
+</form>

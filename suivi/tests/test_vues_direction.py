@@ -1,0 +1,119 @@
+from datetime import date
+from io import StringIO
+
+import pytest
+from django.core.management import call_command
+from django.test import override_settings
+from django.utils import timezone
+
+from suivi.models import Dossier, JournalAcces, Poste, Segment
+from suivi.vues.direction import _couleur
+from suivi.vues.periode import selection_de
+
+pytestmark = pytest.mark.django_db
+
+IIS = {
+    "IDENTITE_SOURCE": "iis",
+    "IDENTITE_LECTEUR_GROUPES": "suivi.tests.test_vues_direction.groupes",
+}
+DIR = {"REMOTE_USER": "GICONSEILS\\directrice"}
+VUE = {"REMOTE_USER": "GICONSEILS\\visionneuse"}
+AWA = {"REMOTE_USER": "GICONSEILS\\a.traore"}
+PERIODE = "?debut=2026-10-05&fin=2026-10-07"
+
+
+def groupes(login: str) -> list[str]:
+    return {
+        "giconseils\\directrice": ["GI-Direction"],
+        "giconseils\\visionneuse": ["GI-Direction-Lecture"],
+    }.get(login, [])
+
+
+@override_settings(**IIS)
+def test_vue_ensemble_reservee_puis_affichee(client, jeu_de_segments):
+    assert client.get("/suivi/", **AWA).status_code == 403
+    assert client.get("/suivi/", **VUE).status_code == 200
+    r = client.get("/suivi/" + PERIODE, **DIR)
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert "Vue d'ensemble" in html and "30 h 00" in html and "62.5 %" in html
+    assert "Awa Traoré" in html and "Moussa Keïta" in html
+    assert "18 h 00" in html and "12 h 00" in html  # barres
+    assert "08:00–17:00" in html  # lundi d'Awa dans le tableau
+    assert "gic:bg-green-100" in html and "gic:bg-red-100" in html  # 87.5 % et 0 %
+    assert JournalAcces.objects.filter(
+        action="consulter:vue_ensemble", cible="2026-10-05..2026-10-07"
+    ).exists()
+
+
+@override_settings(**IIS)
+def test_racine_redirige_vers_la_vue_d_ensemble(client):
+    r = client.get("/", **DIR)
+    assert r.status_code == 302 and r["Location"] == "/suivi/"
+
+
+@override_settings(**IIS)
+def test_prereglages_de_periode(client):
+    aujourd_hui = timezone.localdate()
+    s = selection_de({"p": "7j"})
+    assert s.periode.jours == 7 and s.periode.fin == aujourd_hui and s.prereglage == "7j"
+    s = selection_de({"p": "semaine"})
+    assert s.periode.debut.weekday() == 0 and s.periode.fin == aujourd_hui
+    s = selection_de({"p": "mois"})
+    assert s.periode.debut == aujourd_hui.replace(day=1)
+    assert selection_de({"p": "30j"}).periode.jours == 30
+    s = selection_de({"debut": "2026-10-05", "fin": "2026-10-07"})
+    assert (
+        s.prereglage is None
+        and s.periode == s.periode
+        and s.requete == "debut=2026-10-05&fin=2026-10-07"
+    )
+    assert selection_de({}).prereglage == "7j" and selection_de({"p": "inconnu"}).prereglage == "7j"
+    # période invalide : repli sur 7 jours avec un message, pas d'erreur 400 sur un écran
+    s = selection_de({"debut": "2026-10-07", "fin": "2026-10-05"})
+    assert s.prereglage == "7j" and "fin avant debut" in s.erreur
+    html = client.get("/suivi/?debut=2026-10-07&fin=2026-10-05", **DIR).content.decode()
+    assert "7 derniers jours affichés" in html
+
+
+def test_couleurs_des_cellules():
+    assert _couleur("87.5", 7 * 3600) == "bien"
+    assert _couleur("62.5", 5 * 3600) == "moyen"
+    assert _couleur("20.0", 3600) == "faible"
+    assert _couleur("0.0", 0) == "absent"
+    assert _couleur(None, 0) == "repos"  # week-end sans travail
+    assert _couleur(None, 3600) == "hors_prevu"  # travail un samedi
+
+
+@override_settings(**IIS)
+def test_vue_ensemble_sans_donnees(client):
+    html = client.get("/suivi/", **DIR).content.decode()
+    assert "Aucune personne active" in html and "0 h 00" in html
+
+
+def test_jeu_demo_idempotent_et_effacable():
+    sortie = StringIO()
+    call_command("suivi_jeu_demo", "--jours", "7", stdout=sortie)
+    assert "créé" in sortie.getvalue()
+    n = Segment.objects.count()
+    assert n > 50 and Poste.objects.filter(nom__startswith="DEMO-").count() == 4
+    assert Dossier.objects.filter(code="GIC-HYD-ETU-052", valide=True).exists()
+    assert Dossier.objects.filter(statut="detecte").count() == 1
+    assert Segment.objects.filter(statut_classement="a_classer").exists()
+    sortie = StringIO()
+    call_command("suivi_jeu_demo", stdout=sortie)
+    assert "existe déjà" in sortie.getvalue() and Segment.objects.count() == n
+    call_command("suivi_jeu_demo", "--effacer", stdout=StringIO())
+    assert (
+        Segment.objects.count() == 0 and Poste.objects.filter(nom__startswith="DEMO-").count() == 0
+    )
+    assert Dossier.objects.count() == 4  # les dossiers restent (ils ne sont pas marqués démo)
+
+
+def test_jeu_demo_deterministe():
+    call_command("suivi_jeu_demo", "--jours", "5", stdout=StringIO())
+    a = sorted(Segment.objects.values_list("debut", "duree_s", "application"))
+    call_command("suivi_jeu_demo", "--effacer", stdout=StringIO())
+    call_command("suivi_jeu_demo", "--jours", "5", stdout=StringIO())
+    assert sorted(Segment.objects.values_list("debut", "duree_s", "application")) == a
+    assert date.today() is not None

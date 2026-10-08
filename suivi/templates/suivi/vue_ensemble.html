@@ -1,0 +1,88 @@
+{% extends "suivi/base_direction.html" %}
+{% load unfold %}
+
+{% block ecran %}
+{# Quatre indicateurs #}
+<div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
+  {% component "unfold/components/card.html" with icon="schedule" %}
+    {% component "unfold/components/text.html" %}Heures effectives{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ total_heures }}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="percent" %}
+    {% component "unfold/components/text.html" %}Du temps prévu{% endcomponent %}
+    {% component "unfold/components/title.html" %}{% if synthese.prevu_pct %}{{ synthese.prevu_pct }} %{% else %}—{% endif %}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="inbox" href="#" %}
+    {% component "unfold/components/text.html" %}À classer{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ a_classer_heures }}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="desktop_access_disabled" %}
+    {% component "unfold/components/text.html" %}Postes muets{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ postes_rouges }}{% endcomponent %}
+  {% endcomponent %}
+</div>
+
+{# Barres par employé (SVG serveur) #}
+{% component "unfold/components/card.html" with title="Heures par personne" title_icon="bar_chart" %}
+  {% if synthese.employes %}
+  <div class="gic:flex gic:flex-col gic:gap-2">
+    {% for e in synthese.employes %}
+    <div class="gic:grid gic:grid-cols-[10rem_1fr_9rem] gic:items-center gic:gap-3 gic:text-sm">
+      <span class="text-important gic:truncate" title="{{ e.employe }}">{{ e.employe }}</span>
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="gic:h-5 gic:w-full" role="img" aria-label="{{ e.employe }} : {{ e.heures }}">
+        {% if e.prevu_largeur_pct %}<rect x="0" y="0" width="{{ e.prevu_largeur_pct }}" height="10" class="gic:fill-gray-200 gic:dark:fill-gray-700" />{% endif %}
+        <rect x="0" y="2" width="{{ e.largeur_pct }}" height="6" rx="1" class="gic:fill-blue-600" />
+      </svg>
+      <span class="gic:text-right gic:tabular-nums gic:whitespace-nowrap">{{ e.heures }}{% if e.prevu_pct %} <span class="text-subtle">· {{ e.prevu_pct }} %</span>{% endif %}</span>
+    </div>
+    {% endfor %}
+  </div>
+  <p class="gic:mt-3 gic:text-xs text-subtle">Barre pleine : heures effectives ; fond gris : heures prévues sur la période.</p>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucune personne active sur la période.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
+{# Tableau jour × employé #}
+{% component "unfold/components/card.html" with title="Jour par jour" title_icon="calendar_view_week" %}
+  {% if synthese.employes %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-xs gic:border-separate gic:border-spacing-1">
+      <thead>
+        <tr>
+          <th class="gic:text-left gic:font-medium text-subtle gic:pr-2">Personne</th>
+          {% for j in jours %}<th class="gic:font-medium text-subtle gic:whitespace-nowrap">{{ j|date:"D j" }}</th>{% endfor %}
+          <th class="gic:text-right gic:font-medium text-subtle">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in synthese.employes %}
+        <tr>
+          <td class="text-important gic:whitespace-nowrap gic:pr-2">{{ e.employe }}</td>
+          {% for j in e.journees %}
+          <td class="gic:rounded gic:text-center gic:py-1.5 gic:px-1 gic:tabular-nums
+            {% if j.couleur == 'bien' %}gic:bg-green-100 gic:text-green-900 gic:dark:bg-green-900/40 gic:dark:text-green-100
+            {% elif j.couleur == 'moyen' %}gic:bg-amber-100 gic:text-amber-900 gic:dark:bg-amber-900/40 gic:dark:text-amber-100
+            {% elif j.couleur == 'faible' or j.couleur == 'absent' %}gic:bg-red-100 gic:text-red-900 gic:dark:bg-red-900/40 gic:dark:text-red-100
+            {% elif j.couleur == 'hors_prevu' %}gic:bg-sky-100 gic:text-sky-900 gic:dark:bg-sky-900/40 gic:dark:text-sky-100
+            {% else %}gic:bg-gray-100 text-subtle gic:dark:bg-gray-800{% endif %}"
+            title="{{ j.jour }} : {{ j.effectif_s }} s{% if j.arrivee %}, {{ j.arrivee }} → {{ j.depart }}{% endif %}{% if j.prevu_pct %}, {{ j.prevu_pct }} % du prévu{% endif %}">
+            {% if j.heures %}<div class="gic:font-medium">{{ j.heures }}</div>{% if j.arrivee %}<div class="gic:opacity-70">{{ j.arrivee }}–{{ j.depart }}</div>{% endif %}{% else %}·{% endif %}
+          </td>
+          {% endfor %}
+          <td class="gic:text-right gic:tabular-nums text-important gic:font-medium">{{ e.heures }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="gic:mt-3 gic:text-xs text-subtle">
+    <span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:bg-green-100 gic:align-middle"></span> ≥ 80 % du prévu ·
+    <span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:bg-amber-100 gic:align-middle"></span> ≥ 50 % ·
+    <span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:bg-red-100 gic:align-middle"></span> moins, ou absent ·
+    <span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:bg-sky-100 gic:align-middle"></span> travail un jour non prévu ·
+    heures d'arrivée et de départ sous le total.
+  </p>
+  {% endif %}
+{% endcomponent %}
+{% endblock %}
