@@ -37,14 +37,14 @@
             <tr class="gic:border-b border-base-200 dark:border-base-800">
               <td class="gic:py-2 gic:font-medium text-important">{{ d.code|default:"(sans code)" }}</td>
               <td class="gic:py-2 text-subtle">{{ d.nom }}</td>
-              <td class="gic:py-2 gic:text-right gic:tabular-nums">{% widthratio d.duree_s 60 1 %} min</td>
+              <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ d.duree }}</td>
             </tr>
           {% endfor %}
           {% if activite.a_classer_s %}
-            <tr><td class="gic:py-2" colspan="2">À classer</td><td class="gic:py-2 gic:text-right gic:tabular-nums">{% widthratio activite.a_classer_s 60 1 %} min</td></tr>
+            <tr><td class="gic:py-2" colspan="2">À classer</td><td class="gic:py-2 gic:text-right gic:tabular-nums">{{ activite.a_classer }}</td></tr>
           {% endif %}
           {% if activite.sans_fichier_s %}
-            <tr><td class="gic:py-2 text-subtle" colspan="2">Sans fichier (navigateur, explorateur…)</td><td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle">{% widthratio activite.sans_fichier_s 60 1 %} min</td></tr>
+            <tr><td class="gic:py-2 text-subtle" colspan="2">Sans fichier (navigateur, explorateur…)</td><td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle">{{ activite.sans_fichier }}</td></tr>
           {% endif %}
           </tbody>
         </table>
@@ -60,7 +60,7 @@
         {% for a in activite.par_application %}
           <tr class="gic:border-b border-base-200 dark:border-base-800">
             <td class="gic:py-2">{{ a.application }}</td>
-            <td class="gic:py-2 gic:text-right gic:tabular-nums">{% widthratio a.duree_s 60 1 %} min</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ a.duree }}</td>
           </tr>
         {% endfor %}
         </tbody>

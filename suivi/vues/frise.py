@@ -27,6 +27,14 @@ def _hm(secondes: int) -> str:
     return f"{s // 3600} h {s % 3600 // 60:02d}"
 
 
+def duree_courte(secondes: int) -> str:
+    """« 45 min » sous l'heure, « 1 h 15 » au-delà (page « Mon activité »)."""
+    s = int(secondes or 0)
+    if 0 < s < 60:
+        return "< 1 min"
+    return f"{s // 60} min" if s < 3600 else _hm(s)
+
+
 def couleur_dossier(couleurs: dict[str, str], dossier: str) -> str:
     return couleurs.setdefault(dossier, PALETTE[len(couleurs) % len(PALETTE)])
 

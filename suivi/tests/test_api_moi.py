@@ -93,6 +93,11 @@ def test_page_mon_activite(client, dossiers, faire_lot):
     html = r.content.decode()
     assert "Mon activité du jour" in html and "GIC-HYD-ETU-052" in html and "14:00" in html
     assert "vous seul voyez cette page" in html
+    assert "10 min" in html  # sous l'heure : en minutes
+    # au-delà de l'heure : en heures (10 min + 8 × 10 min sur le même dossier = 1 h 30)
+    poster(client, faire_lot(8, debut=aujourd_hui(15)), **AWA)
+    html = client.get("/moi", **AWA).content.decode()
+    assert "1 h 30" in html and "90 min" not in html
     # une autre personne, sans agent : page vide mais accessible
     assert (
         "Rien de mesuré" in client.get("/moi", REMOTE_USER="GICONSEILS\\nouveau").content.decode()

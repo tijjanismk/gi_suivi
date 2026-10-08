@@ -172,6 +172,13 @@ def test_prereglages_de_periode(client):
     assert "7 derniers jours affichés" in html
 
 
+def test_duree_courte():
+    from suivi.vues.frise import duree_courte
+
+    assert duree_courte(0) == "0 min" and duree_courte(30) == "< 1 min"
+    assert duree_courte(45 * 60) == "45 min" and duree_courte(75 * 60) == "1 h 15"
+
+
 def test_couleurs_des_cellules():
     assert _couleur("87.5", 7 * 3600) == "bien"
     assert _couleur("62.5", 5 * 3600) == "moyen"
