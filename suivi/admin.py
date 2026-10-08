@@ -1,4 +1,5 @@
 from django.contrib import admin
+from unfold.admin import ModelAdmin, TabularInline
 
 from suivi.models import (
     Dossier,
@@ -13,25 +14,25 @@ from suivi.models import (
 
 
 @admin.register(Racine)
-class RacineAdmin(admin.ModelAdmin):
+class RacineAdmin(ModelAdmin):
     list_display = ["chemin", "profondeur", "motif_code", "active"]
     list_editable = ["active"]
 
 
 @admin.register(Parametre)
-class ParametreAdmin(admin.ModelAdmin):
+class ParametreAdmin(ModelAdmin):
     list_display = ["cle", "valeur", "description"]
     search_fields = ["cle"]
 
 
-class RegleExceptionEnLigne(admin.TabularInline):
+class RegleExceptionEnLigne(TabularInline):
     model = RegleException
     extra = 0
     readonly_fields = ["cree_par", "cree_le"]
 
 
 @admin.register(RegleException)
-class RegleExceptionAdmin(admin.ModelAdmin):
+class RegleExceptionAdmin(ModelAdmin):
     list_display = ["motif", "type", "dossier", "cree_par", "cree_le"]
     list_filter = ["type"]
     search_fields = ["motif", "dossier__code", "dossier__nom"]
@@ -44,7 +45,7 @@ class RegleExceptionAdmin(admin.ModelAdmin):
 
 
 @admin.register(Dossier)
-class DossierAdmin(admin.ModelAdmin):
+class DossierAdmin(ModelAdmin):
     list_display = ["code", "nom", "statut", "valide", "racine"]
     list_filter = ["statut", "valide", "racine"]
     search_fields = ["code", "nom", "chemin_windows"]
@@ -53,7 +54,7 @@ class DossierAdmin(admin.ModelAdmin):
 
 
 @admin.register(Employe)
-class EmployeAdmin(admin.ModelAdmin):
+class EmployeAdmin(ModelAdmin):
     list_display = ["nom_affiche", "login", "heures_prevues_semaine", "actif"]
     list_filter = ["actif"]
     search_fields = ["nom_affiche", "login"]
@@ -61,7 +62,7 @@ class EmployeAdmin(admin.ModelAdmin):
 
 
 @admin.register(Poste)
-class PosteAdmin(admin.ModelAdmin):
+class PosteAdmin(ModelAdmin):
     list_display = ["nom", "version_agent", "dernier_envoi", "demarrages_semaine"]
     readonly_fields = ["nom", "version_agent", "dernier_envoi", "demarrages_semaine", "premier_vu"]
 
@@ -70,7 +71,7 @@ class PosteAdmin(admin.ModelAdmin):
 
 
 @admin.register(Segment)
-class SegmentAdmin(admin.ModelAdmin):
+class SegmentAdmin(ModelAdmin):
     """Consultation seulement : les segments bruts ne se corrigent pas à la main."""
 
     list_display = [
@@ -94,7 +95,7 @@ class SegmentAdmin(admin.ModelAdmin):
 
 
 @admin.register(JournalAcces)
-class JournalAccesAdmin(admin.ModelAdmin):
+class JournalAccesAdmin(ModelAdmin):
     list_display = ["horodatage", "login", "action", "cible", "adresse_ip"]
     list_filter = ["action"]
 

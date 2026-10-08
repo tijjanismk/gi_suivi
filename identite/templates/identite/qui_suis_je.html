@@ -1,13 +1,42 @@
-{% extends "base.html" %}
-{% block titre %}Qui suis-je ?{% endblock %}
-{% block contenu %}
-<section class="carte">
-  <h1>Qui suis-je ?</h1>
-  <dl>
-    <dt>Login Windows</dt><dd>{{ user.login_windows }}</dd>
-    <dt>Groupes</dt><dd>{{ user.groupes|join:", "|default:"aucun" }}</dd>
-    <dt>Accès direction</dt><dd>{{ direction|yesno:"oui,non" }}</dd>
-    <dt>Source de l'identité</dt><dd>{% if source == "dev" %}utilisateur fictif (développement){% else %}IIS (authentification Windows){% endif %}</dd>
-  </dl>
-</section>
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold %}
+
+{% block title %}Qui suis-je ? | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6 max-w-2xl py-8">
+    {% component "unfold/components/title.html" %}Qui suis-je ?{% endcomponent %}
+
+    {% component "unfold/components/card.html" with title="Identité vue par l'application" title_icon="fingerprint" %}
+        <dl class="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-3">
+            <dt class="text-subtle">Login Windows</dt>
+            <dd class="font-medium text-important sm:col-span-2">{{ user.login_windows }}</dd>
+
+            <dt class="text-subtle">Groupes</dt>
+            <dd class="flex flex-wrap gap-2 sm:col-span-2">
+                {% for g in user.groupes %}
+                    {% component "unfold/helpers/label.html" with variant="primary" text=g %}{% endcomponent %}
+                {% empty %}
+                    <span class="text-subtle">aucun</span>
+                {% endfor %}
+            </dd>
+
+            <dt class="text-subtle">Accès direction</dt>
+            <dd class="sm:col-span-2">
+                {% if direction %}
+                    {% component "unfold/helpers/label.html" with variant="success" text="oui, avec les actions" %}{% endcomponent %}
+                {% elif lecture_seule %}
+                    {% component "unfold/helpers/label.html" with variant="info" text="consultation seule" %}{% endcomponent %}
+                {% else %}
+                    {% component "unfold/helpers/label.html" with variant="danger" text="non" %}{% endcomponent %}
+                {% endif %}
+            </dd>
+
+            <dt class="text-subtle">Source de l'identité</dt>
+            <dd class="sm:col-span-2">
+                {% if source == "dev" %}utilisateur fictif (développement){% else %}IIS, authentification Windows{% endif %}
+            </dd>
+        </dl>
+    {% endcomponent %}
+</div>
 {% endblock %}

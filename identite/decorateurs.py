@@ -23,3 +23,13 @@ def groupe_requis(*groupes: str):
         return enveloppe
 
     return decorateur
+
+
+def consultation_requise(vue):
+    """Écrans de consultation : direction ET compte « visionneuse » (lecture seule).
+
+    Les actions (valider, rattacher, paramétrer) restent sous @groupe_requis(GROUPE_DIRECTION).
+    """
+    from django.conf import settings
+
+    return groupe_requis(settings.GROUPE_DIRECTION, settings.GROUPE_DIRECTION_LECTURE)(vue)

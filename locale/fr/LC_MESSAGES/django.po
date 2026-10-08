@@ -1,0 +1,226 @@
+# Traductions françaises des textes de l'interface Unfold (qui n'a pas de catalogue fr).
+# Nos propres pages sont déjà écrites en français ; ce fichier ne couvre que le thème.
+# Compiler après modification : .venv\Scripts\python.exe scripts\dev\compiler_traductions.py
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: fr\n"
+
+msgid "Welcome"
+msgstr "Bienvenue"
+
+msgid "Welcome back to"
+msgstr "Bon retour sur"
+
+msgid "Search apps and models..."
+msgstr "Rechercher une rubrique…"
+
+msgid "Type to search"
+msgstr "Tapez pour rechercher"
+
+msgid "Recent searches"
+msgstr "Recherches récentes"
+
+msgid "Home"
+msgstr "Accueil"
+
+msgid "Log in"
+msgstr "Se connecter"
+
+msgid "Log in again"
+msgstr "Se reconnecter"
+
+msgid "Log out"
+msgstr "Se déconnecter"
+
+msgid "You have been successfully logged out from the administration"
+msgstr "Vous avez été déconnecté de l'administration"
+
+msgid "Return to site"
+msgstr "Retour au site"
+
+msgid "Toggle sidebar"
+msgstr "Afficher ou masquer le menu"
+
+msgid "Toggle dark/light mode"
+msgstr "Basculer clair / sombre"
+
+msgid "Toggle password visibility"
+msgstr "Afficher ou masquer le mot de passe"
+
+msgid "Light"
+msgstr "Clair"
+
+msgid "Dark"
+msgstr "Sombre"
+
+msgid "System"
+msgstr "Système"
+
+msgid "Recent actions"
+msgstr "Actions récentes"
+
+msgid "Save"
+msgstr "Enregistrer"
+
+msgid "Save and add another"
+msgstr "Enregistrer et en ajouter un autre"
+
+msgid "Save and continue editing"
+msgstr "Enregistrer et continuer les modifications"
+
+msgid "Save as new"
+msgstr "Enregistrer comme nouveau"
+
+msgid "Add"
+msgstr "Ajouter"
+
+msgid "Change"
+msgstr "Modifier"
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Edit"
+msgstr "Modifier"
+
+msgid "View"
+msgstr "Consulter"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+msgid "Clear"
+msgstr "Effacer"
+
+msgid "Clear all filters"
+msgstr "Effacer tous les filtres"
+
+msgid "Clear selection"
+msgstr "Effacer la sélection"
+
+msgid "Reset filters"
+msgstr "Réinitialiser les filtres"
+
+msgid "Filters"
+msgstr "Filtres"
+
+msgid "Apply Filters"
+msgstr "Appliquer les filtres"
+
+msgid "Toggle filter"
+msgstr "Activer ou désactiver le filtre"
+
+msgid "All"
+msgstr "Tout"
+
+msgid "Yes"
+msgstr "Oui"
+
+msgid "No"
+msgstr "Non"
+
+msgid "True"
+msgstr "Vrai"
+
+msgid "False"
+msgstr "Faux"
+
+msgid "Unknown"
+msgstr "Inconnu"
+
+msgid "No results found"
+msgstr "Aucun résultat"
+
+msgid "No data"
+msgstr "Aucune donnée"
+
+msgid "Nothing matched your search"
+msgstr "Aucun résultat pour votre recherche"
+
+msgid "Summary"
+msgstr "Résumé"
+
+msgid "Select action to run"
+msgstr "Choisir l'action à exécuter"
+
+msgid "Run the selected action"
+msgstr "Exécuter l'action choisie"
+
+msgid "Select all objects on this page for an action"
+msgstr "Sélectionner tous les éléments de cette page"
+
+msgid "Go back"
+msgstr "Retour"
+
+msgid "Previous"
+msgstr "Précédent"
+
+msgid "Next"
+msgstr "Suivant"
+
+msgid "Show all"
+msgstr "Tout afficher"
+
+msgid "Navigate"
+msgstr "Naviguer"
+
+msgid "Available shortcuts"
+msgstr "Raccourcis disponibles"
+
+msgid "Global shortcuts"
+msgstr "Raccourcis généraux"
+
+msgid "Open command tool"
+msgstr "Ouvrir la palette de commandes"
+
+msgid "You don’t have permission to view or edit anything."
+msgstr "Vous n'avez pas l'autorisation de consulter ou de modifier quoi que ce soit."
+
+msgid "This page yielded into no results. Create a new item or reset your filters."
+msgstr "Cette page ne donne aucun résultat. Créez un élément ou réinitialisez les filtres."
+
+msgid "Create new record"
+msgstr "Créer un élément"
+
+msgid "No, take me back"
+msgstr "Non, revenir en arrière"
+
+msgid "Yes, I’m sure"
+msgstr "Oui, je confirme"
+
+msgid "This item will be deleted."
+msgstr "Cet élément sera supprimé."
+
+msgid "Open selection"
+msgstr "Ouvrir la sélection"
+
+msgid "Open selection in new tab"
+msgstr "Ouvrir la sélection dans un nouvel onglet"
+
+msgid "Change password"
+msgstr "Changer le mot de passe"
+
+msgid "Permissions"
+msgstr "Autorisations"
+
+msgid "Group"
+msgstr "Groupe"
+
+msgid "User"
+msgstr "Utilisateur"
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "Action"
+msgstr "Action"
+
+msgid "Date/time"
+msgstr "Date et heure"
+
+msgid "Export"
+msgstr "Exporter"
+
+msgid "Import"
+msgstr "Importer"

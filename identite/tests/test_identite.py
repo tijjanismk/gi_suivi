@@ -1,12 +1,13 @@
 from datetime import timedelta
 
 import pytest
+from django.contrib import admin
 from django.http import HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import path
 from django.utils import timezone
 
-from identite.decorateurs import groupe_requis
+from identite.decorateurs import consultation_requise, groupe_requis
 from identite.models import Utilisateur
 from identite.services import obtenir_utilisateur
 
@@ -18,7 +19,16 @@ def vue_direction(request):
     return HttpResponse("ok")
 
 
-urlpatterns = [path("essai-direction/", vue_direction)]
+@consultation_requise
+def vue_consultation(request):
+    return HttpResponse("ok")
+
+
+urlpatterns = [
+    path("essai-direction/", vue_direction),
+    path("essai-consultation/", vue_consultation),
+    path("admin/", admin.site.urls),  # la page de refus (thème Unfold) lie vers l'admin
+]
 
 IIS = {
     "IDENTITE_SOURCE": "iis",
@@ -27,9 +37,52 @@ IIS = {
 
 
 def groupes_fictifs(login: str) -> list[str]:
-    return {"giconseils\\directrice": ["GI-Direction", "Utilisateurs du domaine"]}.get(
-        login, ["Utilisateurs du domaine"]
+    return {
+        "giconseils\\directrice": ["GI-Direction", "Utilisateurs du domaine"],
+        "giconseils\\visionneuse": ["GI-Direction-Lecture", "Utilisateurs du domaine"],
+    }.get(login, ["Utilisateurs du domaine"])
+
+
+@override_settings(**IIS)
+def test_visionneuse_consulte_sans_pouvoir_agir(client):
+    # l'accueil et une liste : oui ; l'ajout : non
+    assert client.get("/admin/", REMOTE_USER="giconseils\\visionneuse").status_code == 200
+    assert (
+        client.get("/admin/suivi/racine/", REMOTE_USER="giconseils\\visionneuse").status_code == 200
     )
+    assert (
+        client.get("/admin/suivi/racine/add/", REMOTE_USER="giconseils\\visionneuse").status_code
+        == 403
+    )
+    u = Utilisateur.objects.get(login_windows="giconseils\\visionneuse")
+    assert u.lecture_seule and not u.direction
+    assert u.has_perm("suivi.view_racine") and not u.has_perm("suivi.change_racine")
+    assert not u.has_perm("suivi.add_racine") and not u.has_perm("suivi.delete_racine")
+
+
+@override_settings(**IIS)
+def test_direction_garde_toutes_les_actions(client):
+    assert (
+        client.get("/admin/suivi/racine/add/", REMOTE_USER="giconseils\\directrice").status_code
+        == 200
+    )
+    u = Utilisateur.objects.get(login_windows="giconseils\\directrice")
+    assert u.direction and not u.lecture_seule and u.has_perm("suivi.delete_racine")
+
+
+@override_settings(**IIS, ROOT_URLCONF=__name__)
+def test_consultation_requise_accepte_les_deux_groupes(client):
+    assert (
+        client.get("/essai-consultation/", REMOTE_USER="giconseils\\visionneuse").status_code == 200
+    )
+    assert (
+        client.get("/essai-consultation/", REMOTE_USER="giconseils\\directrice").status_code == 200
+    )
+    assert (
+        client.get("/essai-consultation/", REMOTE_USER="giconseils\\stagiaire").status_code == 403
+    )
+    # l'action reste réservée à la direction
+    assert client.get("/essai-direction/", REMOTE_USER="giconseils\\visionneuse").status_code == 403
 
 
 def test_dev_utilisateur_fictif_cree_a_la_premiere_requete(client):

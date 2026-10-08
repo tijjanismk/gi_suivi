@@ -53,13 +53,33 @@ class Utilisateur(AbstractBaseUser):
         voulus = {n.lower() for n in noms}
         return any(g.lower() in voulus for g in self.groupes)
 
+    # -- droits -------------------------------------------------------------------------
+    @property
+    def direction(self) -> bool:
+        """Membre de GI-Direction : voit tout et peut agir (valider, paramétrer, rattacher)."""
+        return self.is_active and self.dans_groupe(settings.GROUPE_DIRECTION)
+
+    @property
+    def lecture_seule(self) -> bool:
+        """Membre de GI-Direction-Lecture seulement : voit tout, ne modifie rien."""
+        return (
+            self.is_active
+            and not self.direction
+            and self.dans_groupe(settings.GROUPE_DIRECTION_LECTURE)
+        )
+
     # -- ce que l'admin Django attend ---------------------------------------------------
     @property
     def is_staff(self) -> bool:
-        return self.is_active and self.dans_groupe(settings.GROUPE_DIRECTION)
+        return self.direction or self.lecture_seule
 
     def has_perm(self, perm: str, obj=None) -> bool:
-        return self.is_staff
+        if self.direction:
+            return True
+        if self.lecture_seule:
+            # « suivi.view_segment » oui ; add_, change_, delete_ non
+            return perm.rsplit(".", 1)[-1].startswith("view_")
+        return False
 
     def has_module_perms(self, app_label: str) -> bool:
         return self.is_staff

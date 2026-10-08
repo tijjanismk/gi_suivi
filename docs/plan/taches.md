@@ -14,7 +14,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | P01 | Sauvegarde complète de l'état du système | `wbadmin` vers D:, vérification, copie sur USB dès que possible | `wbadmin get versions` montre la sauvegarde ; un fichier restauré avec succès | à faire |
 | P02 | Bureau à distance limité au réseau local | Règle de pare-feu `192.168.2.0/24`, NLA activée, test depuis un poste | Connexion RDP depuis le LAN fonctionne ; retour arrière documenté | à faire |
 | P03 | Mises à jour Windows | Appliquer les mises à jour en attente, redémarrer hors heures, planifier les suivantes | `Get-HotFix` montre une mise à jour de moins de 30 jours | à faire |
-| P04 | Groupes AD et compte de service | Créer `GI-Direction`, `GI-Offres`, `GI-Ingenieurs`, `GI-Administratif`, `GI-Terrain`, `GI-Application`, `svc-application` ; comptes d'administration nominatifs | Groupes peuplés selon la liste validée par la direction ; `Administrateur` n'est plus utilisé au quotidien | à faire |
+| P04 | Groupes AD et compte de service | Créer `GI-Direction`, `GI-Direction-Lecture` (consultation seule : compte « visionneuse » pour la personne qui suit le travail de la direction sans agir), `GI-Offres`, `GI-Ingenieurs`, `GI-Administratif`, `GI-Terrain`, `GI-Application`, `svc-application` ; comptes d'administration nominatifs | Groupes peuplés selon la liste validée par la direction ; `Administrateur` n'est plus utilisé au quotidien | à faire |
 | P05 | Décisions du blueprint consignées | Racines de classement, convention de nommage des dossiers, membres de `GI-Direction`, heures prévues, rétention, note à l'équipe | Décisions écrites dans un ADR `docs/adr/00NN-decisions-suivi.md` (prochain numéro libre ; 0003 et 0004 sont pris par l'agent), signées par la direction | à faire |
 | P06 | Partage `GIC` et racines | Créer `D:\GIC` avec `MISSIONS_EN_COURS`, `AVIS\2026`, droits par groupes ; y déplacer les dossiers de projet existants selon la convention | Au moins 10 dossiers de projet rangés sous une racine avec un nom conforme | à faire |
 | P07 | Mémoire du serveur | Devis et commande de 16 Go au minimum | Commande passée ; date d'installation connue | à faire |
@@ -60,7 +60,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
-| T01 | Gabarit et navigation | `base.html` mobile d'abord, menu des huit écrans, page de refus hors `GI-Direction`, HTMX local | Toutes les pages s'affichent avec le bon utilisateur ; refus propre | à faire |
+| T01 | Gabarit et navigation | `base.html` mobile d'abord, menu des huit écrans, page de refus hors `GI-Direction`, HTMX local | Toutes les pages s'affichent avec le bon utilisateur ; refus propre | en cours |
 | T02 | Vue d'ensemble | Quatre indicateurs, barres par employé (SVG serveur), tableau jour × employé coloré, % prévu, arrivée/départ | Validée par la direction sur `test` avec la fixture | à faire |
 | T03 | Dossiers | Barres par dossier, tableau dossier × employé | idem | à faire |
 | T04 | Employés et fiche employé | Liste avec état indicatif ; fiche : chronologie colorée par dossier, fichiers et applications | idem | à faire |

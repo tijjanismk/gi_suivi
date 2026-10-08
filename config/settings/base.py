@@ -41,6 +41,8 @@ DEBUG = False
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", ["localhost", "127.0.0.1"])
 
 INSTALLED_APPS = [
+    "unfold",  # thème de l'admin et des écrans direction (ADR 0005) : avant django.contrib.admin
+    "unfold.contrib.filters",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -90,6 +92,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "identite.Utilisateur"
 AUTH_PASSWORD_VALIDATORS: list[dict] = []
 
+LOCALE_PATHS = [BASE_DIR / "locale"]  # nos traductions passent avant celles des bibliothèques
 LANGUAGE_CODE = "fr-fr"
 TIME_ZONE = "Africa/Bamako"
 USE_I18N = True
@@ -110,7 +113,119 @@ IDENTITE_CHEMINS_PUBLICS = ["/sante/", "/api/sante"]
 IDENTITE_GROUPES_VALIDITE_S = 600
 
 GROUPE_DIRECTION = env.str("GROUPE_DIRECTION", "GI-Direction")
+# Consultation seule (compte « visionneuse ») : tous les écrans, aucune action. Groupe AD à
+# créer en P04.
+GROUPE_DIRECTION_LECTURE = env.str("GROUPE_DIRECTION_LECTURE", "GI-Direction-Lecture")
 GROUPE_OFFRES = env.str("GROUPE_OFFRES", "GI-Offres")
+
+
+# --- Interface (Unfold, ADR 0005) -----------------------------------------------------
+def _lien(nom: str):
+    from django.urls import reverse_lazy
+
+    return reverse_lazy(nom)
+
+
+# Bleu GI-CONSEILS (palette Tailwind « blue »), en oklch comme l'attend Unfold
+_BLEU = {
+    "50": "oklch(97% 0.014 254.604)",
+    "100": "oklch(93.2% 0.032 255.585)",
+    "200": "oklch(88.2% 0.059 254.128)",
+    "300": "oklch(80.9% 0.105 251.813)",
+    "400": "oklch(70.7% 0.165 254.624)",
+    "500": "oklch(62.3% 0.214 259.815)",
+    "600": "oklch(54.6% 0.245 262.881)",
+    "700": "oklch(48.8% 0.243 264.376)",
+    "800": "oklch(42.4% 0.199 265.638)",
+    "900": "oklch(37.9% 0.146 265.522)",
+    "950": "oklch(28.2% 0.091 267.935)",
+}
+
+UNFOLD = {
+    "SITE_TITLE": "GI-SUIVI",
+    "SITE_HEADER": "GI-CONSEILS",
+    "SITE_SUBHEADER": "Suivi d'activité",
+    "SITE_SYMBOL": "monitoring",
+    "SHOW_VIEW_ON_SITE": False,
+    "DASHBOARD_CALLBACK": "suivi.tableau_de_bord.contexte",
+    "COLORS": {"primary": _BLEU},
+    "SIDEBAR": {
+        "show_search": True,
+        "show_all_applications": False,
+        "navigation": [
+            {
+                "title": "Suivi",
+                "items": [
+                    {
+                        "title": "Tableau de bord",
+                        "icon": "space_dashboard",
+                        "link": _lien("admin:index"),
+                    },
+                    {
+                        "title": "Dossiers",
+                        "icon": "folder",
+                        "link": _lien("admin:suivi_dossier_changelist"),
+                    },
+                    {
+                        "title": "Employés",
+                        "icon": "badge",
+                        "link": _lien("admin:suivi_employe_changelist"),
+                    },
+                    {
+                        "title": "Postes",
+                        "icon": "computer",
+                        "link": _lien("admin:suivi_poste_changelist"),
+                    },
+                    {
+                        "title": "Segments",
+                        "icon": "timeline",
+                        "link": _lien("admin:suivi_segment_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Classement",
+                "items": [
+                    {
+                        "title": "Racines",
+                        "icon": "account_tree",
+                        "link": _lien("admin:suivi_racine_changelist"),
+                    },
+                    {
+                        "title": "Exceptions",
+                        "icon": "alt_route",
+                        "link": _lien("admin:suivi_regleexception_changelist"),
+                    },
+                ],
+            },
+            {
+                "title": "Administration",
+                "items": [
+                    {
+                        "title": "Paramètres",
+                        "icon": "tune",
+                        "link": _lien("admin:suivi_parametre_changelist"),
+                    },
+                    {
+                        "title": "Utilisateurs",
+                        "icon": "person",
+                        "link": _lien("admin:identite_utilisateur_changelist"),
+                    },
+                    {
+                        "title": "Journal d'accès",
+                        "icon": "history",
+                        "link": _lien("admin:suivi_journalacces_changelist"),
+                    },
+                    {
+                        "title": "Qui suis-je ?",
+                        "icon": "fingerprint",
+                        "link": _lien("identite:qui_suis_je"),
+                    },
+                ],
+            },
+        ],
+    },
+}
 
 # --- Suivi d'activité ---------------------------------------------------------------
 SUIVI_RETENTION_MOIS = env.int("SUIVI_RETENTION_MOIS", 24)

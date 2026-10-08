@@ -1,10 +1,22 @@
-{% extends "base.html" %}
-{% block titre %}Accès réservé{% endblock %}
-{% block contenu %}
-<section class="carte refus">
-  <h1>Accès réservé</h1>
-  <p>Cette page est réservée aux membres du groupe {{ groupes|join:" ou " }}.</p>
-  {% if user.is_authenticated %}<p>Vous êtes connecté en tant que <strong>{{ user.login_windows }}</strong>.</p>{% endif %}
-  <p>Si vous pensez devoir y accéder, demandez à l'administrateur de vous ajouter au groupe.</p>
-</section>
+{% extends "unfold/layouts/unauthenticated.html" %}
+{% load unfold %}
+
+{% block title %}Accès réservé | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-2">
+        <span class="material-symbols-outlined text-5xl! text-red-600">lock</span>
+        {% component "unfold/components/title.html" %}Accès réservé{% endcomponent %}
+    </div>
+    {% component "unfold/components/text.html" %}
+        Cette page est réservée aux membres du groupe <strong>{{ groupes|join:" ou " }}</strong>.
+    {% endcomponent %}
+    {% if user.is_authenticated %}
+        {% component "unfold/components/text.html" %}
+            Vous êtes connecté en tant que <strong>{{ user.login_windows }}</strong>.
+            Si vous devez y accéder, demandez à l'administrateur de vous ajouter au groupe.
+        {% endcomponent %}
+    {% endif %}
+</div>
 {% endblock %}

@@ -93,14 +93,17 @@ Voir `docs/plan/taches.md` pour la liste ordonnée et l'état de chaque tâche.
 Mettre à jour la section « En cours » ci-dessous à la fin de chaque session.
 
 **En cours :** Phase 1 — S01, S03 à S06 faits ; S02 attend la source des groupes AD (ADR à
-écrire) ; S07 attend le serveur. Agent v0.2.0 en pilote sur le poste du développeur (service G06
-installé, MSI G07 en attente de WiX). Phase 0 (serveur) toujours à faire.
-**Dernière session :** 2026-10-07 — agent mis au point sur poste (CONTROLE.md : 1 à 4, 7 à 10
-passés ; 5 et 6 restent), ADR 0003 (identification générique du fichier, PDF en navigateur,
-tampon par utilisateur) et 0004 (supervision par service), socle Django fusionné (70 tests,
-couverture 98 %), dépôt sur GitHub (privé), vérification locale `scripts\dev\verifier.ps1`
+écrire) ; S07 attend le serveur. T01 (interface) commencé : thème Unfold (ADR 0005), menu,
+accueil à indicateurs, français, groupe de consultation seule `GI-Direction-Lecture`. Agent
+v0.2.0 en pilote sur le poste du développeur (service G06 installé, MSI G07 en attente de WiX).
+Phase 0 (serveur) toujours à faire.
+**Dernière session :** 2026-10-08 — interface Unfold fusionnée (73 tests, couverture 98 %),
+catalogue français du thème (`locale/fr`, compilé par `scripts/dev/compiler_traductions.py`),
+compte « visionneuse » en lecture seule côté application (groupe AD à créer en P04) ; un login
+propre à l'application a été écarté (CONTEXT.md r. 6 et 7, ADR 0001).
 **Prochaine étape :** décider la source des groupes AD (S02) ; phase 2, A01 ingestion des lots ;
-P01 sauvegarde du serveur. Toujours `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md).
+T02 vue d'ensemble ; P01 sauvegarde du serveur. Toujours `scripts\dev\verifier.ps1` avant
+d'envoyer (docs/git.md).
 
 ## Ce que l'IA doit faire en début de session
 

@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% load i18n unfold %}
+
+{% block title %}Tableau de bord | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="flex flex-col gap-8">
+    <div class="flex flex-col gap-1">
+        {% component "unfold/components/title.html" %}Bonjour {{ user.nom_affiche|default:user.login_windows }}{% endcomponent %}
+        {% component "unfold/components/text.html" %}Activité mesurée par les agents de poste, aujourd'hui.{% endcomponent %}
+    </div>
+
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {% for i in indicateurs %}
+            {% component "unfold/components/card.html" with href=i.lien icon=i.icone %}
+                {% component "unfold/components/text.html" %}{{ i.titre }}{% endcomponent %}
+                {% component "unfold/components/title.html" %}{{ i.valeur }}{% endcomponent %}
+            {% endcomponent %}
+        {% endfor %}
+    </div>
+
+    {% if dossiers_a_valider %}
+        {% component "unfold/components/card.html" with title="Dossiers détectés à valider" title_icon="rule_folder" %}
+            {% component "unfold/components/text.html" %}
+                {{ dossiers_a_valider }} dossier{{ dossiers_a_valider|pluralize }} vu{{ dossiers_a_valider|pluralize }} par les agents,
+                pas encore validé{{ dossiers_a_valider|pluralize }}.
+                <a class="text-primary-600 underline" href="{% url 'admin:suivi_dossier_changelist' %}?statut__exact=detecte">Les voir</a>
+            {% endcomponent %}
+        {% endcomponent %}
+    {% endif %}
+</div>
+{% endblock %}

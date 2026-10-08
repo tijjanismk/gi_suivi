@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.contrib import admin
 from django.shortcuts import render
 
 
@@ -8,14 +9,18 @@ def qui_suis_je(request):
         request,
         "identite/qui_suis_je.html",
         {
+            **admin.site.each_context(request),  # menu latéral et thème Unfold
             "source": settings.IDENTITE_SOURCE,
-            "direction": request.user.dans_groupe(settings.GROUPE_DIRECTION),
+            "direction": request.user.direction,
+            "lecture_seule": request.user.lecture_seule,
         },
     )
 
 
 def refus_admin(request, extra_context=None):
     """Remplace la page de connexion de l'admin : pas de mot de passe, seulement un refus."""
-    return render(
-        request, "identite/refus.html", {"groupes": [settings.GROUPE_DIRECTION]}, status=403
-    )
+    contexte = {
+        **admin.site.each_context(request),
+        "groupes": [settings.GROUPE_DIRECTION, settings.GROUPE_DIRECTION_LECTURE],
+    }
+    return render(request, "identite/refus.html", contexte, status=403)

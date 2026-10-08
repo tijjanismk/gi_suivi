@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
+from unfold.admin import ModelAdmin
 
 from identite.models import Utilisateur
 
@@ -9,7 +10,7 @@ admin.site.unregister(Group)
 
 
 @admin.register(Utilisateur)
-class UtilisateurAdmin(admin.ModelAdmin):
+class UtilisateurAdmin(ModelAdmin):
     """Lecture seule : les utilisateurs et leurs groupes viennent de l'AD, pas d'une saisie."""
 
     list_display = ["login_windows", "nom_affiche", "groupes", "derniere_activite", "is_active"]
