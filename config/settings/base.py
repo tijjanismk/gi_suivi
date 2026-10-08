@@ -217,6 +217,11 @@ UNFOLD = {
                         "link": _lien("admin:suivi_journalacces_changelist"),
                     },
                     {
+                        "title": "Recalculs",
+                        "icon": "sync",
+                        "link": _lien("admin:suivi_demanderecalcul_changelist"),
+                    },
+                    {
                         "title": "Qui suis-je ?",
                         "icon": "fingerprint",
                         "link": _lien("identite:qui_suis_je"),

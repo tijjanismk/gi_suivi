@@ -2,6 +2,7 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 
 from suivi.models import (
+    DemandeRecalcul,
     Dossier,
     Employe,
     JournalAcces,
@@ -11,6 +12,7 @@ from suivi.models import (
     RegleException,
     Segment,
 )
+from suivi.services import recalculer, valider_dossier
 
 
 @admin.register(Racine)
@@ -42,6 +44,11 @@ class RegleExceptionAdmin(ModelAdmin):
         if not change:
             obj.cree_par = request.user
         super().save_model(request, obj, form, change)
+        # Effet immédiat pour la direction : les segments concernés sont rattachés tout de suite
+        r = recalculer()
+        self.message_user(
+            request, f"Exception enregistrée ; {r['modifies']} segment(s) reclassé(s)."
+        )
 
 
 @admin.register(Dossier)
@@ -51,6 +58,29 @@ class DossierAdmin(ModelAdmin):
     search_fields = ["code", "nom", "chemin_windows"]
     readonly_fields = ["valide_par", "valide_le"]
     inlines = [RegleExceptionEnLigne]
+    actions = ["valider"]
+
+    @admin.action(description="Valider les dossiers sélectionnés", permissions=["change"])
+    def valider(self, request, queryset) -> None:
+        n = 0
+        for dossier in queryset.filter(valide=False):
+            valider_dossier(dossier, request.user)
+            n += 1
+        self.message_user(request, f"{n} dossier(s) validé(s) ; recalcul demandé.")
+
+
+@admin.register(DemandeRecalcul)
+class DemandeRecalculAdmin(ModelAdmin):
+    """Consultation : la file se vide par la commande suivi_recalculer (tâche planifiée)."""
+
+    list_display = ["creee_le", "motif", "traitee_le"]
+    list_filter = ["traitee_le"]
+
+    def has_add_permission(self, request) -> bool:
+        return False
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return False
 
 
 @admin.register(Employe)

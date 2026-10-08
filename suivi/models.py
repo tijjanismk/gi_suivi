@@ -232,6 +232,24 @@ class JournalAcces(models.Model):
         return f"{self.horodatage:%d/%m/%Y %H:%M} {self.login} {self.action} {self.cible}"
 
 
+class DemandeRecalcul(models.Model):
+    """File de recalcul (A03) : une entrée par événement qui peut changer un classement
+    (dossier validé, exception créée ou supprimée, racine modifiée). La commande
+    `suivi_recalculer` reclasse les segments puis marque les demandes traitées."""
+
+    motif = models.CharField(max_length=300)
+    creee_le = models.DateTimeField("créée le", auto_now_add=True)
+    traitee_le = models.DateTimeField("traitée le", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "demande de recalcul"
+        verbose_name_plural = "demandes de recalcul"
+        ordering = ["-creee_le"]
+
+    def __str__(self) -> str:
+        return f"{self.creee_le:%d/%m %H:%M} {self.motif}"
+
+
 class Parametre(models.Model):
     """Réglage modifiable sans redéploiement : seuil d'inactivité, rétention, correspondances…"""
 

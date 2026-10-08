@@ -4,9 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from django.db import transaction
+from django.utils import timezone
+
 from moteur.suivi import types as m
 from moteur.suivi.classement import classer_observation, normaliser_chemin
-from suivi.models import Dossier, Parametre, Racine, RegleException
+from suivi.models import DemandeRecalcul, Dossier, Parametre, Racine, RegleException, Segment
 
 CORRESPONDANCE_LECTEURS = "correspondance_lecteurs"
 
@@ -62,3 +65,54 @@ def classer(observations: Iterable[m.Observation]) -> list[tuple[str, Dossier | 
         (c.statut, connus.get(c.dossier_chemin) if c.statut == "dossier" else None)
         for c in classements
     ]
+
+
+# -- recalcul (A03) ------------------------------------------------------------------------
+
+
+def demander_recalcul(motif: str) -> DemandeRecalcul:
+    return DemandeRecalcul.objects.create(motif=motif[:300])
+
+
+@transaction.atomic
+def recalculer() -> dict[str, int]:
+    """Reclasse les segments « à classer » et « rattachés » avec les racines, dossiers et
+    exceptions d'aujourd'hui, puis marque les demandes en attente comme traitées.
+
+    Seuls `statut_classement` et `dossier` bougent : debut, fin, fichier, chemin restent ce que
+    l'agent a envoyé. Brouillons, segments d'application et ignorés ne changent jamais.
+    """
+    segments = list(
+        Segment.objects.filter(
+            statut_classement__in=[
+                Segment.StatutClassement.A_CLASSER,
+                Segment.StatutClassement.DOSSIER,
+            ]
+        ).order_by("pk")
+    )
+    resultats = classer(
+        m.Observation(s.debut, s.application, s.fichier or None, s.chemin or None, 0.0)
+        for s in segments
+    )
+    modifies: list[Segment] = []
+    for s, (statut, dossier) in zip(segments, resultats, strict=True):
+        if s.statut_classement != statut or s.dossier_id != (dossier.pk if dossier else None):
+            s.statut_classement, s.dossier = statut, dossier
+            modifies.append(s)
+    Segment.objects.bulk_update(modifies, ["statut_classement", "dossier"], batch_size=500)
+    demandes = DemandeRecalcul.objects.filter(traitee_le=None).update(traitee_le=timezone.now())
+    return {"examines": len(segments), "modifies": len(modifies), "demandes": demandes}
+
+
+def valider_dossier(dossier: Dossier, utilisateur, **champs) -> Dossier:
+    """La direction confirme un dossier détecté (et peut corriger nom, client, responsable).
+    Le dossier devient actif ; un recalcul est demandé."""
+    for nom, valeur in champs.items():
+        setattr(dossier, nom, valeur)
+    dossier.valide = True
+    dossier.valide_par = utilisateur
+    dossier.valide_le = timezone.now()
+    dossier.statut = Dossier.Statut.ACTIF
+    dossier.save()
+    demander_recalcul(f"dossier validé : {dossier}")
+    return dossier
