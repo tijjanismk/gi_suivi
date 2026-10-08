@@ -1,6 +1,6 @@
 from django.urls import path
 
-from suivi.api import rapports
+from suivi.api import actions, rapports
 from suivi.api.moi import moi_aujourdhui, racines
 from suivi.api.segments import recevoir_segments
 
@@ -17,4 +17,8 @@ urlpatterns = [
     path("dossiers", rapports.liste_dossiers, name="dossiers"),
     path("aclasser", rapports.a_classer, name="aclasser"),
     path("postes/etat", rapports.etat_postes, name="postes_etat"),
+    # direction seulement
+    path("dossiers/<int:dossier_id>/valider", actions.valider, name="dossier_valider"),
+    path("dossiers/<int:dossier_id>", actions.modifier, name="dossier_modifier"),
+    path("aclasser/<int:segment_id>/rattacher", actions.rattacher, name="aclasser_rattacher"),
 ]

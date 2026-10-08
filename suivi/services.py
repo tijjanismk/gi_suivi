@@ -16,6 +16,7 @@ from suivi.models import (
     DemandeRecalcul,
     Dossier,
     Employe,
+    JournalAcces,
     Parametre,
     Racine,
     RegleException,
@@ -76,6 +77,21 @@ def classer(observations: Iterable[m.Observation]) -> list[tuple[str, Dossier | 
         (c.statut, connus.get(c.dossier_chemin) if c.statut == "dossier" else None)
         for c in classements
     ]
+
+
+# -- journal d'accès (A06) -----------------------------------------------------------------
+
+
+def journaliser(request, action: str, cible: str = "") -> JournalAcces:
+    """Qui a fait quoi, sur quoi, quand, d'où. Jamais modifié ensuite."""
+    u = getattr(request, "user", None)
+    return JournalAcces.objects.create(
+        utilisateur=u if getattr(u, "pk", None) else None,
+        login=getattr(u, "login_windows", "") or "",
+        action=action[:50],
+        cible=str(cible)[:300],
+        adresse_ip=request.META.get("REMOTE_ADDR") or None,
+    )
 
 
 # -- ma journée (A04) ----------------------------------------------------------------------

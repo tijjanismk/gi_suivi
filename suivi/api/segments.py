@@ -172,9 +172,17 @@ def _classer(segments: list[SegmentRecu]) -> list[tuple[str, Dossier | None]]:
     )
 
 
+PREFIXE_AGENT = "GiSuivi-Agent/"
+
+
 @csrf_exempt
 @require_POST
 def recevoir_segments(request: HttpRequest) -> JsonResponse:
+    # Sans jeton CSRF (client non navigateur), on exige l'en-tête que seul l'agent envoie : un
+    # script dans une page web ne peut pas forger User-Agent, donc pas injecter de segments
+    # avec l'identité Windows du navigateur.
+    if not request.META.get("HTTP_USER_AGENT", "").startswith(PREFIXE_AGENT):
+        return JsonResponse({"erreur": "réservé à l'agent GI-Suivi"}, status=403)
     try:
         data = json.loads(request.body or b"")
     except ValueError:

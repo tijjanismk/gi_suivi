@@ -8,13 +8,17 @@ from django.views.decorators.http import require_GET
 from identite.decorateurs import consultation_requise
 from suivi import rapports
 from suivi.models import Employe
+from suivi.services import journaliser
 
 
 def _periode(request):
+    """Période demandée ; la consultation est journalisée (qui a regardé quoi, A06)."""
     try:
-        return rapports.periode_depuis(request.GET), None
+        p = rapports.periode_depuis(request.GET)
     except ValueError as e:
         return None, JsonResponse({"erreur": str(e)}, status=400)
+    journaliser(request, f"consulter:{request.resolver_match.url_name}", f"{p.debut}..{p.fin}")
+    return p, None
 
 
 @require_GET
@@ -66,4 +70,5 @@ def a_classer(request):
 @require_GET
 @consultation_requise
 def etat_postes(request):
+    journaliser(request, "consulter:postes_etat")
     return JsonResponse({"postes": rapports.etat_postes()})

@@ -16,7 +16,13 @@ AWA = {"REMOTE_USER": "GICONSEILS\\a.traore"}
 
 
 def poster(client, lot, **meta):
-    return client.post(URL, data=json.dumps(lot), content_type="application/json", **meta)
+    return client.post(
+        URL,
+        data=json.dumps(lot),
+        content_type="application/json",
+        HTTP_USER_AGENT="GiSuivi-Agent/0.2.0",
+        **meta,
+    )
 
 
 @override_settings(**IIS)
@@ -81,7 +87,13 @@ def test_lot_invalide_400_avec_le_detail(client, faire_lot):
     assert Segment.objects.count() == 0 and Poste.objects.count() == 0
 
     assert poster(client, {**faire_lot(0), "lot_id": "pas-un-uuid"}, **AWA).status_code == 400
-    r = client.post(URL, data="{ pas du json", content_type="application/json", **AWA)
+    r = client.post(
+        URL,
+        data="{ pas du json",
+        content_type="application/json",
+        HTTP_USER_AGENT="GiSuivi-Agent/0.2.0",
+        **AWA,
+    )
     assert r.status_code == 400 and r.json() == {"erreurs": ["JSON invalide"]}
 
 

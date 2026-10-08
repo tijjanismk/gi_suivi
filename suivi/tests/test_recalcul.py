@@ -18,7 +18,13 @@ BUREAU = r"C:\Users\awa\Desktop\TDR_Bargondaga.pdf"
 
 
 def poster(client, lot):
-    return client.post(URL, data=json.dumps(lot), content_type="application/json", **AWA)
+    return client.post(
+        URL,
+        data=json.dumps(lot),
+        content_type="application/json",
+        HTTP_USER_AGENT="GiSuivi-Agent/0.2.0",
+        **AWA,
+    )
 
 
 def en_attente() -> int:

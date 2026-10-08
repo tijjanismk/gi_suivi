@@ -15,7 +15,13 @@ KAYES = r"\\AD-SERVEUR\GIC\MISSIONS_EN_COURS\GIC-AEP-CTR-003_Kayes"
 
 
 def poster(client, lot):
-    return client.post(URL, data=json.dumps(lot), content_type="application/json", **AWA)
+    return client.post(
+        URL,
+        data=json.dumps(lot),
+        content_type="application/json",
+        HTTP_USER_AGENT="GiSuivi-Agent/0.2.0",
+        **AWA,
+    )
 
 
 @override_settings(**IIS)

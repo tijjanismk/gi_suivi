@@ -17,7 +17,11 @@ MOUSSA = {"REMOTE_USER": "GICONSEILS\\m.keita"}
 
 def poster(client, lot, **meta):
     return client.post(
-        "/api/segments", data=json.dumps(lot), content_type="application/json", **meta
+        "/api/segments",
+        data=json.dumps(lot),
+        content_type="application/json",
+        HTTP_USER_AGENT="GiSuivi-Agent/0.2.0",
+        **meta,
     )
 
 
