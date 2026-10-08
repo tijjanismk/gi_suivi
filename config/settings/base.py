@@ -164,8 +164,48 @@ UNFOLD = {
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,
-        # Ordre voulu par le porteur (08/10/2026) : Suivi en premier, Écrans en bas
+        # Ordre voulu par le porteur (08/10/2026) : les Écrans d'abord, l'administration ensuite
         "navigation": [
+            {
+                "title": "Écrans",
+                "items": [
+                    {
+                        "title": "Journée",
+                        "icon": "today",
+                        "link": _lien("suivi:journee"),
+                    },
+                    {
+                        "title": "Vue d'ensemble",
+                        "icon": "insights",
+                        "link": _lien("suivi:vue_ensemble"),
+                    },
+                    {
+                        "title": "Dossiers",
+                        "icon": "folder_open",
+                        "link": _lien("suivi:dossiers"),
+                    },
+                    {
+                        "title": "Personnes",
+                        "icon": "groups",
+                        "link": _lien("suivi:employes"),
+                    },
+                    {
+                        "title": "Gestion des dossiers",
+                        "icon": "rule_folder",
+                        "link": _lien("suivi:gestion_dossiers"),
+                    },
+                    {
+                        "title": "À classer",
+                        "icon": "inbox",
+                        "link": _lien("suivi:a_classer"),
+                    },
+                    {
+                        "title": "État des postes",
+                        "icon": "computer",
+                        "link": _lien("suivi:postes"),
+                    },
+                ],
+            },
             {
                 "title": "Suivi",
                 "items": [
@@ -238,46 +278,6 @@ UNFOLD = {
                         "title": "Qui suis-je ?",
                         "icon": "fingerprint",
                         "link": _lien("identite:qui_suis_je"),
-                    },
-                ],
-            },
-            {
-                "title": "Écrans",
-                "items": [
-                    {
-                        "title": "Journée",
-                        "icon": "today",
-                        "link": _lien("suivi:journee"),
-                    },
-                    {
-                        "title": "Vue d'ensemble",
-                        "icon": "insights",
-                        "link": _lien("suivi:vue_ensemble"),
-                    },
-                    {
-                        "title": "Dossiers",
-                        "icon": "folder_open",
-                        "link": _lien("suivi:dossiers"),
-                    },
-                    {
-                        "title": "Personnes",
-                        "icon": "groups",
-                        "link": _lien("suivi:employes"),
-                    },
-                    {
-                        "title": "Gestion des dossiers",
-                        "icon": "rule_folder",
-                        "link": _lien("suivi:gestion_dossiers"),
-                    },
-                    {
-                        "title": "À classer",
-                        "icon": "inbox",
-                        "link": _lien("suivi:a_classer"),
-                    },
-                    {
-                        "title": "État des postes",
-                        "icon": "computer",
-                        "link": _lien("suivi:postes"),
                     },
                 ],
             },
