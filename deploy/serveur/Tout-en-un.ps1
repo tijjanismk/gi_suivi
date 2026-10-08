@@ -33,7 +33,8 @@ param(
     [switch]$Simuler
 )
 $ErrorActionPreference = "Stop"
-$ici = $PSScriptRoot; $deploy = Split-Path $ici -Parent
+$ici = $PSScriptRoot; $deploy = Split-Path $ici -Parent; $depot = Split-Path $deploy -Parent   # racine du clone, quel que soit son nom
+if (-not (Test-Path "$depot\manage.py")) { throw "Arborescence inattendue : $depot\manage.py absent. Ce script doit être lancé depuis <clone>\deploy\serveur\." }
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 if (-not $admin) { throw "À lancer en administrateur." }
 
@@ -67,7 +68,7 @@ if ($pgInstalle) { $etapes += @{ nom = "S07 PostgreSQL 18 : rôle gic et bases (
 else             { $etapes += @{ nom = "S07 PostgreSQL 18"; cmd = { & "$ici\07-PostgreSQL.ps1" -Installateur $postgres @pgArgs } } }
 $etapes += @{ nom = "S07 Python, IIS, certificat auto-signé"; cmd = { & "$ici\08-Python-IIS.ps1" -Python $python -UrlRewrite $rewrite -ARR $arr -AutoSigne } }
 $etapes += @{ nom = "Service GIC-Test"; cmd = { & "$deploy\service.ps1" -Env test -Nssm $nssm -Creer } }
-$etapes += @{ nom = "Application (Git, $Ref)"; cmd = { & "$deploy\installer.ps1" -Env test -Ref $Ref } }
+$etapes += @{ nom = "Application (Git, $Ref)"; cmd = { & "$deploy\installer.ps1" -Env test -Ref $Ref -Depot $depot } }
 $etapes += @{ nom = "Tâches planifiées"; cmd = { & "$deploy\taches.ps1" -Env test } }
 $etapes += @{ nom = "Racines de classement (partages existants)"; cmd = {
     Push-Location C:\GIC\test\app
