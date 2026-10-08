@@ -1,5 +1,51 @@
 # Arborescence du dépôt
 
+## État réel au 08/10/2026 (module GI-SUIVI)
+
+Ce qui existe et tourne. Le schéma cible plus bas (module avis, MCP, références…) reste la
+référence pour la suite ; il n'est pas encore construit.
+
+```
+gic/
+├── manage.py, pyproject.toml, .env.exemple, conftest.py   # fixtures : racines, employes, postes,
+│                                                           # dossiers, jeu_de_segments, faire_lot
+├── config/                      # settings/{base,dev,test,prod}.py, urls.py, asgi.py, vues.py (/sante/)
+├── identite/                    # Utilisateur sans mot de passe ; middleware IIS / dev ; groupes AD ;
+│                                # @groupe_requis, @consultation_requise ; qui-suis-je ; page de refus
+├── moteur/suivi/                # Python pur : segmentation, classement (+ exceptions), indicateurs
+├── suivi/
+│   ├── models.py                # Employe, Poste, Racine, Dossier, RegleException, Segment,
+│   │                            # JournalAcces, Parametre, DemandeRecalcul
+│   ├── services.py              # classer (dossiers détectés), recalculer, valider_dossier,
+│   │                            # rattacher, journaliser, activite_du_jour, racines_pour_agent
+│   ├── rapports.py              # synthèse, dossiers, activité employé, à classer, état des postes
+│   ├── export.py                # classeur Excel six feuilles
+│   ├── tableau_de_bord.py       # indicateurs de l'accueil de l'administration
+│   ├── signals.py               # exceptions et racines → demande de recalcul
+│   ├── api/                     # segments (ingestion), moi, rapports, actions
+│   ├── vues/                    # periode (sélecteur + filtre dossier), direction (vue d'ensemble,
+│   │                            # dossiers, personnes, fiche, postes), gestion, a_classer, export, moi
+│   ├── templates/suivi/         # base_direction, _periode, vue_ensemble, dossiers, employes,
+│   │                            # employe, gestion_dossiers, a_classer, postes, moi
+│   ├── management/commands/     # suivi_recalculer, suivi_purger, suivi_postes_muets, suivi_jeu_demo
+│   ├── migrations/              # 0001 modèles, 0002 paramètres, 0003 sid facultatif, 0004 recalcul
+│   └── tests/
+├── interface/
+│   ├── templates/admin/index.html   # accueil Unfold
+│   ├── tailwind/entree.css          # source du CSS projet (préfixe gic:)
+│   └── static/css/gic.css           # compilé, versionné
+├── locale/fr/LC_MESSAGES/       # traductions françaises du thème Unfold (.po + .mo)
+├── agent/                       # agent de poste (gisuivi_agent/), service, scripts d'installation
+│                                # du pilote, MSI (msi/Produit.wxs, construire-msi.ps1), CONTROLE.md
+├── scripts/dev/                 # verifier.ps1 (les contrôles de la CI), construire_css.ps1,
+│                                # compiler_traductions.py, chaines_unfold.py, creer_base_dev.sql
+├── tests/e2e/                   # parcours complet (pytest -m e2e)
+├── deploy/                      # serveur : installer, service, tâches planifiées, préparation
+└── docs/                        # adr/0001-0005, plan/taches.md, pilote/ (note équipe, relevé)
+```
+
+## Schéma cible (conception, octobre 2026)
+
 ```
 gic/
 ├── README.md                    # présentation, installation, lancement
