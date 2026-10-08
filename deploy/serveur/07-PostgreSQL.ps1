@@ -12,12 +12,14 @@
     .\07-PostgreSQL.ps1 -Installateur "...postgresql-17.x-windows-x64.exe" -Version 17   # autre version majeure
     .\07-PostgreSQL.ps1 -SeulementBases      # PostgreSQL déjà installé (à la main, assistant EDB) : rôle et bases seulement ;
                                              # le mot de passe « postgres » est demandé une fois s'il n'est pas dans C:\GIC\secrets
+    .\07-PostgreSQL.ps1 -SeulementBases -MotDePasseGic gic   # rôle gic déjà créé à la main avec ce mot de passe : on le garde
 #>
 param(
     [string]$Installateur,
     [int]$Version = 18,                                 # version majeure : service postgresql-x64-<Version>
     [string]$Donnees,                                   # défaut : D:\PostgreSQL\<Version>\data
     [string]$Prefixe,                                   # défaut : C:\Program Files\PostgreSQL\<Version>
+    [string]$MotDePasseGic,                             # mot de passe du rôle gic à imposer (sinon généré, ou repris de pg.env)
     [switch]$SeulementBases
 )
 $ErrorActionPreference = "Stop"
@@ -90,7 +92,15 @@ if (-not (Get-NetFirewallRule -DisplayName "GIC - Bloquer PostgreSQL externe" -E
     New-NetFirewallRule -DisplayName "GIC - Bloquer PostgreSQL externe" -Direction Inbound -Protocol TCP -LocalPort 5432 -Action Block -Profile Any | Out-Null
 }
 
-if (Test-Path $fichierApp) {
+if ($MotDePasseGic) {
+    # Mot de passe du rôle gic imposé (déjà créé à la main, par exemple) : le rôle est aligné dessus
+    # et pg.env réécrit. Ne circule que sur localhost (PostgreSQL n'écoute pas ailleurs, 5432 bloqué).
+    $mdpApp = $MotDePasseGic
+    @("PGUSER=gic", "PGPASSWORD=$mdpApp", "DATABASE_URL=postgres://gic:$mdpApp@localhost:5432/gic",
+      "DATABASE_URL_TEST=postgres://gic:$mdpApp@localhost:5432/gic_test") | Set-Content $fichierApp -Encoding ASCII
+    & icacls $fichierApp /inheritance:r /grant:r "BUILTIN\Administrateurs:F" "SYSTEM:F" "GICONSEILS\svc-application:R" 2>$null | Out-Null
+    Write-Host "Secret applicatif écrit dans $fichierApp avec le mot de passe fourni (-MotDePasseGic)."
+} elseif (Test-Path $fichierApp) {
     $mdpApp = ((Get-Content $fichierApp) | Where-Object { $_ -match "^PGPASSWORD=" }) -replace "^PGPASSWORD=", ""
     Write-Host "Secret applicatif existant réutilisé."
 } else {

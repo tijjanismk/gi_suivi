@@ -9,6 +9,7 @@
 .USAGE (PowerShell administrateur, depuis C:\GIC\depot\deploy\serveur)
     .\Tout-en-un.ps1 -Directeur IBOUBACAR -Administrateur IBOUBACAR
     .\Tout-en-un.ps1 -Directeur IBOUBACAR -Administrateur IBOUBACAR -SansSauvegarde   # une sauvegarde du jour existe déjà
+    .\Tout-en-un.ps1 ... -MotDePasseGic gic   # PostgreSQL et le rôle gic déjà créés à la main avec ce mot de passe
     .\Tout-en-un.ps1 ... -Simuler       # affiche les étapes et les fichiers trouvés, ne lance rien
 
 .PREALABLES
@@ -25,6 +26,7 @@ param(
     [Parameter(Mandatory)][string]$Directeur,                 # login AD du directeur -> GI-Direction
     [string[]]$Lecture = @("ODICKO"),                         # consultation seule -> GI-Direction-Lecture
     [Parameter(Mandatory)][string]$Administrateur,            # login AD -> compte adm-<login> créé par 04
+    [string]$MotDePasseGic,                                   # rôle PostgreSQL gic déjà créé à la main : son mot de passe
     [string]$Installateurs = "C:\GIC\installateurs",
     [string]$Ref = "main",
     [switch]$SansSauvegarde, [switch]$AvecRDP, [switch]$AvecMisesAJour, [switch]$AvecPartageGIC,
@@ -60,8 +62,9 @@ if ($AvecMisesAJour)      { $etapes += @{ nom = "P03 Mises à jour Windows"; cmd
 $etapes += @{ nom = "P04 OU, groupes, compte de service"; cmd = { & "$ici\04-Comptes-et-groupes.ps1" -Membres @{ "GI-Direction" = @($Directeur); "GI-Direction-Lecture" = $Lecture } -Administrateurs $Administrateur } }
 if ($AvecPartageGIC)      { $etapes += @{ nom = "P06 Partage D:\GIC"; cmd = { & "$ici\05-Partage-GIC.ps1" } } }
 $etapes += @{ nom = "S07 DNS et SPN"; cmd = { & "$ici\06-DNS-SPN.ps1" } }
-if ($pgInstalle) { $etapes += @{ nom = "S07 PostgreSQL 18 : rôle gic et bases (mot de passe postgres demandé une fois)"; cmd = { & "$ici\07-PostgreSQL.ps1" -SeulementBases -Version 18 } } }
-else             { $etapes += @{ nom = "S07 PostgreSQL 18"; cmd = { & "$ici\07-PostgreSQL.ps1" -Installateur $postgres -Version 18 } } }
+$pgArgs = @{ Version = 18 }; if ($MotDePasseGic) { $pgArgs.MotDePasseGic = $MotDePasseGic }
+if ($pgInstalle) { $etapes += @{ nom = "S07 PostgreSQL 18 : rôle gic et bases (mot de passe postgres demandé une fois)"; cmd = { & "$ici\07-PostgreSQL.ps1" -SeulementBases @pgArgs } } }
+else             { $etapes += @{ nom = "S07 PostgreSQL 18"; cmd = { & "$ici\07-PostgreSQL.ps1" -Installateur $postgres @pgArgs } } }
 $etapes += @{ nom = "S07 Python, IIS, certificat auto-signé"; cmd = { & "$ici\08-Python-IIS.ps1" -Python $python -UrlRewrite $rewrite -ARR $arr -AutoSigne } }
 $etapes += @{ nom = "Service GIC-Test"; cmd = { & "$deploy\service.ps1" -Env test -Nssm $nssm -Creer } }
 $etapes += @{ nom = "Application (Git, $Ref)"; cmd = { & "$deploy\installer.ps1" -Env test -Ref $Ref } }
