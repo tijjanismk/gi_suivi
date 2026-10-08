@@ -80,8 +80,10 @@ if (-not (Test-Path "$env:ProgramFiles\IIS\Application Request Routing")) {
     Installer-Msi $UrlRewrite "URL Rewrite"
     Installer-Msi $ARR "Application Request Routing"
 } else { Write-Host "ARR déjà installé." }
-# Activer le proxy ARR au niveau serveur
-& "$env:windir\system32\inetsrv\appcmd.exe" set config -section:system.webServer/proxy /enabled:"True" /preserveHostHeader:"True" /commit:apphost | Out-Null
+# Activer le proxy ARR au niveau serveur — par le module WebAdministration et non par appcmd :
+# mélanger les deux dans la même session fait échouer la suite (« le fichier a été modifié sur le disque »)
+Set-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/proxy" -Name enabled -Value $true
+Set-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/proxy" -Name preserveHostHeader -Value $true
 
 # 3. Dossiers de l'application
 foreach ($env in "test", "prod") {
