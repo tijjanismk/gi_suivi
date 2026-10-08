@@ -139,8 +139,17 @@ foreach ($nom in $sites.Keys) {
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $false
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $true
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name useAppPoolCredentials -Value $true
-    Clear-WebConfiguration -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication/providers"
-    Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication/providers" -Name "." -Value @{ value = "Negotiate" }
+    # Fournisseurs : Negotiate seul. La liste héritée du serveur contient Negotiate et NTLM ; on retire
+    # NTLM pour ce site et on n'ajoute Negotiate que s'il manque (relançable sans doublon).
+    $prov = "system.webServer/security/authentication/windowsAuthentication/providers"
+    if (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "$prov/add[@value='NTLM']") {
+        Remove-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter $prov -Name "." -AtElement @{ value = "NTLM" }
+    }
+    if (-not (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "$prov/add[@value='Negotiate']")) {
+        Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter $prov -Name "." -Value @{ value = "Negotiate" }
+    }
+    $restants = (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "$prov/add" | ForEach-Object { $_.value }) -join ", "
+    Write-Host "Site $nom : fournisseurs d'authentification = $restants"
 
     # web.config : statiques servis par IIS, tout le reste vers Uvicorn avec identité et protocole
     $port = $sites[$nom].port; $statiques = "C:\GIC\$($sites[$nom].env)\static_collecte"
