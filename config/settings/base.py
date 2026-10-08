@@ -173,6 +173,11 @@ UNFOLD = {
                         "icon": "insights",
                         "link": _lien("suivi:vue_ensemble"),
                     },
+                    {
+                        "title": "Dossiers",
+                        "icon": "folder_open",
+                        "link": _lien("suivi:dossiers"),
+                    },
                 ],
             },
             {

@@ -47,6 +47,29 @@ def test_vue_ensemble_reservee_puis_affichee(client, jeu_de_segments):
 
 
 @override_settings(**IIS)
+def test_ecran_dossiers(client, jeu_de_segments):
+    assert client.get("/suivi/dossiers/", **AWA).status_code == 403
+    r = client.get("/suivi/dossiers/" + PERIODE, **VUE)
+    assert r.status_code == 200
+    html = r.content.decode()
+    assert "Dossiers" in html and "GIC-HYD-ETU-052" in html and "2026-SOMAPEP-001" in html
+    assert "21 h 00" in html and "7 h 00" in html and "28 h 00" in html  # dossiers et total
+    assert "détecté" in html  # SOMAPEP n'est pas encore validé
+    assert "13 h 00" in html and "8 h 00" in html  # Awa et Moussa sur 052
+    assert "93.3 %" in html  # 28 h rattachées sur 30 h actives
+    assert (
+        "à classer 1 h 00" in html and "brouillons 0 h 30" in html and "sans fichier 0 h 30" in html
+    )
+    assert JournalAcces.objects.filter(action="consulter:dossiers").exists()
+
+
+@override_settings(**IIS)
+def test_ecran_dossiers_vide(client):
+    html = client.get("/suivi/dossiers/", **DIR).content.decode()
+    assert "Aucun temps rattaché" in html
+
+
+@override_settings(**IIS)
 def test_racine_redirige_vers_la_vue_d_ensemble(client):
     r = client.get("/", **DIR)
     assert r.status_code == 302 and r["Location"] == "/suivi/"

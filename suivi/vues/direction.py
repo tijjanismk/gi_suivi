@@ -44,6 +44,56 @@ def _couleur(prevu_pct: str | None, effectif_s: int) -> str:
 
 
 @consultation_requise
+def dossiers(request):
+    """T03 : temps par dossier (barres) et tableau dossier × employé."""
+    selection = selection_de(request.GET)
+    journaliser(
+        request, "consulter:dossiers", f"{selection.periode.debut}..{selection.periode.fin}"
+    )
+    rapport = rapports.dossiers(selection.periode)
+
+    maxi = max((d["duree_s"] for d in rapport["dossiers"]), default=0) or 1
+    noms: dict[int, str] = {}
+    for d in rapport["dossiers"]:
+        d["largeur_pct"] = round(100 * d["duree_s"] / maxi, 1)
+        d["heures"] = _hm(d["duree_s"])
+        for e in d["par_employe"]:
+            noms[e["employe_id"]] = e["employe"]
+    employes = sorted(noms.items(), key=lambda x: x[1])
+    for d in rapport["dossiers"]:
+        par_id = {e["employe_id"]: e["duree_s"] for e in d["par_employe"]}
+        d["cellules"] = [
+            {"duree_s": par_id.get(eid, 0), "heures": _hm(par_id[eid]) if eid in par_id else ""}
+            for eid, _ in employes
+        ]
+    total = sum(d["duree_s"] for d in rapport["dossiers"])
+    hors = rapport["a_classer_s"] + rapport["brouillon_s"] + rapport["sans_fichier_s"]
+    return render(
+        request,
+        "suivi/dossiers.html",
+        _contexte(
+            request,
+            selection,
+            titre="Dossiers",
+            rapport=rapport,
+            employes=[nom for _, nom in employes],
+            total_heures=_hm(total),
+            hors_heures=_hm(hors),
+            part_rattachee=str(indicateurs_pct(total, total + hors)) if total + hors else None,
+            a_classer_heures=_hm(rapport["a_classer_s"]),
+            brouillon_heures=_hm(rapport["brouillon_s"]),
+            sans_fichier_heures=_hm(rapport["sans_fichier_s"]),
+        ),
+    )
+
+
+def indicateurs_pct(part: int, total: int):
+    from moteur.suivi.indicateurs import pourcentage
+
+    return pourcentage(part, total)
+
+
+@consultation_requise
 def vue_ensemble(request):
     selection = selection_de(request.GET)
     journaliser(

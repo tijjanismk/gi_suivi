@@ -1,0 +1,74 @@
+{% extends "suivi/base_direction.html" %}
+{% load unfold %}
+
+{% block ecran %}
+<div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
+  {% component "unfold/components/card.html" with icon="folder" %}
+    {% component "unfold/components/text.html" %}Heures sur dossiers{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ total_heures }}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="percent" %}
+    {% component "unfold/components/text.html" %}Part rattachée à un dossier{% endcomponent %}
+    {% component "unfold/components/title.html" %}{% if part_rattachee %}{{ part_rattachee }} %{% else %}—{% endif %}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="inbox" %}
+    {% component "unfold/components/text.html" %}À classer{% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ a_classer_heures }}{% endcomponent %}
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with icon="web" %}
+    {% component "unfold/components/text.html" %}Sans fichier (navigateur, messagerie…){% endcomponent %}
+    {% component "unfold/components/title.html" %}{{ sans_fichier_heures }}{% endcomponent %}
+  {% endcomponent %}
+</div>
+
+{% component "unfold/components/card.html" with title="Heures par dossier" title_icon="bar_chart" %}
+  {% if rapport.dossiers %}
+  <div class="gic:flex gic:flex-col gic:gap-2">
+    {% for d in rapport.dossiers %}
+    <div class="gic:grid gic:grid-cols-[14rem_1fr_6rem] gic:items-center gic:gap-3 gic:text-sm">
+      <span class="gic:truncate" title="{{ d.nom }}">
+        <span class="text-important gic:font-medium">{{ d.code|default:"(sans code)" }}</span>
+        <span class="text-subtle"> {{ d.nom }}</span>
+        {% if d.statut == "detecte" %}<span class="gic:ml-1 gic:rounded gic:bg-amber-100 gic:px-1 gic:text-xs gic:text-amber-900">détecté</span>{% endif %}
+      </span>
+      <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="gic:h-5 gic:w-full" role="img" aria-label="{{ d.code }} : {{ d.heures }}">
+        <rect x="0" y="2" width="{{ d.largeur_pct }}" height="6" rx="1" class="gic:fill-blue-600" />
+      </svg>
+      <span class="gic:text-right gic:tabular-nums gic:whitespace-nowrap">{{ d.heures }}</span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucun temps rattaché à un dossier sur la période.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
+{% if rapport.dossiers %}
+{% component "unfold/components/card.html" with title="Dossier × personne" title_icon="grid_on" %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Dossier</th>
+          {% for e in employes %}<th class="gic:text-right gic:font-medium text-subtle gic:py-2 gic:whitespace-nowrap">{{ e }}</th>{% endfor %}
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in rapport.dossiers %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <td class="gic:py-2 gic:whitespace-nowrap"><span class="text-important gic:font-medium">{{ d.code|default:"(sans code)" }}</span> <span class="text-subtle">{{ d.nom }}</span></td>
+          {% for c in d.cellules %}<td class="gic:py-2 gic:text-right gic:tabular-nums {% if not c.duree_s %}text-subtle{% endif %}">{{ c.heures|default:"·" }}</td>{% endfor %}
+          <td class="gic:py-2 gic:text-right gic:tabular-nums text-important gic:font-medium">{{ d.heures }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+          <td class="gic:py-2 text-subtle" colspan="{{ employes|length|add:1 }}">Hors dossier : à classer {{ a_classer_heures }} · brouillons {{ brouillon_heures }} · sans fichier {{ sans_fichier_heures }}</td>
+          <td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle">{{ hors_heures }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+{% endcomponent %}
+{% endif %}
+{% endblock %}

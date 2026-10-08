@@ -5,4 +5,5 @@ from suivi.vues import direction
 app_name = "suivi"
 urlpatterns = [
     path("", direction.vue_ensemble, name="vue_ensemble"),
+    path("dossiers/", direction.dossiers, name="dossiers"),
 ]
