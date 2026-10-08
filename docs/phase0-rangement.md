@@ -18,8 +18,12 @@ nommage, pas de source de fichiers.
 
 ## 2. Correspondance ancien → nouveau
 
-Rien n'est déplacé avant d'avoir été copié et vérifié. Les anciens partages
-restent en lecture seule six semaines, puis passent dans `_ANCIEN`.
+**Décision du porteur (08/10/2026) : on ne touche à rien de ce qui existe sur le
+serveur.** Les anciens partages, leurs droits, leurs fichiers et les disques
+restent tels quels, sans gel, sans déplacement, sans suppression — même si cela
+duplique des données. Le rangement **ajoute** `D:\GIC` par copie, c'est tout ;
+l'application d'avis (phase suivante) travaillera dans `D:\GIC` et laissera
+elle aussi les anciens partages intacts.
 
 | Source (D:\) | Destination (D:\GIC\) | Mode |
 |---|---|---|
@@ -115,9 +119,11 @@ qui fera disparaître les doublons.
 1. `05-Partage-GIC.ps1` : le partage et ses droits existent (fait après P04).
 2. `Rangement-GIC.ps1 -Simuler`, lecture du journal, corrections de la table.
 3. `Rangement-GIC.ps1` : copie réelle (quelques Go, moins d'une heure).
-4. Anciens partages passés en **lecture seule** pour tous sauf les
-   administrateurs (le script le propose avec `-GelerAnciens`).
-5. Désignation de la liste maîtresse (section 3), codification des fiches.
+4. ~~Anciens partages passés en lecture seule~~ — **abandonné** (décision du
+   08/10) : les anciens partages restent exactement comme ils sont ;
+   `-GelerAnciens` est désactivé dans le script.
+5. Désignation de la liste maîtresse (section 3), codification des fiches
+   **dans `D:\GIC` seulement**.
 6. Reconstruction des justificatifs (section 4), registre tenu à jour.
-7. Après six semaines sans réclamation : anciens partages déplacés dans
-   `_ANCIEN`, partages SMB supprimés.
+7. ~~Après six semaines : anciens partages déplacés dans `_ANCIEN`, partages
+   SMB supprimés~~ — **abandonné** : rien n'est déplacé ni supprimé.

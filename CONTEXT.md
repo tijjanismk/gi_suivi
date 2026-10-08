@@ -116,7 +116,12 @@ outil de développement sur le serveur** (décision du porteur 08/10) : `gic.css
 `deploy/requirements.txt` (généré par `scripts/dev/exporter_dependances.py`, contrôlé par
 `verifier.ps1`) sont construits sur le poste et commités ; le serveur fait `pip install
 --only-binary=:all: -r deploy/requirements.txt`, sans `pip install -e .`. `deploy/verifier.ps1`
-et `deploy/sauvegarde_pg.ps1` écrits ; la voie « archive zip » (`publier.ps1`) est supprimée. **Agent
+et `deploy/sauvegarde_pg.ps1` écrits ; la voie « archive zip » (`publier.ps1`) est supprimée. **Serveur : on ne touche à
+rien de ce qui existe** (décision du porteur 08/10) : partages, droits, fichiers et disques restent
+tels quels (deux disques de 2 To, pas de repartitionnement) ; les scripts n'**ajoutent** que
+`C:\GIC`, `D:\GIC` (par copie, duplication acceptée), PostgreSQL, IIS ; `Rangement-GIC.ps1
+-GelerAnciens` désactivé, plus de passage en `_ANCIEN` ni de suppression de partages. Même règle
+pour l'application d'avis à venir. **Agent
 0.2.1**, kit d'installation manuelle `agent\preparer-kit.ps1` (pas de GPO pour l'instant, D02
 reporté) : `C:\dev\livraisons\agent\GiSuivi-agent-0.2.1-poste.zip`, premier poste Dicko.
 **Prochaine étape :** déploiement de l'environnement test sur AD-SERVEUR par le porteur en suivant
