@@ -1,0 +1,159 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <div class="gic:flex gic:flex-col gic:gap-1">
+    {% component "unfold/components/title.html" %}{{ titre }}{% endcomponent %}
+    {% component "unfold/components/text.html" %}
+      Les dossiers naissent de la convention de dossiers (un dossier sous une racine) : l'agent les détecte, la direction les valide.
+      {% if not peut_agir %}<strong>Consultation seule : aucune action possible depuis ce compte.</strong>{% endif %}
+    {% endcomponent %}
+  </div>
+
+  {% if messages %}
+  <div class="gic:flex gic:flex-col gic:gap-2">
+    {% for m in messages %}
+      <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm {% if m.tags == 'error' %}gic:bg-red-100 gic:text-red-900{% elif m.tags == 'warning' %}gic:bg-amber-100 gic:text-amber-900{% else %}gic:bg-green-100 gic:text-green-900{% endif %}">{{ m }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {# Détectés à valider #}
+  {% component "unfold/components/card.html" with title="Dossiers détectés à valider" title_icon="rule_folder" %}
+    {% if detectes %}
+    <div class="gic:flex gic:flex-col gic:gap-4">
+      {% for d in detectes %}
+      <form method="post" action="{% url 'suivi:gestion_valider' d.pk %}" class="gic:grid gic:gap-3 gic:lg:grid-cols-[1fr_1fr_12rem_auto] gic:items-end gic:rounded-md gic:border border-base-200 dark:border-base-800 gic:p-3">
+        {% csrf_token %}
+        <div class="gic:lg:col-span-4 gic:text-sm">
+          <span class="text-important gic:font-medium">{{ d.code|default:"(sans code)" }}</span>
+          <span class="text-subtle gic:ml-2 gic:break-all">{{ d.chemin_windows }}</span>
+          <div class="text-subtle gic:text-xs gic:mt-1">
+            {{ d.heures }} déjà enregistrées sur {{ d.nb_segments }} segment{{ d.nb_segments|pluralize }}
+            {% if d.premiere_locale %}· du {{ d.premiere_locale|date:"j M" }} au {{ d.derniere_locale|date:"j M Y" }}{% endif %}
+            {% if d.racine %}· racine {{ d.racine.chemin }}{% endif %}
+          </div>
+        </div>
+        <label class="gic:text-xs text-subtle">Nom
+          <input name="nom" value="{{ d.nom }}" required {% if not peut_agir %}disabled{% endif %} class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <label class="gic:text-xs text-subtle">Client
+          <input name="client" value="{{ d.client }}" {% if not peut_agir %}disabled{% endif %} class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <label class="gic:text-xs text-subtle">Responsable
+          <select name="responsable" {% if not peut_agir %}disabled{% endif %} class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+            <option value="">—</option>
+            {% for e in employes %}<option value="{{ e.pk }}" {% if d.responsable_id == e.pk %}selected{% endif %}>{{ e }}</option>{% endfor %}
+          </select>
+        </label>
+        {% if peut_agir %}
+        <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Valider</button>
+        {% else %}<span></span>{% endif %}
+      </form>
+      {% endfor %}
+    </div>
+    {% else %}
+      {% component "unfold/components/text.html" %}Aucun dossier détecté en attente.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+
+  {# Actifs #}
+  {% component "unfold/components/card.html" with title="Dossiers actifs" title_icon="folder_open" %}
+    {% if actifs %}
+    <div class="gic:overflow-x-auto">
+      <table class="gic:w-full gic:text-sm">
+        <thead>
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Code</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Nom</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Client</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Responsable</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Heures</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Dernière activité</th>
+            {% if peut_agir %}<th class="gic:py-2"></th>{% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in actifs %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top">
+            <td class="gic:py-2 text-important gic:font-medium gic:whitespace-nowrap" title="{{ d.chemin_windows }}">{{ d.code|default:"(sans code)" }}</td>
+            {% if peut_agir %}
+            <form method="post" action="{% url 'suivi:gestion_modifier' d.pk %}" id="f{{ d.pk }}">{% csrf_token %}</form>
+            <td class="gic:py-2"><input form="f{{ d.pk }}" name="nom" value="{{ d.nom }}" required class="gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"></td>
+            <td class="gic:py-2"><input form="f{{ d.pk }}" name="client" value="{{ d.client }}" class="gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"></td>
+            <td class="gic:py-2">
+              <select form="f{{ d.pk }}" name="responsable" class="gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+                <option value="">—</option>
+                {% for e in employes %}<option value="{{ e.pk }}" {% if d.responsable_id == e.pk %}selected{% endif %}>{{ e }}</option>{% endfor %}
+              </select>
+            </td>
+            {% else %}
+            <td class="gic:py-2">{{ d.nom }}</td>
+            <td class="gic:py-2">{{ d.client|default:"—" }}</td>
+            <td class="gic:py-2">{{ d.responsable|default:"—" }}</td>
+            {% endif %}
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ d.heures }}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle gic:whitespace-nowrap">{% if d.derniere_locale %}{{ d.derniere_locale|date:"j M Y" }}{% else %}—{% endif %}</td>
+            {% if peut_agir %}
+            <td class="gic:py-2 gic:whitespace-nowrap gic:text-right">
+              <button form="f{{ d.pk }}" type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Enregistrer</button>
+              <button form="f{{ d.pk }}" type="submit" name="statut" value="clos" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm text-subtle gic:hover:underline" title="Clore le dossier">Clore</button>
+            </td>
+            {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      {% component "unfold/components/text.html" %}Aucun dossier actif.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+
+  <div class="gic:grid gic:gap-4 gic:lg:grid-cols-2">
+    {# Racines (lecture) #}
+    {% component "unfold/components/card.html" with title="Racines de classement" title_icon="account_tree" %}
+      <table class="gic:w-full gic:text-sm">
+        <tbody>
+        {% for r in racines %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800 {% if not r.active %}text-subtle gic:line-through{% endif %}">
+            <td class="gic:py-1.5 gic:break-all">{{ r.chemin }}</td>
+            <td class="gic:py-1.5 gic:text-right gic:whitespace-nowrap text-subtle">profondeur {{ r.profondeur }}</td>
+            <td class="gic:py-1.5 gic:text-right gic:whitespace-nowrap text-subtle">{{ r.nb_dossiers }} dossier{{ r.nb_dossiers|pluralize }}</td>
+          </tr>
+        {% empty %}
+          <tr><td class="gic:py-1.5 text-subtle">Aucune racine déclarée : rien ne peut être rattaché. À saisir dans l'administration.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <p class="gic:mt-2 gic:text-xs text-subtle">Les racines se modifient dans l'administration (Classement → Racines) ; un changement déclenche un recalcul.</p>
+    {% endcomponent %}
+
+    {# Clos #}
+    {% component "unfold/components/card.html" with title="Dossiers clos" title_icon="inventory_2" %}
+      {% if clos %}
+      <table class="gic:w-full gic:text-sm">
+        <tbody>
+        {% for d in clos %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <td class="gic:py-1.5 text-important gic:font-medium">{{ d.code|default:"(sans code)" }}</td>
+            <td class="gic:py-1.5">{{ d.nom }}</td>
+            <td class="gic:py-1.5 gic:text-right gic:tabular-nums">{{ d.heures }}</td>
+            {% if peut_agir %}
+            <td class="gic:py-1.5 gic:text-right">
+              <form method="post" action="{% url 'suivi:gestion_modifier' d.pk %}">{% csrf_token %}<button name="statut" value="actif" class="gic:text-sm text-primary-600 gic:hover:underline">Rouvrir</button></form>
+            </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}{% component "unfold/components/text.html" %}Aucun dossier clos.{% endcomponent %}{% endif %}
+    {% endcomponent %}
+  </div>
+</div>
+{% endblock %}

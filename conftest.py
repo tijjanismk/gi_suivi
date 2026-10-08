@@ -60,6 +60,7 @@ def dossiers(racines):
             chemin_windows=PROJET_052,
             racine=racines[0],
             valide=True,
+            statut="actif",  # un dossier validé est actif
         ),
         Dossier.objects.create(
             code="2026-SOMAPEP-001",

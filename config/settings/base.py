@@ -183,6 +183,11 @@ UNFOLD = {
                         "icon": "groups",
                         "link": _lien("suivi:employes"),
                     },
+                    {
+                        "title": "Gestion des dossiers",
+                        "icon": "rule_folder",
+                        "link": _lien("suivi:gestion_dossiers"),
+                    },
                 ],
             },
             {

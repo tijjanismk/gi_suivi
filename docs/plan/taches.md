@@ -64,7 +64,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | T02 | Vue d'ensemble | Quatre indicateurs, barres par employé (SVG serveur), tableau jour × employé coloré, % prévu, arrivée/départ | Validée par la direction sur `test` avec la fixture | fait (non tagué) |
 | T03 | Dossiers | Barres par dossier, tableau dossier × employé | idem | fait (non tagué) |
 | T04 | Employés et fiche employé | Liste avec état indicatif ; fiche : chronologie colorée par dossier, fichiers et applications | idem | fait (non tagué) |
-| T05 | Gestion dossiers | Racines (lecture), nouveaux dossiers détectés avec temps déjà enregistré, bouton Valider, dossiers actifs éditables | Validation d'un dossier déclenche le recalcul et met à jour les écrans | à faire |
+| T05 | Gestion dossiers | Racines (lecture), nouveaux dossiers détectés avec temps déjà enregistré, bouton Valider, dossiers actifs éditables | Validation d'un dossier déclenche le recalcul et met à jour les écrans | fait (non tagué) |
 | T06 | À classer | File groupée, rattachement en un clic, création d'exception, brouillons signalés | Le compteur baisse après rattachement | à faire |
 | T07 | État des postes | Version, dernier envoi, démarrages, alertes orange et rouge | Un poste muet depuis 24 h ouvrées apparaît en rouge | à faire |
 | T08 | Export Excel | `openpyxl`, six feuilles, formules, nom de fichier daté | Classeur ouvert dans Excel ; totaux recalculés si on modifie une cellule | à faire |
