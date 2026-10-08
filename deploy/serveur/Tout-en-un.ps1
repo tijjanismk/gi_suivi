@@ -25,7 +25,7 @@
 param(
     [Parameter(Mandatory)][string]$Directeur,                 # login AD du directeur -> GI-Direction
     [string[]]$Lecture = @("ODICKO"),                         # consultation seule -> GI-Direction-Lecture
-    [Parameter(Mandatory)][string]$Administrateur,            # login AD -> compte adm-<login> créé par 04
+    [string]$Administrateur,                                  # login AD -> compte adm-<login> créé par 04 (facultatif)
     [string]$MotDePasseGic,                                   # rôle PostgreSQL gic déjà créé à la main : son mot de passe
     [string]$Installateurs = "C:\GIC\installateurs",
     [string]$Ref = "main",
@@ -53,14 +53,18 @@ $nssm     = Trouver "nssm.exe"
 if ($nssm -notmatch "win64") { Write-Warning "nssm.exe trouvé hors d'un dossier win64 : $nssm" }
 
 Write-Host "`n=== GI-SUIVI — environnement test, tout-en-un ===" -ForegroundColor Cyan
-Write-Host "Directeur : $Directeur   Consultation : $($Lecture -join ', ')   Administrateur : adm-$Administrateur"
+Write-Host "Directeur : $Directeur   Consultation seule : $(if ($Lecture | Where-Object { $_ -ne $Directeur }) { ($Lecture | Where-Object { $_ -ne $Directeur }) -join ', ' } else { 'personne pour l''instant' })   Compte d'administration : $(if ($Administrateur) { "adm-$Administrateur" } else { 'aucun' })"
 Write-Host "PostgreSQL : $postgres`nPython     : $python`nURL Rewrite: $rewrite`nARR        : $arr`nNSSM       : $nssm"
 
 $etapes = @()
 if (-not $SansSauvegarde) { $etapes += @{ nom = "P01 Sauvegarde système (20 à 60 min)"; cmd = { & "$ici\01-Sauvegarde-Systeme.ps1" -Planifier } } }
 if ($AvecRDP)             { $etapes += @{ nom = "P02 Bureau à distance limité au LAN"; cmd = { & "$ici\02-Restreindre-RDP-Local.ps1" } } }
 if ($AvecMisesAJour)      { $etapes += @{ nom = "P03 Mises à jour Windows"; cmd = { & "$ici\03-Mises-a-jour.ps1" } } }
-$etapes += @{ nom = "P04 OU, groupes, compte de service"; cmd = { & "$ici\04-Comptes-et-groupes.ps1" -Membres @{ "GI-Direction" = @($Directeur); "GI-Direction-Lecture" = $Lecture } -Administrateurs $Administrateur } }
+$membres = @{ "GI-Direction" = @($Directeur) }
+$lecture = @($Lecture | Where-Object { $_ -and $_ -ne $Directeur })   # le directeur n'est pas aussi « consultation seule »
+if ($lecture.Count) { $membres["GI-Direction-Lecture"] = $lecture }
+$adm = @(); if ($Administrateur) { $adm = @($Administrateur) }
+$etapes += @{ nom = "P04 OU, groupes, compte de service"; cmd = { & "$ici\04-Comptes-et-groupes.ps1" -Membres $membres -Administrateurs $adm } }
 if ($AvecPartageGIC)      { $etapes += @{ nom = "P06 Partage D:\GIC"; cmd = { & "$ici\05-Partage-GIC.ps1" } } }
 $etapes += @{ nom = "S07 DNS et SPN"; cmd = { & "$ici\06-DNS-SPN.ps1" } }
 $pgArgs = @{ Version = 18 }; if ($MotDePasseGic) { $pgArgs.MotDePasseGic = $MotDePasseGic }
