@@ -1,0 +1,75 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold l10n %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <div class="gic:flex gic:flex-wrap gic:items-end gic:justify-between gic:gap-4">
+    <div class="gic:flex gic:flex-col gic:gap-1">
+      {% component "unfold/components/title.html" %}Journée{% endcomponent %}
+      {% component "unfold/components/text.html" %}L'activité de chaque personne, heure par heure : travail par dossier, pauses, temps hors mesure.{% endcomponent %}
+    </div>
+    {% include "suivi/_jour.html" %}
+  </div>
+
+  <div class="gic:grid gic:gap-4 gic:md:grid-cols-3">
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">groups</span>Personnes présentes{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ presents }} / {{ journees|length }}{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">schedule</span>Temps actif cumulé{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ total_actif_hm }}{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">coffee</span>Pauses cumulées{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ total_pause_hm }}{% endcomponent %}
+    {% endcomponent %}
+  </div>
+
+  {% component "unfold/components/card.html" with title="Personne par personne" title_icon="view_timeline" %}
+    {% if journees %}
+    <div class="gic:overflow-x-auto">
+      <table class="gic:w-full gic:text-sm">
+        <thead>
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2 gic:w-44">Personne</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">
+              <div class="gic:relative gic:h-4 gic:text-[10px]">{% for g in graduations %}<span class="gic:absolute" style="left: {{ g.x|unlocalize }}%">{{ g.heure }}h</span>{% endfor %}</div>
+            </th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2 gic:whitespace-nowrap">Arrivée → départ</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Actif</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Pauses</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2 gic:whitespace-nowrap">Hors mesure</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for j in journees %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-middle">
+            <td class="gic:py-2"><a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'suivi:journee_personne' j.employe.pk %}?jour={{ jour|date:'Y-m-d' }}">{{ j.employe }}</a></td>
+            <td class="gic:py-2 gic:min-w-[20rem]">
+              {% if j.blocs %}
+              <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="gic:h-6 gic:w-full" role="img" aria-label="{{ j.employe }} : {{ j.actif_hm }} actif">
+                {% for g in graduations %}<line x1="{{ g.x|unlocalize }}" y1="0" x2="{{ g.x|unlocalize }}" y2="10" stroke="#e5e7eb" stroke-width="0.15" />{% endfor %}
+                {% for b in j.blocs %}<rect x="{{ b.x|unlocalize }}" y="{% if b.type == 'hors_mesure' %}3{% else %}1{% endif %}" width="{{ b.largeur|unlocalize }}" height="{% if b.type == 'hors_mesure' %}4{% else %}8{% endif %}" fill="{{ b.couleur }}"><title>{{ b.debut|date:"H:i" }} → {{ b.fin|date:"H:i" }} · {{ b.heures }} · {{ b.libelle }}</title></rect>{% endfor %}
+              </svg>
+              {% else %}<span class="gic:text-xs text-subtle">rien de mesuré</span>{% endif %}
+            </td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums gic:whitespace-nowrap">{% if j.arrivee %}{{ j.arrivee|date:"H:i" }} → {{ j.depart|date:"H:i" }}{% else %}—{% endif %}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums text-important gic:font-medium">{{ j.actif_hm }}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ j.pause_hm }}{% if j.nb_pauses %} <span class="text-subtle">({{ j.nb_pauses }})</span>{% endif %}</td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums text-subtle">{{ j.hors_mesure_hm }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="gic:mt-3">{% include "suivi/_legende_frise.html" %}</div>
+    {% else %}
+      {% component "unfold/components/text.html" %}Aucune personne suivie.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+</div>
+{% endblock %}

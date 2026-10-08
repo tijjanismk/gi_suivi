@@ -1,0 +1,82 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold l10n %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <div class="gic:flex gic:flex-wrap gic:items-end gic:justify-between gic:gap-4">
+    <div class="gic:flex gic:flex-col gic:gap-1">
+      {% component "unfold/components/title.html" %}{{ personne }}{% endcomponent %}
+      {% component "unfold/components/text.html" %}
+        <a class="text-primary-600 gic:hover:underline" href="{% url 'suivi:journee' %}?jour={{ jour|date:'Y-m-d' }}">← Toute l'équipe ce jour</a>
+        · <a class="text-primary-600 gic:hover:underline" href="{% url 'suivi:employe' personne.pk %}?p=7j">fiche sur la période</a>
+      {% endcomponent %}
+    </div>
+    {% include "suivi/_jour.html" %}
+  </div>
+
+  <div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">login</span>Arrivée → départ{% endcomponent %}
+      {% component "unfold/components/title.html" %}{% if j.arrivee %}{{ j.arrivee|date:"H:i" }} → {{ j.depart|date:"H:i" }}{% else %}—{% endif %}{% endcomponent %}
+      {% if j.amplitude_s %}{% component "unfold/components/text.html" %}amplitude {{ j.amplitude_hm }}{% endcomponent %}{% endif %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">schedule</span>Temps actif{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ j.actif_hm }}{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">coffee</span>Pauses{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ j.pause_hm }}{% endcomponent %}
+      {% component "unfold/components/text.html" %}{{ j.nb_pauses }} pause{{ j.nb_pauses|pluralize }} sans action au poste{% endcomponent %}
+    {% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">lock_clock</span>Hors mesure{% endcomponent %}
+      {% component "unfold/components/title.html" %}{{ j.hors_mesure_hm }}{% endcomponent %}
+      {% component "unfold/components/text.html" %}poste verrouillé, éteint ou en veille{% endcomponent %}
+    {% endcomponent %}
+  </div>
+
+  {% component "unfold/components/card.html" with title="Frise de la journée" title_icon="timeline" %}
+    {% if j.blocs %}
+    <svg viewBox="0 0 100 12" preserveAspectRatio="none" class="gic:h-14 gic:w-full" role="img" aria-label="Frise de la journée">
+      {% for g in graduations %}<line x1="{{ g.x|unlocalize }}" y1="0" x2="{{ g.x|unlocalize }}" y2="10" stroke="#e5e7eb" stroke-width="0.15" />{% endfor %}
+      {% for b in j.blocs %}<rect x="{{ b.x|unlocalize }}" y="{% if b.type == 'hors_mesure' %}3{% else %}1{% endif %}" width="{{ b.largeur|unlocalize }}" height="{% if b.type == 'hors_mesure' %}4{% else %}8{% endif %}" fill="{{ b.couleur }}"><title>{{ b.debut|date:"H:i" }} → {{ b.fin|date:"H:i" }} · {{ b.heures }} · {{ b.libelle }}</title></rect>{% endfor %}
+    </svg>
+    <div class="gic:relative gic:h-4 gic:text-[10px] text-subtle">{% for g in graduations %}<span class="gic:absolute" style="left: {{ g.x|unlocalize }}%">{{ g.heure }}h</span>{% endfor %}</div>
+    <div class="gic:mt-3">{% include "suivi/_legende_frise.html" %}</div>
+    {% else %}
+      {% component "unfold/components/text.html" %}Rien de mesuré ce jour-là.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+
+  {% if j.blocs %}
+  {% component "unfold/components/card.html" with title="Bloc par bloc" title_icon="format_list_bulleted" %}
+    <table class="gic:w-full gic:text-sm">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Heures</th>
+          <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Durée</th>
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Activité</th>
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Logiciels</th>
+          <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Fichiers</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for b in j.blocs %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 {% if b.type == 'pause' or b.type == 'hors_mesure' %}text-subtle gic:italic{% endif %}">
+          <td class="gic:py-1.5 gic:tabular-nums gic:whitespace-nowrap">{{ b.debut|date:"H:i" }} → {{ b.fin|date:"H:i" }}</td>
+          <td class="gic:py-1.5 gic:text-right gic:tabular-nums">{{ b.heures }}</td>
+          <td class="gic:py-1.5"><span class="gic:inline-block gic:w-2.5 gic:h-2.5 gic:rounded-full gic:align-middle gic:mr-1 {% if b.type == 'hors_mesure' %}border border-base-300{% endif %}" style="background: {{ b.couleur }}"></span>{{ b.libelle }}</td>
+          <td class="gic:py-1.5 gic:text-xs">{{ b.applications|join:", " }}</td>
+          <td class="gic:py-1.5 gic:text-xs gic:truncate gic:max-w-xs" title="{{ b.fichiers|join:', ' }}">{{ b.fichiers|join:", " }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endcomponent %}
+  {% endif %}
+</div>
+{% endblock %}

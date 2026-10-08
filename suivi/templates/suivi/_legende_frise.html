@@ -1,0 +1,8 @@
+<div class="gic:flex gic:flex-wrap gic:gap-x-4 gic:gap-y-1 gic:text-xs text-subtle">
+  {% for l in legende %}<span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ l.couleur }}"></span> {{ l.dossier }}</span>{% endfor %}
+  <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_a_classer }}"></span> à classer</span>
+  <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_brouillon }}"></span> brouillon</span>
+  <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_sans_fichier }}"></span> sans fichier</span>
+  <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ couleur_pause }}"></span> pause</span>
+  <span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle border border-base-200" style="background: {{ couleur_hors_mesure }}"></span> hors mesure</span>
+</div>

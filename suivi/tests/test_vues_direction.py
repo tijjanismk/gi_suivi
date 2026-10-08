@@ -136,7 +136,7 @@ def test_ecran_dossiers_vide(client):
 @override_settings(**IIS)
 def test_racine_redirige_vers_la_vue_d_ensemble(client):
     r = client.get("/", **DIR)
-    assert r.status_code == 302 and r["Location"] == "/suivi/"
+    assert r.status_code == 302 and r["Location"] == "/suivi/journee/"  # accueil : la journée
 
 
 @override_settings(**IIS)

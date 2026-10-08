@@ -12,7 +12,8 @@ admin.site.login = refus_admin
 admin.site.site_header = "GI-CONSEILS — administration"
 
 urlpatterns = [
-    path("", RedirectView.as_view(pattern_name="suivi:vue_ensemble", permanent=False)),
+    # Accueil : la journée de chaque personne (demande du porteur, 08/10/2026)
+    path("", RedirectView.as_view(pattern_name="suivi:journee", permanent=False)),
     path("suivi/", include("suivi.urls")),
     path("sante/", sante, name="sante"),
     path("identite/", include("identite.urls")),

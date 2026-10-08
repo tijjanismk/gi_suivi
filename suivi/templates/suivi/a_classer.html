@@ -11,16 +11,16 @@
 {% endif %}
 
 <div class="gic:grid gic:gap-4 gic:md:grid-cols-3">
-  {% component "unfold/components/card.html" with icon="inbox" %}
-    {% component "unfold/components/text.html" %}Groupes à classer{% endcomponent %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">inbox</span>Groupes à classer{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ nb_groupes }}{% endcomponent %}
   {% endcomponent %}
-  {% component "unfold/components/card.html" with icon="schedule" %}
-    {% component "unfold/components/text.html" %}Heures à classer{% endcomponent %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">schedule</span>Heures à classer{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ total_heures }}{% endcomponent %}
   {% endcomponent %}
-  {% component "unfold/components/card.html" with icon="draft" %}
-    {% component "unfold/components/text.html" %}Brouillons (jamais enregistrés){% endcomponent %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">draft</span>Brouillons (jamais enregistrés){% endcomponent %}
     {% component "unfold/components/title.html" %}{{ brouillons_heures }}{% endcomponent %}
   {% endcomponent %}
 </div>

@@ -1,0 +1,10 @@
+{% comment %} Navigation d'un jour à l'autre (écran Journée). {% endcomment %}
+<form method="get" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+  <div class="gic:flex gic:rounded-md gic:overflow-hidden border border-base-200 dark:border-base-700 gic:text-sm">
+    <a href="?jour={{ veille|date:'Y-m-d' }}" class="gic:px-3 gic:py-1.5 bg-white text-subtle dark:bg-base-900 gic:hover:bg-gray-50" title="Jour précédent">‹ {{ veille|date:"D j M" }}</a>
+    <span class="gic:px-3 gic:py-1.5 bg-primary-600 gic:text-white gic:font-medium">{{ jour|date:"l j F Y" }}</span>
+    {% if jour < aujourd_hui %}<a href="?jour={{ lendemain|date:'Y-m-d' }}" class="gic:px-3 gic:py-1.5 bg-white text-subtle dark:bg-base-900 gic:hover:bg-gray-50" title="Jour suivant">{{ lendemain|date:"D j M" }} ›</a>{% endif %}
+  </div>
+  {% if jour != aujourd_hui %}<a href="?" class="gic:text-sm text-primary-600 gic:hover:underline">Aujourd'hui</a>{% endif %}
+  <input type="date" name="jour" value="{{ jour|date:'Y-m-d' }}" max="{{ aujourd_hui|date:'Y-m-d' }}" class="gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900" onchange="this.form.submit()">
+</form>

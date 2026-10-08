@@ -15,16 +15,16 @@
     </div>
 
     <div class="gic:grid gic:gap-4 gic:sm:grid-cols-3">
-      {% component "unfold/components/card.html" with icon="schedule" %}
-        {% component "unfold/components/text.html" %}Temps actif{% endcomponent %}
+      {% component "unfold/components/card.html" %}
+        {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">schedule</span>Temps actif{% endcomponent %}
         {% component "unfold/components/title.html" %}{{ activite.total_hm }}{% endcomponent %}
       {% endcomponent %}
-      {% component "unfold/components/card.html" with icon="login" %}
-        {% component "unfold/components/text.html" %}Arrivée → départ{% endcomponent %}
+      {% component "unfold/components/card.html" %}
+        {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">login</span>Arrivée → départ{% endcomponent %}
         {% component "unfold/components/title.html" %}{{ activite.arrivee|default:"—" }} → {{ activite.depart|default:"—" }}{% endcomponent %}
       {% endcomponent %}
-      {% component "unfold/components/card.html" with icon="percent" %}
-        {% component "unfold/components/text.html" %}Occupation{% endcomponent %}
+      {% component "unfold/components/card.html" %}
+        {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">percent</span>Occupation{% endcomponent %}
         {% component "unfold/components/title.html" %}{% if activite.occupation_pct %}{{ activite.occupation_pct }} %{% else %}—{% endif %}{% endcomponent %}
       {% endcomponent %}
     </div>

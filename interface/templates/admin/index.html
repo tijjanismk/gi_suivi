@@ -13,8 +13,8 @@
 
     <div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
         {% for i in indicateurs %}
-            {% component "unfold/components/card.html" with href=i.lien icon=i.icone %}
-                {% component "unfold/components/text.html" %}{{ i.titre }}{% endcomponent %}
+            {% component "unfold/components/card.html" with href=i.lien %}
+                {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">{{ i.icone }}</span>{{ i.titre }}{% endcomponent %}
                 {% component "unfold/components/title.html" %}{{ i.valeur }}{% endcomponent %}
             {% endcomponent %}
         {% endfor %}

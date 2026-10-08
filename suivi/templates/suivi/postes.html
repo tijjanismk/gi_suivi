@@ -15,16 +15,16 @@
   </div>
 
   <div class="gic:grid gic:gap-4 gic:md:grid-cols-3">
-    {% component "unfold/components/card.html" with icon="check_circle" %}
-      {% component "unfold/components/text.html" %}Postes sains{% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">check_circle</span>Postes sains{% endcomponent %}
       {% component "unfold/components/title.html" %}{{ sains }}{% endcomponent %}
     {% endcomponent %}
-    {% component "unfold/components/card.html" with icon="warning" %}
-      {% component "unfold/components/text.html" %}Orange — redémarrages{% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">warning</span>Orange — redémarrages{% endcomponent %}
       {% component "unfold/components/title.html" %}<span class="gic:text-amber-700">{{ oranges }}</span>{% endcomponent %}
     {% endcomponent %}
-    {% component "unfold/components/card.html" with icon="desktop_access_disabled" %}
-      {% component "unfold/components/text.html" %}Rouge — muets{% endcomponent %}
+    {% component "unfold/components/card.html" %}
+      {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">desktop_access_disabled</span>Rouge — muets{% endcomponent %}
       {% component "unfold/components/title.html" %}<span class="gic:text-red-700">{{ rouges }}</span>{% endcomponent %}
     {% endcomponent %}
   </div>

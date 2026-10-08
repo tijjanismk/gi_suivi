@@ -1,25 +1,26 @@
 {% extends "suivi/base_direction.html" %}
-{% load unfold %}
+{% load unfold l10n %}
+{% comment %} |unlocalize : le SVG veut « 96.5 », pas « 96,5 » (format français de Django) {% endcomment %}
 
 {% block ecran %}
 {# Quatre indicateurs #}
 <div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
-  {% component "unfold/components/card.html" with icon="schedule" %}
-    {% component "unfold/components/text.html" %}Heures effectives{% endcomponent %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">schedule</span>Heures effectives{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ total_heures }}{% endcomponent %}
   {% endcomponent %}
-  {% component "unfold/components/card.html" with icon="percent" %}
-    {% component "unfold/components/text.html" %}Du temps prévu{% endcomponent %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">percent</span>Du temps prévu{% endcomponent %}
     {% component "unfold/components/title.html" %}{% if synthese.prevu_pct %}{{ synthese.prevu_pct }} %{% else %}—{% endif %}{% endcomponent %}
   {% endcomponent %}
   {% url 'suivi:a_classer' as url_a_classer %}
-  {% component "unfold/components/card.html" with icon="inbox" href=url_a_classer|add:"?"|add:requete_periode %}
-    {% component "unfold/components/text.html" %}À classer{% endcomponent %}
+  {% component "unfold/components/card.html" with  href=url_a_classer|add:"?"|add:requete_periode %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">inbox</span>À classer{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ a_classer_heures }}{% endcomponent %}
   {% endcomponent %}
   {% url 'suivi:postes' as url_postes %}
-  {% component "unfold/components/card.html" with icon="desktop_access_disabled" href=url_postes %}
-    {% component "unfold/components/text.html" %}Postes muets{% endcomponent %}
+  {% component "unfold/components/card.html" with  href=url_postes %}
+    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">desktop_access_disabled</span>Postes muets{% endcomponent %}
     {% component "unfold/components/title.html" %}{{ postes_rouges }}{% endcomponent %}
   {% endcomponent %}
 </div>
@@ -32,8 +33,8 @@
     <div class="gic:grid gic:grid-cols-[10rem_1fr_9rem] gic:items-center gic:gap-3 gic:text-sm">
       <span class="text-important gic:truncate" title="{{ e.employe }}">{{ e.employe }}</span>
       <svg viewBox="0 0 100 10" preserveAspectRatio="none" class="gic:h-5 gic:w-full" role="img" aria-label="{{ e.employe }} : {{ e.heures }}">
-        {% if e.prevu_largeur_pct %}<rect x="0" y="0" width="{{ e.prevu_largeur_pct }}" height="10" class="gic:fill-gray-200 gic:dark:fill-gray-700" />{% endif %}
-        <rect x="0" y="2" width="{{ e.largeur_pct }}" height="6" rx="1" class="gic:fill-blue-600" />
+        {% if e.prevu_largeur_pct %}<rect x="0" y="0" width="{{ e.prevu_largeur_pct|unlocalize }}" height="10" class="gic:fill-gray-200 gic:dark:fill-gray-700" />{% endif %}
+        <rect x="0" y="2" width="{{ e.largeur_pct|unlocalize }}" height="6" rx="1" class="gic:fill-blue-600" />
       </svg>
       <span class="gic:text-right gic:tabular-nums gic:whitespace-nowrap">{{ e.heures }}{% if e.prevu_pct %} <span class="text-subtle">· {{ e.prevu_pct }} %</span>{% endif %}</span>
     </div>

@@ -1,9 +1,11 @@
 from django.urls import path
 
-from suivi.vues import a_classer, direction, export, gestion
+from suivi.vues import a_classer, direction, export, gestion, journee
 
 app_name = "suivi"
 urlpatterns = [
+    path("journee/", journee.journee, name="journee"),
+    path("journee/<int:employe_id>/", journee.journee_personne, name="journee_personne"),
     path("export.xlsx", export.classeur, name="export_excel"),
     path("a-classer/", a_classer.a_classer, name="a_classer"),
     path("a-classer/rattacher", a_classer.rattacher_groupe, name="a_classer_rattacher"),

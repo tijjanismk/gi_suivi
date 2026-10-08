@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 from django.db.models import Count, Max, Min, Q, Sum
 from django.utils import timezone
@@ -298,6 +298,117 @@ def activite_employe(
         "jour": jour.isoformat(),
         "chronologie": chronologie,
     }
+
+
+# -- journée d'une personne : blocs, pauses, trous (écran Journée) --------------------------
+
+SEUIL_TROU_S = (
+    120  # au-delà de deux minutes sans segment : hors mesure (verrouillé, éteint, veille)
+)
+
+
+def _cle_bloc(s: Segment) -> tuple[str, str]:
+    """(type, libellé) d'un segment pour la fusion en blocs."""
+    if s.etat != Segment.Etat.ACTIF:
+        return "pause", "Pause (aucune action)"
+    if s.dossier_id:
+        return "dossier", s.dossier.code or s.dossier.nom
+    if s.statut_classement == Segment.StatutClassement.A_CLASSER:
+        return "a_classer", f"À classer — {s.fichier or s.chemin}"
+    if s.statut_classement == Segment.StatutClassement.BROUILLON:
+        return "brouillon", f"Brouillon — {s.fichier}"
+    return "sans_fichier", f"Sans fichier — {s.application}"
+
+
+def blocs_journee(segments: list[Segment], seuil_trou_s: int = SEUIL_TROU_S) -> list[dict]:
+    """Fusionne les segments consécutifs de même nature en blocs lisibles, et insère un bloc
+    « hors mesure » dans chaque trou (poste verrouillé, éteint, en veille). Les segments sont
+    attendus triés par début, en heure locale."""
+    blocs: list[dict] = []
+    for s in segments:
+        debut, fin = timezone.localtime(s.debut), timezone.localtime(s.fin)
+        type_, libelle = _cle_bloc(s)
+        if blocs:
+            precedent = blocs[-1]
+            trou = (debut - precedent["fin"]).total_seconds()
+            if trou >= seuil_trou_s:
+                blocs.append(
+                    {
+                        "type": "hors_mesure",
+                        "libelle": "Hors mesure (poste verrouillé, éteint ou en veille)",
+                        "debut": precedent["fin"],
+                        "fin": debut,
+                        "applications": set(),
+                        "fichiers": set(),
+                    }
+                )
+            elif precedent["type"] == type_ and precedent["libelle"] == libelle:
+                precedent["fin"] = max(precedent["fin"], fin)
+                precedent["applications"].add(s.application)
+                if s.fichier:
+                    precedent["fichiers"].add(s.fichier)
+                continue
+        blocs.append(
+            {
+                "type": type_,
+                "libelle": libelle,
+                "debut": debut,
+                "fin": fin,
+                "applications": {s.application},
+                "fichiers": {s.fichier} if s.fichier else set(),
+            }
+        )
+    for b in blocs:
+        b["duree_s"] = int((b["fin"] - b["debut"]).total_seconds())
+        b["applications"] = sorted(b["applications"])
+        b["fichiers"] = sorted(b["fichiers"])
+    return blocs
+
+
+def journee_personne(employe: Employe, jour: date) -> dict:
+    """La journée d'une personne : blocs chronologiques (activité, pauses, hors mesure), totaux."""
+    debut = timezone.make_aware(datetime.combine(jour, time.min))
+    segments = list(
+        Segment.objects.filter(
+            employe=employe, debut__gte=debut, debut__lt=debut + timedelta(days=1)
+        )
+        .select_related("dossier")
+        .order_by("debut")
+    )
+    blocs = blocs_journee(segments)
+    actifs = [s for s in segments if s.etat == Segment.Etat.ACTIF]
+    arrivee = timezone.localtime(actifs[0].debut) if actifs else None
+    depart = timezone.localtime(actifs[-1].fin) if actifs else None
+    total = lambda t: sum(b["duree_s"] for b in blocs if b["type"] == t)  # noqa: E731
+    actif_s = sum(int(s.duree_s) for s in actifs)
+    return {
+        "employe": employe,
+        "jour": jour,
+        "blocs": blocs,
+        "arrivee": arrivee,
+        "depart": depart,
+        "amplitude_s": int((depart - arrivee).total_seconds()) if arrivee and depart else 0,
+        "actif_s": actif_s,
+        "pause_s": total("pause"),
+        "hors_mesure_s": total("hors_mesure"),
+        "nb_pauses": sum(1 for b in blocs if b["type"] == "pause"),
+        "dossiers": sorted({b["libelle"] for b in blocs if b["type"] == "dossier"}),
+    }
+
+
+def journee_equipe(jour: date) -> list[dict]:
+    """Toutes les personnes actives, leur journée résumée ; celles sans mesure en dernier."""
+    res = [
+        journee_personne(e, jour)
+        for e in Employe.objects.filter(actif=True).order_by("nom_affiche", "login")
+    ]
+    return sorted(
+        res,
+        key=lambda j: (
+            j["arrivee"] is None,
+            j["arrivee"] or datetime.max.replace(tzinfo=UTC),
+        ),
+    )
 
 
 # -- à classer -----------------------------------------------------------------------------

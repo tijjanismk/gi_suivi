@@ -1,5 +1,5 @@
 {% extends "suivi/base_direction.html" %}
-{% load unfold %}
+{% load unfold l10n %}
 
 {% block ecran %}
 <p class="gic:text-sm"><a class="text-primary-600 gic:hover:underline" href="{% url 'suivi:employes' %}?{{ requete_periode }}">← Toutes les personnes</a> <span class="text-subtle">· {{ personne.login }}{% if personne.heures_prevues_semaine %} · {{ personne.heures_prevues_semaine }} h prévues par semaine{% endif %}</span></p>
@@ -22,15 +22,15 @@
 {% component "unfold/components/card.html" with title="Chronologie du "|add:rapport.jour title_icon="timeline" %}
   {% if rapport.chronologie %}
   <svg viewBox="0 0 100 14" preserveAspectRatio="none" class="gic:h-16 gic:w-full" role="img" aria-label="Chronologie de la journée">
-    {% for g in graduations %}<line x1="{{ g.x }}" y1="0" x2="{{ g.x }}" y2="10" stroke="#e5e7eb" stroke-width="0.15" />{% endfor %}
+    {% for g in graduations %}<line x1="{{ g.x|unlocalize }}" y1="0" x2="{{ g.x|unlocalize }}" y2="10" stroke="#e5e7eb" stroke-width="0.15" />{% endfor %}
     {% for s in rapport.chronologie %}
-    <rect x="{{ s.x }}" y="1" width="{{ s.largeur }}" height="8" fill="{{ s.couleur }}">
+    <rect x="{{ s.x|unlocalize }}" y="1" width="{{ s.largeur|unlocalize }}" height="8" fill="{{ s.couleur }}">
       <title>{{ s.debut }} → {{ s.fin }} · {{ s.application }}{% if s.fichier %} · {{ s.fichier }}{% endif %}{% if s.dossier %} · {{ s.dossier }}{% elif s.etat != 'ACTIF' %} · inactif{% else %} · {{ s.statut }}{% endif %}</title>
     </rect>
     {% endfor %}
   </svg>
   <div class="gic:relative gic:h-4 gic:text-[10px] text-subtle">
-    {% for g in graduations %}<span class="gic:absolute" style="left: {{ g.x }}%">{{ g.heure }}h</span>{% endfor %}
+    {% for g in graduations %}<span class="gic:absolute" style="left: {{ g.x|unlocalize }}%">{{ g.heure }}h</span>{% endfor %}
   </div>
   <div class="gic:mt-3 gic:flex gic:flex-wrap gic:gap-x-4 gic:gap-y-1 gic:text-xs text-subtle">
     {% for l in legende %}<span><span class="gic:inline-block gic:w-3 gic:h-3 gic:rounded gic:align-middle" style="background: {{ l.couleur }}"></span> {{ l.dossier }}</span>{% endfor %}
