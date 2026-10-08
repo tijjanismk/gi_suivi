@@ -51,6 +51,7 @@ Assurer-OU "Administration" $ouGic
 # Groupes de sécurité (globaux). Description = usage, pour qu'on sache dans deux ans.
 $groupes = [ordered]@{
     "GI-Direction"     = "Direction générale : tableaux de bord, validation, décisions"
+    "GI-Direction-Lecture" = "Consultation seule des tableaux de bord GI-SUIVI (aucune action) — compte visionneuse"
     "GI-Offres"        = "Réponse aux avis : références, barèmes, justificatifs"
     "GI-Ingenieurs"    = "Personnel technique : missions, livrables"
     "GI-Administratif" = "Secrétariat et comptabilité : pièces administratives, finances"
