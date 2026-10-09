@@ -230,15 +230,6 @@ foreach ($nom in $sites.Keys) {
     Write-Host "Site $nom : https://$hote -> 127.0.0.1:$port"
 }
 
-# 5 bis. Variables serveur que les règles de réécriture ont le droit de poser (sinon IIS les ignore).
-#        Une fois, au niveau serveur : la liste est globale dans applicationHost.config.
-Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
-foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
-    if (-not (Get-WebConfiguration -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/rewrite/allowedServerVariables/add[@name='$v']")) {
-        Add-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/rewrite/allowedServerVariables" -Name "." -Value @{ name = $v }
-        Write-Host "  $v autorisée"
-    }
-}
 
 # 6. Pare-feu : 443 depuis le LAN ; 8000/8001 bloqués hors de la machine (Uvicorn n'écoute que sur 127.0.0.1, ceinture et bretelles)
 #    (sur un contrôleur de domaine, lire ou créer une règle peut prendre 10 à 30 s : on le dit)
@@ -250,6 +241,19 @@ if (-not (Get-NetFirewallRule -DisplayName "GIC - HTTPS LAN" -ErrorAction Silent
 if (-not (Get-NetFirewallRule -DisplayName "GIC - Bloquer Uvicorn externe" -ErrorAction SilentlyContinue)) {
     New-NetFirewallRule -DisplayName "GIC - Bloquer Uvicorn externe" -Direction Inbound -Protocol TCP -LocalPort 8000,8001 -Action Block | Out-Null
     Write-Host "  règle « GIC - Bloquer Uvicorn externe » créée"
+}
+
+# 7. Variables serveur que les règles de réécriture ont le droit de poser (sinon IIS les ignore).
+#    Liste globale d'applicationHost.config. Écrite par appcmd, en dernier et dans un processus séparé :
+#    le module PowerShell d'IIS se fige sur cette section, et appcmd ne doit pas être mêlé à ses écritures.
+Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
+$appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
+$actuelles = & $appcmd list config -section:system.webServer/rewrite/allowedServerVariables 2>&1 | Out-String
+foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
+    if ($actuelles -match "name=`"$v`"") { Write-Host "  $v : déjà autorisée"; continue }
+    $r = & $appcmd set config -section:system.webServer/rewrite/allowedServerVariables "/+[name='$v']" /commit:apphost 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "appcmd allowedServerVariables ($v) : $r" }
+    Write-Host "  $v : autorisée"
 }
 
 Write-Host "`nTERMINÉ. Prochaine étape (ticket S07) : installer l'application dans C:\GIC\test\app, créer le service NSSM GIC-Test, puis ouvrir https://suivi-test.$zone/identite/qui-suis-je depuis un poste."
