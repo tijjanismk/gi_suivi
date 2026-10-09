@@ -140,9 +140,13 @@ Leçons de ce serveur (Windows Server 2025, DC) : plus de `wmic` ; les cmdlets W
 module WebAdministration sur certaines sections) se figent → `netsh`, `appcmd` en fin de script,
 lecteur `IIS:\` ; pas d'`appcmd` mêlé au module dans la même session ; sections d'authentification
 écrites par `<location>` ; Python « pour un seul compte » refusé ; bascule par copie miroir.
-**Prochaine étape :** 500 via IIS depuis le serveur à examiner (`gic.log`, erreur détaillée IIS) ;
-test Kerberos depuis un poste (`/identite/qui-suis-je`) ; kit + `gic-serveur.cer` chez Dicko (note
-D01 lue) ; puis étapes non faites (CONTROLE n° 6, WiX, P05, D03-D05, P07 mémoire). Toujours
+Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
+niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
+`gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →
+navigateur sans boîte de connexion, agent vert, lots du tampon repris (G04 validé) ;
+`relancer-agent.ps1` pour forcer un nouvel essai après une période d'échecs.
+**Prochaine étape :** vérifier « État des postes » et « Journée » depuis le poste de Dicko ; test
+de restauration (P01) ; CONTROLE n° 6 ; note D01 signée ; relevés D03 ; WiX ; P07 mémoire. Toujours
 `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la
 base de dev après chaque nouvelle migration (la base de test, elle, est recréée). Après un
 changement de gabarit ou de classes : `scripts\dev\construire_css.ps1` (classes préfixées
