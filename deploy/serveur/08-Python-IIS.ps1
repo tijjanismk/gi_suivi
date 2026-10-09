@@ -107,10 +107,8 @@ if (-not (Test-Path "$env:ProgramFiles\IIS\Application Request Routing")) {
     Installer-Msi $UrlRewrite "URL Rewrite"
     Installer-Msi $ARR "Application Request Routing"
 } else { Write-Host "ARR déjà installé." }
-# Activer le proxy ARR au niveau serveur — par le module WebAdministration et non par appcmd :
-# mélanger les deux dans la même session fait échouer la suite (« le fichier a été modifié sur le disque »)
-Set-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/proxy" -Name enabled -Value $true
-Set-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/proxy" -Name preserveHostHeader -Value $true
+# Le proxy ARR est activé en fin de script, par appcmd (voir § 7) : le module PowerShell d'IIS n'écrit
+# pas cette section de façon fiable ici, et appcmd ne doit pas être mêlé à ses écritures.
 
 # 3. Dossiers de l'application
 foreach ($env in "test", "prod") {
@@ -247,8 +245,16 @@ Assurer-Regle "GIC - Bloquer Uvicorn externe" @("localport=8000,8001", "action=b
 # 7. Variables serveur que les règles de réécriture ont le droit de poser (sinon IIS les ignore).
 #    Liste globale d'applicationHost.config. Écrite par appcmd, en dernier et dans un processus séparé :
 #    le module PowerShell d'IIS se fige sur cette section, et appcmd ne doit pas être mêlé à ses écritures.
-Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
 $appcmd = "$env:windir\system32\inetsrv\appcmd.exe"
+# Proxy ARR : sans lui, une règle qui réécrit vers http://127.0.0.1:<port>/ échoue en 500.50
+$proxy = & $appcmd list config -section:system.webServer/proxy 2>&1 | Out-String
+if ($proxy -match 'enabled="true"') { Write-Host "Proxy ARR : déjà activé" }
+else {
+    $r = & $appcmd set config -section:system.webServer/proxy /enabled:"True" /preserveHostHeader:"True" /commit:apphost 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "appcmd proxy ARR : $r" }
+    Write-Host "Proxy ARR : activé"
+}
+Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
 $actuelles = & $appcmd list config -section:system.webServer/rewrite/allowedServerVariables 2>&1 | Out-String
 foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
     if ($actuelles -match "name=`"$v`"") { Write-Host "  $v : déjà autorisée"; continue }
