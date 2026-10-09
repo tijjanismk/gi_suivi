@@ -63,11 +63,16 @@ application) font le lien : lire en base, convertir, appeler `moteur/`,
 
 ### 3.3 Identité et droits
 
-IIS, avec l'authentification Windows activée, authentifie l'utilisateur du
-domaine et transmet `REMOTE_USER` (et les groupes) à l'application. Un
+Le poste présente son ticket Kerberos (`Authorization: Negotiate`) ; IIS le
+transmet tel quel et **l'application le valide elle-même** (SSPI, sous le compte
+de service porteur des SPN — ADR 0007 ; le schéma initial « IIS authentifie et
+transmet `REMOTE_USER` » reste possible avec `IDENTITE_SOURCE = "iis"`). Les
+groupes AD sont lus par l'API Windows du contrôleur de domaine (ADR 0006). Un
 middleware Django crée ou met à jour un `identite.Utilisateur` minimal (login,
 nom affiché, groupes). Il n'y a ni mot de passe ni page de connexion. En
-développement, un middleware de substitution injecte un utilisateur fictif.
+développement, un utilisateur fictif est injecté. **Le module avis réutilisera
+ce mécanisme tel quel** : mêmes utilisateurs, mêmes groupes (`GI-Offres`,
+`GI-Direction`…), même middleware.
 
 Le pont MCP transmet l'identité Windows du poste au serveur. Au MVP, il
 l'envoie en en-tête et le serveur lui fait confiance (réseau interne). Une
@@ -86,9 +91,12 @@ assemblés vont dans un dossier de sortie dédié.
 ### 3.5 Déploiement
 
 Windows Server 2025 : PostgreSQL 18 en service, Uvicorn en service Windows
-(NSSM), IIS en frontal avec Application Request Routing, authentification
-Windows et HTTPS (certificat de l'autorité interne). Accès distant par VPN.
-Voir `docs/exploitation.md`.
+(NSSM, compte `svc-application`), IIS en frontal avec Application Request
+Routing et HTTPS (certificat auto-signé approuvé sur les postes, faute
+d'autorité interne ; ADR 0007 pour l'authentification). Accès distant par VPN.
+Un seul projet Django, une seule chaîne de déploiement (`deploy\installer.ps1`,
+Git) pour les deux modules : GI-SUIVI (`/suivi/`, application `suivi`) et le
+module avis (`/avis/`, application `avis`, à venir). Voir `docs/exploitation.md`.
 
 ## 4. Modèle de données (vue d'ensemble)
 
