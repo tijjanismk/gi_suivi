@@ -139,6 +139,16 @@ def test_admin_refuse_hors_direction_sans_demander_de_mot_de_passe(client):
 def test_sante_sans_identite(client, settings):
     settings.IDENTITE_SOURCE = "iis"
     assert client.get("/sante/").json() == {"etat": "ok"}
+    # diagnostic de la chaîne IIS -> ARR -> application : ce que l'application voit de l'appelant
+    d = client.get(
+        "/api/sante?identite=1",
+        HTTP_X_REMOTE_USER="giconseils\\x",
+        HTTP_X_FORWARDED_PROTO="https",
+        REMOTE_ADDR="127.0.0.1",
+    ).json()
+    assert d["etat"] == "ok" and d["identite"]["remote_addr"] == "127.0.0.1"
+    assert d["identite"]["x_remote_user"] == "giconseils\\x"
+    assert d["identite"]["x_forwarded_proto"] == "https" and d["identite"]["remote_user"] is None
 
 
 @override_settings(**IIS)
