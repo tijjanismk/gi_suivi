@@ -73,7 +73,11 @@ foreach ($site in 'suivi', 'suivi-test') {
     if (-not (Test-Path $cle)) { New-Item $cle -Force | Out-Null }
     Set-ItemProperty $cle -Name https -Value 1 -Type DWord
 }
-Write-Host "Zone Intranet local : https://suivi.giconseils.local et https://suivi-test.giconseils.local (connexion Windows silencieuse)."
+foreach ($p in 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', 'HKLM:\SOFTWARE\Policies\Google\Chrome') {
+    if (-not (Test-Path $p)) { New-Item $p -Force | Out-Null }
+    Set-ItemProperty $p -Name AuthServerAllowlist -Value '*.giconseils.local' -Type String
+}
+Write-Host "Zone Intranet local + strategie AuthServerAllowlist (Edge, Chrome) : connexion Windows silencieuse sur *.giconseils.local."
 
 $exe = Join-Path $Cible 'gisuivi-agent.exe'
 $binPath = "`"$exe`" --service"

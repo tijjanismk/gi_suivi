@@ -23,4 +23,11 @@ foreach ($branche in 'Domains', 'EscDomains') {
         Write-Host "Intranet local : https://$site.$Domaine ($branche)"
     }
 }
+# Stratégie Edge/Chrome : authentification Windows intégrée pour *.<domaine>, quelle que soit la zone
+# (plus sûr que la zone seule, surtout sur un serveur avec la sécurité renforcée)
+foreach ($p in 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', 'HKLM:\SOFTWARE\Policies\Google\Chrome') {
+    if (-not (Test-Path $p)) { New-Item $p -Force | Out-Null }
+    Set-ItemProperty $p -Name AuthServerAllowlist -Value "*.$Domaine" -Type String
+}
+Write-Host "Strategie navigateur : AuthServerAllowlist = *.$Domaine (Edge, Chrome)"
 Write-Host "`nTermine. Fermez completement Edge/Chrome puis rouvrez-le : la page https://suivi-test.$Domaine/moi doit s'ouvrir sans demander de mot de passe."
