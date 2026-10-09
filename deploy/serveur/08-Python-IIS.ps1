@@ -86,6 +86,11 @@ if (-not $SeulementIIS) {
 }
 
 # 2. IIS : fonctionnalités nécessaires (le rôle Web-Server est déjà présent sur ce serveur)
+#    Le Gestionnaire IIS ouvert, ou une autre console PowerShell qui a chargé le module IIS, peut
+#    bloquer l'écriture de la configuration : on prévient avant de commencer.
+if (Get-Process inetmgr -ErrorAction SilentlyContinue) { Write-Warning "Le Gestionnaire des services IIS est ouvert : fermez-le, il peut bloquer l'écriture de la configuration." }
+$autres = Get-Process powershell, pwsh -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID }
+if ($autres) { Write-Warning "$($autres.Count) autre(s) fenêtre(s) PowerShell ouverte(s) : si l'une d'elles exécute encore un script GIC, fermez-la (deux déploiements en même temps se bloquent l'un l'autre)." }
 $feat = "Web-Server","Web-Windows-Auth","Web-Static-Content","Web-Http-Logging","Web-Filtering","Web-Mgmt-Console"
 Install-WindowsFeature $feat | Out-Null
 Import-Module WebAdministration
@@ -222,14 +227,17 @@ foreach ($nom in $sites.Keys) {
         Write-Host "  $nom : jonction $racine\static -> $statiques"
         New-Item -ItemType Junction -Path "$racine\static" -Target $statiques | Out-Null
     }
-    # Autoriser les variables serveur réécrites (sinon IIS les ignore)
-    Write-Host "  $nom : variables serveur autorisées (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)"
-    foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
-        if (-not (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "system.webServer/rewrite/allowedServerVariables/add[@name='$v']")) {
-            Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/rewrite/allowedServerVariables" -Name "." -Value @{ name = $v }
-        }
-    }
     Write-Host "Site $nom : https://$hote -> 127.0.0.1:$port"
+}
+
+# 5 bis. Variables serveur que les règles de réécriture ont le droit de poser (sinon IIS les ignore).
+#        Une fois, au niveau serveur : la liste est globale dans applicationHost.config.
+Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
+foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
+    if (-not (Get-WebConfiguration -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/rewrite/allowedServerVariables/add[@name='$v']")) {
+        Add-WebConfigurationProperty -PSPath "MACHINE/WEBROOT/APPHOST" -Filter "system.webServer/rewrite/allowedServerVariables" -Name "." -Value @{ name = $v }
+        Write-Host "  $v autorisée"
+    }
 }
 
 # 6. Pare-feu : 443 depuis le LAN ; 8000/8001 bloqués hors de la machine (Uvicorn n'écoute que sur 127.0.0.1, ceinture et bretelles)
