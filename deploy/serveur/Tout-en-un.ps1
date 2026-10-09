@@ -104,6 +104,10 @@ foreach ($e in $etapes) {
     try { & $e.cmd }
     catch {
         Write-Host "`nARRÊT à l'étape « $($e.nom) » : $($_.Exception.Message)" -ForegroundColor Red
+        # Où exactement : script, ligne et instruction fautive (à coller tel quel pour le diagnostic)
+        $inv = $_.InvocationInfo
+        if ($inv -and $inv.ScriptName) { Write-Host ("Où : {0} ligne {1} : {2}" -f (Split-Path $inv.ScriptName -Leaf), $inv.ScriptLineNumber, $inv.Line.Trim()) -ForegroundColor Yellow }
+        if ($_.ScriptStackTrace) { Write-Host "Pile : $($_.ScriptStackTrace -replace "`r?`n", ' | ')" -ForegroundColor DarkGray }
         Write-Host "Journaux : D:\SAUVEGARDES\journaux\ (scripts 01-08) et C:\GIC\test\journaux\ (application)."
         Write-Host "Corriger, puis relancer ce script : chaque étape est idempotente (ce qui est fait n'est pas refait)."
         exit 1
