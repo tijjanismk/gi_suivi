@@ -34,7 +34,11 @@ $compte = (Get-Content $mdpFichier)[0]; $mdp = (Get-Content $mdpFichier)[1]
 $py = "$base\venv\Scripts\python.exe"
 New-Item -ItemType Directory -Path "$base\journaux" -Force | Out-Null
 
-$args = "-m uvicorn config.asgi:application --host 127.0.0.1 --port $port --workers $Travailleurs --proxy-headers --forwarded-allow-ips 127.0.0.1 --log-level info"
+# --no-proxy-headers : l'application ne croit X-Remote-User que s'il vient de 127.0.0.1 (IIS/ARR).
+# Avec --proxy-headers, Uvicorn remplacerait l'adresse de l'appelant par celle du poste (X-Forwarded-For)
+# et l'identité serait ignorée (« Identité Windows absente »). Le HTTPS est signalé par X-Forwarded-Proto,
+# lu par Django directement (SECURE_PROXY_SSL_HEADER).
+$args = "-m uvicorn config.asgi:application --host 127.0.0.1 --port $port --workers $Travailleurs --no-proxy-headers --log-level info"
 if (-not (Get-Service $service -ErrorAction SilentlyContinue)) {
     & $nssm install $service $py $args | Out-Null
     Write-Host "Service $service créé."
@@ -61,7 +65,9 @@ if ($pgService) { & $nssm set $service DependOnService $pgService | Out-Null } e
 & $nssm set $service AppStopMethodConsole 10000 | Out-Null
 
 if (Test-Path "$base\app\manage.py") {
-    & $nssm start $service | Out-Null; Start-Sleep 3
+    # les paramètres ne sont lus qu'au démarrage : un service déjà en marche est redémarré
+    if ((Get-Service $service).Status -eq "Running") { & $nssm restart $service | Out-Null } else { & $nssm start $service | Out-Null }
+    Start-Sleep 3
     Write-Host "État : $((Get-Service $service).Status)"
 } else {
     Write-Host "Application non encore installée dans $base\app : le service démarrera après installer.ps1."

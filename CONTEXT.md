@@ -139,7 +139,9 @@ certificat auto-signé `B4126E92…A9` jusqu'en 2031), service `GIC-Test` (NSSM)
 Leçons de ce serveur (Windows Server 2025, DC) : plus de `wmic` ; les cmdlets WMI (`*-NetFirewallRule`,
 module WebAdministration sur certaines sections) se figent → `netsh`, `appcmd` en fin de script,
 lecteur `IIS:\` ; pas d'`appcmd` mêlé au module dans la même session ; sections d'authentification
-écrites par `<location>` ; Python « pour un seul compte » refusé ; bascule par copie miroir.
+écrites par `<location>` ; Python « pour un seul compte » refusé ; bascule par copie miroir ;
+Uvicorn **sans** `--proxy-headers` (sinon REMOTE_ADDR devient l'adresse du poste et `X-Remote-User`,
+accepté seulement depuis 127.0.0.1, est ignoré : « Identité Windows absente »).
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →
