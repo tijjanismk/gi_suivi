@@ -48,6 +48,13 @@ pas le ticket Kerberos de la session Windows, et l'application n'accepte que ce 
 `installer-poste.ps1` règle cela ; sur un poste installé avant, ou sans agent : `.\zone-intranet.ps1`
 en administrateur, puis fermer complètement le navigateur et le rouvrir.
 
+## Icône grise « hors réseau, N segments en attente » alors que le serveur répond
+
+Après plusieurs échecs, l'agent espace ses essais (jusqu'à 30 min). Pour qu'il réessaie tout de
+suite : `.\relancer-agent.ps1` dans la session de la personne (pas besoin d'être administrateur).
+Il range d'abord ses segments dans le tampon, le service le relance, et l'icône passe au vert dès
+qu'un lot est accepté. Le motif du dernier échec est dans `%LOCALAPPDATA%\GiSuivi\agent.log`.
+
 ## Changer la configuration plus tard (passer en mode connecté)
 
 Modifier `C:\ProgramData\GiSuivi\config.json` (`url_api`, racines) avec le Bloc-notes, puis

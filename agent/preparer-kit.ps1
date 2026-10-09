@@ -26,7 +26,7 @@ if (Test-Path $kit) { Remove-Item $kit -Recurse -Force }
 New-Item -ItemType Directory -Path $kit | Out-Null
 & robocopy.exe .\dist\gisuivi-agent "$kit\dist\gisuivi-agent" /E /NFL /NDL /NJH /NJS /NP | Out-Null
 if ($LASTEXITCODE -ge 8) { throw "Copie de dist en echec." }
-Copy-Item .\installer-poste.ps1, .\desinstaller-poste.ps1, .\arreter-agent.ps1, .\zone-intranet.ps1, .\LISEZMOI-poste.md, .\CONTROLE.md $kit
+Copy-Item .\installer-poste.ps1, .\desinstaller-poste.ps1, .\arreter-agent.ps1, .\relancer-agent.ps1, .\zone-intranet.ps1, .\LISEZMOI-poste.md, .\CONTROLE.md $kit
 # La configuration livrée est écrite sans BOM : l'agent la lit telle quelle
 $json = Get-Content $Config -Raw -Encoding UTF8
 [IO.File]::WriteAllText("$kit\config.json", $json, (New-Object Text.UTF8Encoding $false))
