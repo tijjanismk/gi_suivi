@@ -64,6 +64,17 @@ if (Test-Path $cer) {
     Write-Host "Pas de gic-serveur.cer dans le kit : le certificat du serveur doit venir d'une autorite deja approuvee par ce poste."
 }
 
+# Zone « Intranet local » pour les sites de l'application (tous les utilisateurs du poste) : sans cela,
+# Edge/Chrome n'envoient pas le ticket Kerberos et affichent une boîte de connexion que rien ne satisfait
+# (IIS n'accepte que Kerberos). Plus tard, une GPO fera la même chose pour tout le parc.
+$zoneBase = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\giconseils.local'
+foreach ($site in 'suivi', 'suivi-test') {
+    $cle = Join-Path $zoneBase $site
+    if (-not (Test-Path $cle)) { New-Item $cle -Force | Out-Null }
+    Set-ItemProperty $cle -Name https -Value 1 -Type DWord
+}
+Write-Host "Zone Intranet local : https://suivi.giconseils.local et https://suivi-test.giconseils.local (connexion Windows silencieuse)."
+
 $exe = Join-Path $Cible 'gisuivi-agent.exe'
 $binPath = "`"$exe`" --service"
 # Pas de « sc.exe create binPath= ... » : PowerShell 5.1 transmet mal un argument qui contient
