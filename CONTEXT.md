@@ -131,11 +131,18 @@ pas d'AD CS ; IIS déjà en service sur 80/443 pour RDWeb — nos sites sont li�
 `08-Python-IIS.ps1 -AutoSigne` crée un certificat auto-signé 5 ans et l'exporte en
 `C:\GIC\deploy\gic-serveur.cer` ; `installer-poste.ps1` l'importe dans les autorités racines du
 poste ; l'agent vérifie avec le magasin Windows (`truststore`), plus avec certifi.
-**Prochaine étape (engagée le 08/10) :** déploiement de l'environnement test sur AD-SERVEUR par le
-porteur en suivant `docs/exploitation/liste-de-controle-serveur.md` (P01 sauvegarde d'abord,
-scripts 01→08 avec `-AutoSigne`, puis `installer.ps1 -Env test -Ref main`, `verifier.ps1`) ;
-rapporter `C:\GIC\deploy\gic-serveur.cer` dans le kit ; installation manuelle de l'agent chez Dicko
-(note D01 signée avant) ; puis reprise des étapes non faites (CONTROLE n° 6, WiX, P05, pilote D03-D05). Toujours
+**Environnement test déployé sur AD-SERVEUR le 09/10** par `deploy\serveur\Tout-en-un.ps1 -Directeur
+ODICKO -MotDePasseGic gic` (une commande, se met à jour par Git, idempotente) : PostgreSQL 18 et
+Python 3.14 installés à la main puis reconnus, IIS (sites par nom d'hôte, Negotiate seul, ARR,
+certificat auto-signé `B4126E92…A9` jusqu'en 2031), service `GIC-Test` (NSSM), application `main`,
+6 tâches planifiées, 5 racines (partages existants) ; `verifier.ps1` sain, santé locale 200.
+Leçons de ce serveur (Windows Server 2025, DC) : plus de `wmic` ; les cmdlets WMI (`*-NetFirewallRule`,
+module WebAdministration sur certaines sections) se figent → `netsh`, `appcmd` en fin de script,
+lecteur `IIS:\` ; pas d'`appcmd` mêlé au module dans la même session ; sections d'authentification
+écrites par `<location>` ; Python « pour un seul compte » refusé ; bascule par copie miroir.
+**Prochaine étape :** 500 via IIS depuis le serveur à examiner (`gic.log`, erreur détaillée IIS) ;
+test Kerberos depuis un poste (`/identite/qui-suis-je`) ; kit + `gic-serveur.cer` chez Dicko (note
+D01 lue) ; puis étapes non faites (CONTROLE n° 6, WiX, P05, D03-D05, P07 mémoire). Toujours
 `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la
 base de dev après chaque nouvelle migration (la base de test, elle, est recréée). Après un
 changement de gabarit ou de classes : `scripts\dev\construire_css.ps1` (classes préfixées
