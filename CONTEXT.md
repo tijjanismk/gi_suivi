@@ -140,8 +140,11 @@ Leçons de ce serveur (Windows Server 2025, DC) : plus de `wmic` ; les cmdlets W
 module WebAdministration sur certaines sections) se figent → `netsh`, `appcmd` en fin de script,
 lecteur `IIS:\` ; pas d'`appcmd` mêlé au module dans la même session ; sections d'authentification
 écrites par `<location>` ; Python « pour un seul compte » refusé ; bascule par copie miroir ;
-Uvicorn **sans** `--proxy-headers` (sinon REMOTE_ADDR devient l'adresse du poste et `X-Remote-User`,
-accepté seulement depuis 127.0.0.1, est ignoré : « Identité Windows absente »).
+Uvicorn **sans** `--proxy-headers` et **un seul** processus de travail (les anciens survivaient et
+servaient l'ancien code). **ADR 0007** : IIS n'authentifie plus nos sites (en mode noyau,
+`LOGON_USER` est vide pour la réécriture ; en mode utilisateur, il refuse les tickets des postes) ;
+l'application valide elle-même le ticket Kerberos (`identite/negotiate.py`, SSPI via pywin32,
+`IDENTITE_SOURCE=negotiate`), IIS en anonyme transmet `Authorization`. Sonde : `/api/sante?identite=1`.
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →

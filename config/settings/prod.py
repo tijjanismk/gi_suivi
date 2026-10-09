@@ -8,7 +8,9 @@ from .base import ALLOWED_HOSTS, BASE_DIR, env
 if not SECRET_KEY:  # noqa: F405
     raise ImproperlyConfigured("SECRET_KEY manquante dans .env (production).")
 
-IDENTITE_SOURCE = "iis"
+# Le ticket Kerberos est validé par l'application (ADR 0007) ; "iis" reste possible si IIS
+# transmet un jour l'identité lui-même.
+IDENTITE_SOURCE = env.str("IDENTITE_SOURCE", "negotiate")
 # Groupes AD lus par l'API Windows du serveur, qui est le contrôleur de domaine (ADR 0006)
 IDENTITE_LECTEUR_GROUPES = env.str(
     "IDENTITE_LECTEUR_GROUPES", "identite.groupes_windows.groupes_de"

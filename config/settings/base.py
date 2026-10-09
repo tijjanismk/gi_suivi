@@ -105,8 +105,10 @@ STATICFILES_DIRS = [BASE_DIR / "interface" / "static"]
 STATIC_ROOT = env.path("STATIC_ROOT", BASE_DIR / "static_collecte")
 
 # --- Identité (application identite) -------------------------------------------------
-# "dev" : utilisateur fictif ; "iis" : REMOTE_USER ou X-Remote-User posé par IIS.
+# "dev" : utilisateur fictif ; "iis" : REMOTE_USER ou X-Remote-User posé par IIS ;
+# "negotiate" : ticket Kerberos validé par l'application (SSPI, ADR 0007) — la production.
 IDENTITE_SOURCE = "iis"
+IDENTITE_AUTHENTIFICATEUR_NEGOTIATE = "identite.negotiate.authentifier"
 # X-Remote-User n'est cru que s'il arrive de ces adresses (IIS sur la même machine).
 IDENTITE_PROXYS_DE_CONFIANCE = ["127.0.0.1", "::1"]
 # Chemins servis sans identité (supervision IIS).

@@ -171,26 +171,17 @@ foreach ($nom in $sites.Keys) {
             if ($LASTEXITCODE -ne 0) { throw "netsh http add sslcert a échoué : $r" }
         }
     }
-    # Authentification : Windows seule, fournisseur Negotiate uniquement (pas de NTLM), anonyme désactivée
-    # Les sections d'authentification sont verrouillées au niveau serveur (overrideModeDefault="Deny") :
-    # on les écrit dans applicationHost.config, dans un bloc <location path="<site>">, ce qui est toujours
-    # permis et ne touche que ce site — les autres sites IIS du serveur gardent leurs réglages.
+    # Authentification (ADR 0007) : IIS ne vérifie PAS le ticket — il laisse passer la requête avec son
+    # en-tête « Authorization: Negotiate … » jusqu'à l'application, qui le valide elle-même (SSPI, sous
+    # svc-application, porteur des SPN). Donc : anonyme activé, authentification Windows désactivée pour
+    # nos deux sites. (En mode noyau, IIS authentifiait mais l'identité n'était pas disponible pour la
+    # réécriture ; en mode utilisateur, il refusait les tickets des postes.)
+    # Les sections d'authentification sont verrouillées au niveau serveur : on les écrit dans
+    # applicationHost.config, bloc <location path="<site>">, sans toucher aux autres sites.
     $apphost = "MACHINE/WEBROOT/APPHOST"
-    Write-Host "  $nom : authentification Windows (Negotiate seul), anonyme désactivée"
-    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $false
-    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $true
-    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name useAppPoolCredentials -Value $true
-    # Fournisseurs : Negotiate seul. La liste héritée du serveur contient Negotiate et NTLM ; on retire
-    # NTLM pour ce site et on n'ajoute Negotiate que s'il manque (relançable sans doublon).
-    $prov = "system.webServer/security/authentication/windowsAuthentication/providers"
-    if (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "$prov/add[@value='NTLM']") {
-        Remove-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter $prov -Name "." -AtElement @{ value = "NTLM" }
-    }
-    if (-not (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "$prov/add[@value='Negotiate']")) {
-        Add-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter $prov -Name "." -Value @{ value = "Negotiate" }
-    }
-    $restants = (Get-WebConfiguration -PSPath $apphost -Location $nom -Filter "$prov/add" | ForEach-Object { $_.value }) -join ", "
-    Write-Host "Site $nom : fournisseurs d'authentification = $restants"
+    Write-Host "  $nom : IIS transmet le ticket Kerberos à l'application (anonyme activé, authentification Windows IIS désactivée)"
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $true
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $false
 
     # web.config : statiques servis par IIS, tout le reste vers Uvicorn avec identité et protocole
     $port = $sites[$nom].port; $statiques = "C:\GIC\$($sites[$nom].env)\static_collecte"
@@ -208,7 +199,6 @@ foreach ($nom in $sites.Keys) {
           <match url="(.*)" />
           <conditions><add input="{REQUEST_URI}" pattern="^/static/" negate="true" /></conditions>
           <serverVariables>
-            <set name="HTTP_X_REMOTE_USER" value="{LOGON_USER}" />
             <set name="HTTP_X_FORWARDED_PROTO" value="https" />
             <set name="HTTP_X_FORWARDED_HOST" value="{HTTP_HOST}" />
           </serverVariables>
@@ -254,12 +244,12 @@ else {
     if ($LASTEXITCODE -ne 0) { throw "appcmd proxy ARR : $r" }
     Write-Host "Proxy ARR : activé"
 }
-Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
+Write-Host "Variables serveur autorisées pour la réécriture (X-Forwarded-Proto, X-Forwarded-Host)..."
 # Jamais au niveau d'un site : une entrée présente à la fois pour un site et pour le serveur fait
 # échouer la lecture de la configuration (« existe déjà », 500.50 / code 183). On nettoie les sites.
 foreach ($nom in $sites.Keys) { & $appcmd clear config "$nom" -section:system.webServer/rewrite/allowedServerVariables /commit:apphost 2>&1 | Out-Null }
 $actuelles = & $appcmd list config -section:system.webServer/rewrite/allowedServerVariables 2>&1 | Out-String
-foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
+foreach ($v in "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
     if ($actuelles -match "name=`"$v`"") { Write-Host "  $v : déjà autorisée"; continue }
     $r = & $appcmd set config -section:system.webServer/rewrite/allowedServerVariables "/+[name='$v']" /commit:apphost 2>&1
     if ($LASTEXITCODE -ne 0) { throw "appcmd allowedServerVariables ($v) : $r" }
