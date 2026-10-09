@@ -41,6 +41,13 @@ l'agent et son service de supervision sur **un** poste Windows 10/11 du domaine.
    SSLError », le certificat n'est pas approuvé (point précédent) ; « 401 », le ticket Kerberos
    ou le SPN (`deploy\serveur\06-DNS-SPN.ps1`).
 
+## Le navigateur demande un mot de passe (et le refuse)
+
+C'est que le site n'est pas dans la zone « Intranet local » du poste : le navigateur ne présente
+pas le ticket Kerberos de la session Windows, et l'application n'accepte que ce ticket.
+`installer-poste.ps1` règle cela ; sur un poste installé avant, ou sans agent : `.\zone-intranet.ps1`
+en administrateur, puis fermer complètement le navigateur et le rouvrir.
+
 ## Changer la configuration plus tard (passer en mode connecté)
 
 Modifier `C:\ProgramData\GiSuivi\config.json` (`url_api`, racines) avec le Bloc-notes, puis
