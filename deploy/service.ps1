@@ -13,7 +13,8 @@ param(
     [Parameter(Mandatory)][ValidateSet("test", "prod")][string]$Env,
     [string]$Nssm,
     [switch]$Creer, [switch]$Etat, [switch]$Supprimer,
-    [int]$Travailleurs = 2,
+    [int]$Travailleurs = 1,      # un seul processus : suffisant pour le pilote, et un arrêt du service arrête tout le code
+                                 # (avec plusieurs, les processus de travail survivaient et gardaient l'ancienne version sur le port)
     [string]$CompteService = "svc-application"
 )
 $ErrorActionPreference = "Stop"
@@ -63,6 +64,7 @@ if ($pgService) { & $nssm set $service DependOnService $pgService | Out-Null } e
 & $nssm set $service AppExit Default Restart | Out-Null
 & $nssm set $service AppRestartDelay 5000 | Out-Null
 & $nssm set $service AppStopMethodConsole 10000 | Out-Null
+& $nssm set $service AppKillProcessTree 1 | Out-Null             # à l'arrêt : le processus et tous ses enfants
 
 if (Test-Path "$base\app\manage.py") {
     # les paramètres ne sont lus qu'au démarrage : un service déjà en marche est redémarré

@@ -40,7 +40,15 @@ $hote = if ($Env -eq "prod") { "suivi.giconseils.local" } else { "suivi-test.gic
 New-Item -ItemType Directory -Path $base\journaux -Force | Out-Null
 Start-Transcript -Path "$base\journaux\installer_$(Get-Date -Format yyyyMMdd_HHmm).log" | Out-Null
 
-function Arreter-Service { if (Get-Service $service -ErrorAction SilentlyContinue) { Stop-Service $service -Force -ErrorAction SilentlyContinue; Start-Sleep 2 } }
+function Arreter-Service {
+    if (Get-Service $service -ErrorAction SilentlyContinue) { Stop-Service $service -Force -ErrorAction SilentlyContinue; Start-Sleep 2 }
+    # Des processus de l'ancienne version peuvent survivre à l'arrêt et garder le port : ils serviraient
+    # l'ancien code après la bascule. On tue ce qui écoute encore sur le port (netstat : pas de WMI).
+    $pids = & netstat -ano | Select-String ":$port\s" | Select-String "LISTENING" | ForEach-Object { ($_.ToString().Trim() -split '\s+')[-1] } | Sort-Object -Unique
+    foreach ($p in $pids) { if ($p -match '^\d+$' -and [int]$p -gt 4) { Write-Warning "Processus $p écoutait encore sur $port : arrêté."; Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue } }
+    $orphelins = Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$venv\*" }
+    if ($orphelins) { Write-Warning "$(@($orphelins).Count) processus Python de $venv encore en vie : arrêtés."; $orphelins | Stop-Process -Force -ErrorAction SilentlyContinue }
+}
 function Demarrer-Service { if (Get-Service $service -ErrorAction SilentlyContinue) { Start-Service $service; Start-Sleep 3; Write-Host "Service $service : $((Get-Service $service).Status)" } else { Write-Warning "Service $service inexistant : lancez service.ps1 -Env $Env -Creer." } }
 
 if ($RetourArriere) {
