@@ -47,8 +47,8 @@ if (-not (Get-WindowsFeature Windows-Server-Backup).Installed) {
 #    sauvegarde réussie date d'aujourd'hui (le script se relance sans tout refaire) ; -Forcer pour la refaire
 $derniere = $null
 try { $derniere = (Get-WBSummary -ErrorAction Stop).LastSuccessfulBackupTime } catch { }
-if (-not $Forcer -and $derniere -and $derniere.Date -eq (Get-Date).Date) {
-    Write-Host "Sauvegarde réussie déjà faite aujourd'hui ($($derniere.ToString('HH:mm'))) : étape sautée (-Forcer pour la refaire)."
+if (-not $Forcer -and $derniere -and $derniere -gt (Get-Date).AddHours(-24)) {
+    Write-Host "Sauvegarde réussie il y a moins de 24 h ($($derniere.ToString('dd/MM HH:mm'))) : étape sautée (-Forcer pour la refaire)."
 } else {
     Write-Host "Sauvegarde complète vers $Cible — comptez 20 à 60 minutes."
     & wbadmin start backup -backupTarget:$Cible -include:C: -exclude:C:\SAUVEGARDES_D -allCritical -systemState -vssFull -quiet
