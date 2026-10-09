@@ -92,3 +92,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 Le module avis reprend à partir de ce socle : ses tâches seront ajoutées ici
 quand GI-SUIVI sera en pilote, à partir de `docs/design.md` et de
 `docs/schema-donnees.md`.
+
+| Id | Titre | Description | Critères d'acceptation | État |
+|---|---|---|---|---|
+| F01 | Tâches affectées sur des fichiers (idée du porteur, 09/10) | Une tâche = dossier de projet, fichier(s), personne, échéance, état ; affectée par `GI-Direction` ; « Mes tâches » dans `/moi` ; temps passé calculé automatiquement à partir des segments de l'agent sur ces fichiers ; suivi dans Journée / fiche personne. Aucun changement serveur, IIS ou agent : application et migration seulement. À annoncer à l'équipe (l'outil passe de « mesurer » à « prescrire »). | Une tâche affectée apparaît chez la personne ; son temps passé se met à jour sans saisie ; la direction voit l'état et les retards | à faire, après le pilote |
