@@ -232,16 +232,17 @@ foreach ($nom in $sites.Keys) {
 
 
 # 6. Pare-feu : 443 depuis le LAN ; 8000/8001 bloqués hors de la machine (Uvicorn n'écoute que sur 127.0.0.1, ceinture et bretelles)
-#    (sur un contrôleur de domaine, lire ou créer une règle peut prendre 10 à 30 s : on le dit)
-Write-Host "Pare-feu : règles GIC (peut prendre jusqu'à une minute)..."
-if (-not (Get-NetFirewallRule -DisplayName "GIC - HTTPS LAN" -ErrorAction SilentlyContinue)) {
-    New-NetFirewallRule -DisplayName "GIC - HTTPS LAN" -Direction Inbound -Protocol TCP -LocalPort 443 -RemoteAddress 192.168.2.0/24 -Action Allow | Out-Null
-    Write-Host "  règle « GIC - HTTPS LAN » créée"
+#    Par netsh : les cmdlets *-NetFirewallRule passent par WMI et se figent sur ce serveur.
+Write-Host "Pare-feu : règles GIC..."
+function Assurer-Regle($nom, $arguments) {
+    $null = & netsh advfirewall firewall show rule name="$nom" 2>&1
+    if ($LASTEXITCODE -eq 0) { Write-Host "  règle « $nom » : existante"; return }
+    $r = & netsh advfirewall firewall add rule name="$nom" dir=in protocol=TCP $arguments 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "netsh pare-feu ($nom) : $r" }
+    Write-Host "  règle « $nom » : créée"
 }
-if (-not (Get-NetFirewallRule -DisplayName "GIC - Bloquer Uvicorn externe" -ErrorAction SilentlyContinue)) {
-    New-NetFirewallRule -DisplayName "GIC - Bloquer Uvicorn externe" -Direction Inbound -Protocol TCP -LocalPort 8000,8001 -Action Block | Out-Null
-    Write-Host "  règle « GIC - Bloquer Uvicorn externe » créée"
-}
+Assurer-Regle "GIC - HTTPS LAN" @("localport=443", "remoteip=192.168.2.0/24", "action=allow")
+Assurer-Regle "GIC - Bloquer Uvicorn externe" @("localport=8000,8001", "action=block")
 
 # 7. Variables serveur que les règles de réécriture ont le droit de poser (sinon IIS les ignore).
 #    Liste globale d'applicationHost.config. Écrite par appcmd, en dernier et dans un processus séparé :
