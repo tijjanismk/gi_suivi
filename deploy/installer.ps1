@@ -21,7 +21,7 @@
   1. code dans app_nouveau\ (fetch + checkout + copie sans .git)   5. .env créé ou conservé
   2. venv créé ou mis à jour                                        6. manage.py check --deploy (bloquant en prod)
   3. pip install -r deploy\requirements.txt --only-binary=:all:     7. migrate, collectstatic
-  4. arrêt du service                                               8. bascule app -> app_precedent, app_nouveau -> app, redémarrage
+  4. arrêt du service                                               8. bascule par copie : app -> app_precedent, app_nouveau -> app, redémarrage
 #>
 param(
     [Parameter(Mandatory)][ValidateSet("test", "prod")][string]$Env,
@@ -47,8 +47,10 @@ if ($RetourArriere) {
     if (-not (Test-Path $prec)) { throw "Aucune version précédente dans $prec." }
     Write-Host "Retour arrière vers la version précédente..."
     Arreter-Service
-    if (Test-Path "$base\app_echec") { Remove-Item "$base\app_echec" -Recurse -Force }
-    Rename-Item $app "app_echec"; Rename-Item $prec "app"
+    # par copie miroir, comme la bascule normale (un dossier ouvert ailleurs ne se renomme pas)
+    & robocopy.exe $app "$base\app_echec" /MIR /R:3 /W:2 /NFL /NDL /NJH /NJS /NP | Out-Null
+    & robocopy.exe $prec $app /MIR /R:3 /W:2 /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "Retour arrière : copie de $prec vers $app en échec (robocopy $LASTEXITCODE)." }
     Write-Host "Version active : $(Get-Content "$app\VERSION.json" -ErrorAction SilentlyContinue)"
     Write-Warning "Si la version retirée avait ajouté des migrations, exécutez la commande 'manage.py migrate <app> <migration>' notée dans sa pull request."
     Demarrer-Service
@@ -171,10 +173,16 @@ if ($LASTEXITCODE -ne 0) { Pop-Location; Demarrer-Service; throw "migrate a éch
 & $py manage.py collectstatic --noinput --clear | Select-Object -Last 1
 Pop-Location
 
-# 8. Bascule
-if (Test-Path $prec) { Remove-Item $prec -Recurse -Force }
-if (Test-Path $app) { Rename-Item $app "app_precedent" }
-Rename-Item $nouveau "app"
+# 8. Bascule — par copie miroir (robocopy), jamais par renommage : un dossier tenu ouvert par un autre
+#    processus (service, console, antivirus) ne se renomme pas (« utilisé par un autre processus »),
+#    alors que son contenu se remplace. app_precedent garde la version qui tournait, pour le retour arrière.
+function Miroir($source, $cible) {
+    & robocopy.exe $source $cible /MIR /R:3 /W:2 /NFL /NDL /NJH /NJS /NP | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw "Copie $source -> $cible en échec (robocopy $LASTEXITCODE)." }
+}
+if (Test-Path "$app\manage.py") { Miroir $app $prec; Write-Host "Version précédente conservée dans $prec" }
+Miroir $nouveau $app
+Remove-Item $nouveau -Recurse -Force -ErrorAction SilentlyContinue
 Demarrer-Service
 
 # Contrôle
