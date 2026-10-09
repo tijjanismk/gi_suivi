@@ -255,6 +255,9 @@ else {
     Write-Host "Proxy ARR : activé"
 }
 Write-Host "Variables serveur autorisées pour la réécriture (X-Remote-User, X-Forwarded-Proto, X-Forwarded-Host)..."
+# Jamais au niveau d'un site : une entrée présente à la fois pour un site et pour le serveur fait
+# échouer la lecture de la configuration (« existe déjà », 500.50 / code 183). On nettoie les sites.
+foreach ($nom in $sites.Keys) { & $appcmd clear config "$nom" -section:system.webServer/rewrite/allowedServerVariables /commit:apphost 2>&1 | Out-Null }
 $actuelles = & $appcmd list config -section:system.webServer/rewrite/allowedServerVariables 2>&1 | Out-String
 foreach ($v in "HTTP_X_REMOTE_USER", "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
     if ($actuelles -match "name=`"$v`"") { Write-Host "  $v : déjà autorisée"; continue }
