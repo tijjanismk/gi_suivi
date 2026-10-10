@@ -40,16 +40,20 @@ $hote = if ($Env -eq "prod") { "suivi.giconseils.local" } else { "suivi-test.gic
 New-Item -ItemType Directory -Path $base\journaux -Force | Out-Null
 Start-Transcript -Path "$base\journaux\installer_$(Get-Date -Format yyyyMMdd_HHmm).log" | Out-Null
 
+. (Join-Path $PSScriptRoot 'liberer-port.ps1')
 function Arreter-Service {
     if (Get-Service $service -ErrorAction SilentlyContinue) { Stop-Service $service -Force -ErrorAction SilentlyContinue; Start-Sleep 2 }
-    # Des processus de l'ancienne version peuvent survivre à l'arrêt et garder le port : ils serviraient
-    # l'ancien code après la bascule. On tue ce qui écoute encore sur le port (netstat : pas de WMI).
-    $pids = & netstat -ano | Select-String ":$port\s" | Select-String "LISTENING|ECOUTE|ÉCOUTE" | ForEach-Object { ($_.ToString().Trim() -split '\s+')[-1] } | Sort-Object -Unique
-    foreach ($p in $pids) { if ($p -match '^\d+$' -and [int]$p -gt 4) { Write-Warning "Processus $p écoutait encore sur $port : arrêté."; Stop-Process -Id ([int]$p) -Force -ErrorAction SilentlyContinue } }
-    $orphelins = Get-Process python -ErrorAction SilentlyContinue | Where-Object { $_.Path -like "$venv\*" }
-    if ($orphelins) { Write-Warning "$(@($orphelins).Count) processus Python de $venv encore en vie : arrêtés."; $orphelins | Stop-Process -Force -ErrorAction SilentlyContinue }
+    # Un interpréteur orphelin de l'ancienne version garderait le port et servirait l'ancien code
+    Liberer-Port $port
 }
-function Demarrer-Service { if (Get-Service $service -ErrorAction SilentlyContinue) { Start-Service $service; Start-Sleep 3; Write-Host "Service $service : $((Get-Service $service).Status)" } else { Write-Warning "Service $service inexistant : lancez service.ps1 -Env $Env -Creer." } }
+function Demarrer-Service {
+    if (-not (Get-Service $service -ErrorAction SilentlyContinue)) { Write-Warning "Service $service inexistant : lancez service.ps1 -Env $Env -Creer."; return }
+    # « En pause » : NSSM a vu le programme s'arrêter trop vite (port occupé) ; on repart de zéro
+    if ((Get-Service $service).Status -ne "Stopped") { Stop-Service $service -Force -ErrorAction SilentlyContinue; Start-Sleep 2 }
+    Liberer-Port $port
+    Start-Service $service; Start-Sleep 4
+    Write-Host "Service $service : $((Get-Service $service).Status)"
+}
 
 if ($RetourArriere) {
     if (-not (Test-Path $prec)) { throw "Aucune version précédente dans $prec." }

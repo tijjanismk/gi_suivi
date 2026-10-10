@@ -41,7 +41,21 @@ Point "Service $service" ($svc -and $svc.Status -eq "Running") $detailSvc -Bloqu
 try {
     $r = Invoke-WebRequest -Uri "http://127.0.0.1:$port/api/sante" -UseBasicParsing -TimeoutSec 10
     Point "Santé locale 127.0.0.1:$port" ($r.StatusCode -eq 200) "$($r.StatusCode) $($r.Content)" -Bloquant
+    # Le code qui répond est-il celui qui est installé ? (un processus orphelin servirait l'ancien)
+    $attendu = $null; try { $attendu = (Get-Content "$base\app\VERSION.json" -Raw | ConvertFrom-Json).commit } catch { }
+    $servi = $null; try { $servi = ($r.Content | ConvertFrom-Json).version } catch { }
+    if ($attendu) { Point "Code en service = code installé" ($servi -eq $attendu) "installé $attendu, en service $(if ($servi) { $servi } else { 'inconnu (ancienne version ?)' })" -Bloquant }
 } catch { Point "Santé locale 127.0.0.1:$port" $false $_.Exception.Message -Bloquant }
+
+# Kerberos de bout en bout : la page d'identité, avec le ticket de la session qui lance ce script.
+# 200/403 = authentifié (403 : ce compte n'a pas de rôle) ; 401 = ticket refusé ou non présenté.
+try {
+    $q = Invoke-WebRequest -Uri "https://$hote/identite/qui-suis-je" -UseBasicParsing -UseDefaultCredentials -TimeoutSec 15
+    Point "Kerberos (qui-suis-je)" $true "$($q.StatusCode) authentifié"
+} catch {
+    $code = $null; try { $code = $_.Exception.Response.StatusCode.value__ } catch { }
+    Point "Kerberos (qui-suis-je)" ($code -eq 403) "$(if ($code) { $code } else { $_.Exception.Message })$(if ($code -eq 403) { ' authentifié, sans rôle' } elseif ($code -eq 401) { ' ticket refusé : journal gic.log' })"
+}
 
 # Santé à travers IIS (Negotiate, identité de la console). Hors domaine ou sans certificat : avertissement
 try {

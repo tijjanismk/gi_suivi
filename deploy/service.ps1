@@ -21,8 +21,16 @@ $ErrorActionPreference = "Stop"
 $base = "C:\GIC\$Env"; $service = "GIC-$($Env.Substring(0,1).ToUpper() + $Env.Substring(1))"
 $port = if ($Env -eq "prod") { 8000 } else { 8001 }
 $outils = "C:\GIC\outils"; New-Item -ItemType Directory -Path $outils -Force | Out-Null
-if ($Nssm -and (Test-Path $Nssm)) { Copy-Item $Nssm "$outils\nssm.exe" -Force }
 $nssm = "$outils\nssm.exe"
+# Copie de nssm.exe seulement s'il manque ou diffère : en service, le fichier est verrouillé
+if ($Nssm -and (Test-Path $Nssm)) {
+    $memeFichier = (Test-Path $nssm) -and ((Get-FileHash $Nssm).Hash -eq (Get-FileHash $nssm).Hash)
+    if (-not $memeFichier) {
+        try { Copy-Item $Nssm $nssm -Force }
+        catch { if (Test-Path $nssm) { Write-Warning "nssm.exe en cours d'utilisation : la copie existante est conservée." } else { throw } }
+    }
+}
+. (Join-Path $PSScriptRoot 'liberer-port.ps1')
 if (-not (Test-Path $nssm)) { throw "nssm.exe introuvable : passez -Nssm <chemin> la première fois (https://nssm.cc)." }
 
 if ($Etat) { & $nssm status $service; Get-Service $service | Format-List Name, Status, StartType; exit 0 }
@@ -64,12 +72,14 @@ if ($pgService) { & $nssm set $service DependOnService $pgService | Out-Null } e
 & $nssm set $service AppExit Default Restart | Out-Null
 & $nssm set $service AppRestartDelay 5000 | Out-Null
 & $nssm set $service AppStopMethodConsole 10000 | Out-Null
-& $nssm set $service AppKillProcessTree 1 | Out-Null             # à l'arrêt : le processus et tous ses enfants
 
 if (Test-Path "$base\app\manage.py") {
-    # les paramètres ne sont lus qu'au démarrage : un service déjà en marche est redémarré
-    if ((Get-Service $service).Status -eq "Running") { & $nssm restart $service | Out-Null } else { & $nssm start $service | Out-Null }
-    Start-Sleep 3
+    # Paramètres lus au démarrage seulement : arrêt, port libéré (un interpréteur orphelin le garderait,
+    # Uvicorn ne pourrait pas s'y attacher et NSSM mettrait le service en pause), puis démarrage.
+    & $nssm stop $service 2>&1 | Out-Null
+    Liberer-Port $port
+    & $nssm start $service 2>&1 | Out-Null
+    Start-Sleep 4
     Write-Host "État : $((Get-Service $service).Status)"
 } else {
     Write-Host "Application non encore installée dans $base\app : le service démarrera après installer.ps1."
