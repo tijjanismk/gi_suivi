@@ -181,6 +181,9 @@ foreach ($nom in $sites.Keys) {
     $apphost = "MACHINE/WEBROOT/APPHOST"
     Write-Host "  $nom : IIS transmet le ticket Kerberos à l'application (anonyme activé, authentification Windows IIS désactivée)"
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $true
+    # Accès anonyme sous l'identité du pool (svc-application) et non IUSR : C:\GIC n'est lisible que par
+    # svc-application ; sous IUSR, IIS ne pourrait pas servir les statiques (pages sans mise en forme).
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name userName -Value ""
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $false
     # Mode noyau désactivé explicitement : sinon http.sys peut garder l'ancienne configuration et vérifier
     # lui-même le ticket avec la clé de la machine — il échoue et répond 401 (« Server: Microsoft-HTTPAPI/2.0 »)

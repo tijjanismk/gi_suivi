@@ -47,6 +47,15 @@ try {
     if ($attendu) { Point "Code en service = code installé" ($servi -eq $attendu) "installé $attendu, en service $(if ($servi) { $servi } else { 'inconnu (ancienne version ?)' })" -Bloquant }
 } catch { Point "Santé locale 127.0.0.1:$port" $false $_.Exception.Message -Bloquant }
 
+# Feuille de style servie par IIS (statiques) : sans elle, les pages s'affichent sans mise en forme
+try {
+    $css = Invoke-WebRequest -Uri "https://$hote/static/css/gic.css" -UseBasicParsing -TimeoutSec 15
+    Point "Statiques via IIS (gic.css)" ($css.StatusCode -eq 200) "$($css.StatusCode), $([math]::Round($css.RawContentLength / 1KB)) Ko"
+} catch {
+    $code = $null; try { $code = $_.Exception.Response.StatusCode.value__ } catch { }
+    Point "Statiques via IIS (gic.css)" $false "$(if ($code) { $code } else { $_.Exception.Message }) — identité anonyme du site ou jonction site\static (08-Python-IIS.ps1)"
+}
+
 # Kerberos de bout en bout : la page d'identité, avec le ticket de la session qui lance ce script.
 # 200/403 = authentifié (403 : ce compte n'a pas de rôle) ; 401 = ticket refusé ou non présenté.
 try {
