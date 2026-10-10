@@ -49,11 +49,12 @@ def authentifier(entete_authorization: str | None) -> tuple[str | None, str | No
         return None, None
     if err != 0:
         # SEC_I_CONTINUE_NEEDED : échange en plusieurs étapes (NTLM) — refusé, Kerberos seul.
-        # Cause fréquente : ticket Kerberos que ce serveur ne peut pas ouvrir (chiffré en RC4, refusé par
+        # Cause fréquente : ticket que ce serveur ne peut pas ouvrir (chiffré en RC4, refusé par
         # Windows Server 2025 ; compte de service sans AES) → Negotiate retombe sur NTLM.
         log.info(
-            "Negotiate incomplet (NTLM ?) : refusé, Kerberos requis. Si le poste a un ticket "
-            "HTTP/… en RC4 (klist), déclarer AES sur le compte de service (04-Comptes-et-groupes.ps1)."
+            "Negotiate incomplet (NTLM ?) : refusé, Kerberos requis. "
+            "Ticket HTTP/… en RC4 (klist) ? Déclarer AES sur le compte de service "
+            "(04-Comptes-et-groupes.ps1)."
         )
         return None, None
     login = serveur.ctxt.QueryContextAttributes(sspicon.SECPKG_ATTR_NAMES)
