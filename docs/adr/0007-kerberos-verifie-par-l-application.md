@@ -37,6 +37,16 @@ désactivée ; ARR transmet l'en-tête `Authorization`. Sans ticket, l'applicati
 l'agent (`requests-negotiate-sspi`) envoient alors le ticket. **Kerberos seul** : un échange NTLM
 (plusieurs allers-retours) est refusé, comme avant.
 
+## Constat complémentaire (10/10/2026) : chiffrement AES obligatoire
+
+Une fois le code en place, les tickets étaient encore refusés : le contrôleur de domaine les
+émettait en **RC4-HMAC** (le compte `svc-application` ne déclarait pas AES), et Windows Server 2025
+refuse RC4 côté serveur. Le ticket ne s'ouvrant pas, Negotiate retombait sur NTLM (« Negotiate
+incomplet » dans `gic.log`) — et `http.sys` renvoyait lui aussi 401 (`Microsoft-HTTPAPI/2.0`), ce qui
+avait d'abord fait soupçonner IIS. Correction : `Set-ADUser svc-application -KerberosEncryptionType
+AES128,AES256` (désormais dans `04-Comptes-et-groupes.ps1`), puis `klist purge` sur les postes.
+Vérifié : `200` en direct sur l'application et à travers IIS.
+
 ## Conséquences
 
 - Les règles du blueprint tiennent : pas de page de connexion, pas de mot de passe applicatif,

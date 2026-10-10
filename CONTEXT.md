@@ -145,6 +145,10 @@ servaient l'ancien code). **ADR 0007** : IIS n'authentifie plus nos sites (en mo
 `LOGON_USER` est vide pour la réécriture ; en mode utilisateur, il refuse les tickets des postes) ;
 l'application valide elle-même le ticket Kerberos (`identite/negotiate.py`, SSPI via pywin32,
 `IDENTITE_SOURCE=negotiate`), IIS en anonyme transmet `Authorization`. Sonde : `/api/sante?identite=1`.
+**10/10 : Kerberos de bout en bout validé à travers IIS (200)** après deux corrections : port libéré
+avant chaque démarrage (`deploy/liberer-port.ps1` : l'interpréteur lancé par `venv\Scripts\python.exe`
+survivait et gardait l'ancien code ; `/api/sante` donne le commit en service, `verifier.ps1` le
+compare) et **`svc-application` en Kerberos AES** (tickets RC4 refusés par Server 2025).
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →
