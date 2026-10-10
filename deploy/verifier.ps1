@@ -54,7 +54,9 @@ try {
     Point "Kerberos (qui-suis-je)" $true "$($q.StatusCode) authentifié"
 } catch {
     $code = $null; try { $code = $_.Exception.Response.StatusCode.value__ } catch { }
-    Point "Kerberos (qui-suis-je)" ($code -eq 403) "$(if ($code) { $code } else { $_.Exception.Message })$(if ($code -eq 403) { ' authentifié, sans rôle' } elseif ($code -eq 401) { ' ticket refusé : journal gic.log' })"
+    $serveur = $null; try { $serveur = $_.Exception.Response.Headers['Server'] } catch { }
+    $aide = if ($code -eq 403) { ' authentifié, sans rôle' } elseif ($code -eq 401 -and "$serveur" -like '*HTTPAPI*') { ' refusé par http.sys (ancienne configuration) : 08-Python-IIS.ps1 redémarre les sites' } elseif ($code -eq 401) { ' ticket refusé par l''application : journal gic.log' } else { '' }
+    Point "Kerberos (qui-suis-je)" ($code -eq 403) "$(if ($code) { $code } else { $_.Exception.Message })$aide"
 }
 
 # Santé à travers IIS (Negotiate, identité de la console). Hors domaine ou sans certificat : avertissement

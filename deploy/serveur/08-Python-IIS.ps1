@@ -182,6 +182,10 @@ foreach ($nom in $sites.Keys) {
     Write-Host "  $nom : IIS transmet le ticket Kerberos à l'application (anonyme activé, authentification Windows IIS désactivée)"
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/anonymousAuthentication" -Name enabled -Value $true
     Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name enabled -Value $false
+    # Mode noyau désactivé explicitement : sinon http.sys peut garder l'ancienne configuration et vérifier
+    # lui-même le ticket avec la clé de la machine — il échoue et répond 401 (« Server: Microsoft-HTTPAPI/2.0 »)
+    # avant que la requête n'atteigne l'application. Le redémarrage du site (§ 7) lui fait relire la config.
+    Set-WebConfigurationProperty -PSPath $apphost -Location $nom -Filter "system.webServer/security/authentication/windowsAuthentication" -Name useKernelMode -Value $false
 
     # web.config : statiques servis par IIS, tout le reste vers Uvicorn avec identité et protocole
     $port = $sites[$nom].port; $statiques = "C:\GIC\$($sites[$nom].env)\static_collecte"
@@ -254,6 +258,14 @@ foreach ($v in "HTTP_X_FORWARDED_PROTO", "HTTP_X_FORWARDED_HOST") {
     $r = & $appcmd set config -section:system.webServer/rewrite/allowedServerVariables "/+[name='$v']" /commit:apphost 2>&1
     if ($LASTEXITCODE -ne 0) { throw "appcmd allowedServerVariables ($v) : $r" }
     Write-Host "  $v : autorisée"
+}
+
+# 8. Nos deux sites redémarrés (et eux seuls : RDWeb et les autres ne sont pas touchés) pour que
+#    http.sys relise leur configuration d'authentification.
+foreach ($nom in $sites.Keys) {
+    & $appcmd stop site "$nom" 2>&1 | Out-Null
+    & $appcmd start site "$nom" 2>&1 | Out-Null
+    Write-Host "Site $nom redémarré (configuration relue par http.sys)"
 }
 
 Write-Host "`nTERMINÉ. Prochaine étape (ticket S07) : installer l'application dans C:\GIC\test\app, créer le service NSSM GIC-Test, puis ouvrir https://suivi-test.$zone/identite/qui-suis-je depuis un poste."
