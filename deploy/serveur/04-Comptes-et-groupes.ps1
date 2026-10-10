@@ -106,6 +106,13 @@ if (-not (Get-ADUser -Filter "SamAccountName -eq '$CompteService'" -ErrorAction 
         Write-Host "Compte de service créé ; mot de passe dans $secrets\$CompteService.txt"
     }
 } else { Write-Host "Compte de service existant : $CompteService" }
+# Kerberos en AES seulement pour le compte de service : sans cette déclaration, le contrôleur de domaine
+# émet des tickets RC4, que Windows Server 2025 refuse côté serveur (le ticket ne s'ouvre pas, Negotiate
+# retombe sur NTLM, l'application refuse : « Negotiate incomplet »). Recommandation Microsoft.
+if ($PSCmdlet.ShouldProcess($CompteService, "Kerberos AES128/AES256")) {
+    Set-ADUser $CompteService -KerberosEncryptionType AES128, AES256
+    Write-Host "Compte $CompteService : Kerberos AES128/AES256 (pas de RC4). Les postes reprennent un ticket AES à la prochaine ouverture de session (ou klist purge)."
+}
 
 # Comptes d'administration nominatifs : adm-<login>, membres de Admins du domaine
 foreach ($login in $Administrateurs) {
