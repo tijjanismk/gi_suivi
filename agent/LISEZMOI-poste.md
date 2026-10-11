@@ -19,9 +19,14 @@ l'agent et son service de supervision sur **un** poste Windows 10/11 du domaine.
 
 ## Installation (5 minutes)
 
-1. Copier le kit sur le poste (clé USB ou partage) et le décompresser, par exemple dans
-   `C:\Temp\GiSuivi-agent-poste\`.
-2. Ouvrir **PowerShell en administrateur** dans ce dossier, puis :
+1. Décompresser le kit (clé USB, partage, ou dossier de transfert de la personne) et poser
+   `gic-serveur.cer` dans le même dossier.
+2. **Double-cliquer sur `Installer-GI-Suivi.cmd`** et accepter la fenêtre de contrôle de compte.
+   Rien d'autre à taper : le fichier copie le kit sur le disque local (une fenêtre administrateur
+   ne voit pas les lecteurs réseau), débloque les scripts et lance l'installation sans toucher à la
+   stratégie PowerShell du poste. Pour relancer l'agent plus tard : `Relancer-GI-Suivi.cmd`.
+
+   Équivalent manuel, dans PowerShell **en administrateur** ouvert dans ce dossier :
    ```powershell
    Unblock-File .\*.ps1
    Set-ExecutionPolicy -Scope Process Bypass -Force
