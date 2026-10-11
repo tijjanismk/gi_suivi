@@ -84,9 +84,9 @@ def test_fiche_personne(client, jeu_de_segments, employes):
     html = r.content.decode()
     assert "Awa Traoré" in html and "Chronologie du 2026-10-06" in html
     assert "09:00 → 10:00" in html and "À classer — notes.pdf" in html  # blocs fusionnés
-    assert "Document1" in html and "chrome.exe" in html
+    assert "Document1" in html and "Google Chrome" in html
     assert "GIC-HYD-ETU-052" in html and "13 h 00" in html  # fichier rapport.docx sur la période
-    assert "WINWORD.EXE" in html and "Acrobat.exe" in html  # applications
+    assert "Microsoft Word" in html and "Adobe Acrobat" in html  # applications, au nom lisible
     assert 'style="background: #2563eb"' in html  # légende du premier dossier
     assert "gic:bg-blue-50" in html  # le jour choisi est marqué dans le tableau
     assert (

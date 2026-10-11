@@ -154,6 +154,10 @@ motifs, personne, échéance, état), `/suivi/taches/` pour la direction, « Mes
 temps passé calculé dans `suivi/taches.py` (segments actifs de la personne depuis le jour de
 création jusqu'à la clôture ; par motifs de fichiers sinon par dossier). Aucun changement serveur,
 IIS ou agent : un `Tout-en-un` suffit (migration 0005).
+**Noms des logiciels (11/10)** : les écrans affichent « Microsoft Word », « Google Chrome »,
+« Claude »… au lieu de l'exécutable (`suivi/applications.py`) ; les petits programmes de l'interface
+Windows (ShellExperienceHost, SearchHost…) sont regroupés ; l'API et la base gardent l'exécutable.
+Ajout sans redéploiement : paramètre `noms_applications` dans l'administration.
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →

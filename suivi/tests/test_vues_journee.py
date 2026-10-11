@@ -98,7 +98,7 @@ def test_blocs_fusionnent_pauses_et_trous(employes, postes, dossiers):
     assert blocs[1]["libelle"] == "Pause (aucune action)"
     assert (
         blocs[2]["libelle"] == "2026-SOMAPEP-001"
-        and blocs[4]["libelle"] == "Sans fichier — chrome.exe"
+        and blocs[4]["libelle"] == "Sans fichier — Google Chrome"  # nom lisible du logiciel
     )
 
 
@@ -135,7 +135,7 @@ def test_detail_journee_personne(client, jeu_de_segments, employes):
     awa = employes[0]
     html = client.get(f"/suivi/journee/{awa.pk}/?jour=2026-10-06", **DIR).content.decode()
     assert "Bloc par bloc" in html and "09:00 → 10:00" in html and "À classer — notes.pdf" in html
-    assert "Brouillon — Document1" in html and "Sans fichier — chrome.exe" in html
+    assert "Brouillon — Document1" in html and "Sans fichier — Google Chrome" in html
     assert "11:00 → 12:00" in html and "GIC-HYD-ETU-052" in html
     assert "Hors mesure" in html  # cartes
     assert client.get(f"/suivi/journee/{awa.pk}/?jour=2026-10-07", **VUE).status_code == 200

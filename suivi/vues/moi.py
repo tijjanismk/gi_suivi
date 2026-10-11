@@ -9,6 +9,7 @@ from django.db.models import Q
 from django.shortcuts import render
 from django.utils import timezone
 
+from suivi.applications import regrouper
 from suivi.models import Tache
 from suivi.services import activite_du_jour, employe_de
 from suivi.taches import preparer
@@ -34,6 +35,8 @@ def mes_taches(employe) -> list[Tache]:
 def mon_activite(request):
     employe = employe_de(request.user)
     activite = activite_du_jour(employe)
+    # logiciels au nom lisible, petits programmes de Windows regroupés (l'API garde l'exécutable)
+    activite["par_application"] = regrouper(activite["par_application"])
     # durées lisibles : minutes sous l'heure, « h » au-delà (l'API, elle, reste en secondes)
     for ligne in [*activite["par_dossier"], *activite["par_application"]]:
         ligne["duree"] = duree_courte(ligne["duree_s"])

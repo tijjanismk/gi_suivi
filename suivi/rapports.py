@@ -15,6 +15,8 @@ from django.db.models import Count, Max, Min, Q, Sum
 from django.utils import timezone
 
 from moteur.suivi import indicateurs
+from suivi.applications import nom_application
+from suivi.applications import table as table_noms
 from suivi.models import Dossier, Employe, Poste, Segment
 from suivi.services import parametre
 
@@ -307,7 +309,7 @@ SEUIL_TROU_S = (
 )
 
 
-def _cle_bloc(s: Segment) -> tuple[str, str]:
+def _cle_bloc(s: Segment, noms: dict[str, str]) -> tuple[str, str]:
     """(type, libellé) d'un segment pour la fusion en blocs."""
     if s.etat != Segment.Etat.ACTIF:
         return "pause", "Pause (aucune action)"
@@ -317,17 +319,21 @@ def _cle_bloc(s: Segment) -> tuple[str, str]:
         return "a_classer", f"À classer — {s.fichier or s.chemin}"
     if s.statut_classement == Segment.StatutClassement.BROUILLON:
         return "brouillon", f"Brouillon — {s.fichier}"
-    return "sans_fichier", f"Sans fichier — {s.application}"
+    return "sans_fichier", f"Sans fichier — {nom_application(s.application, noms)}"
 
 
-def blocs_journee(segments: list[Segment], seuil_trou_s: int = SEUIL_TROU_S) -> list[dict]:
+def blocs_journee(
+    segments: list[Segment], seuil_trou_s: int = SEUIL_TROU_S, noms: dict[str, str] | None = None
+) -> list[dict]:
     """Fusionne les segments consécutifs de même nature en blocs lisibles, et insère un bloc
     « hors mesure » dans chaque trou (poste verrouillé, éteint, en veille). Les segments sont
-    attendus triés par début, en heure locale."""
+    attendus triés par début, en heure locale. Les logiciels sont nommés lisiblement
+    (suivi.applications)."""
+    noms = noms if noms is not None else table_noms()
     blocs: list[dict] = []
     for s in segments:
         debut, fin = timezone.localtime(s.debut), timezone.localtime(s.fin)
-        type_, libelle = _cle_bloc(s)
+        type_, libelle = _cle_bloc(s, noms)
         if blocs:
             precedent = blocs[-1]
             trou = (debut - precedent["fin"]).total_seconds()
@@ -360,7 +366,7 @@ def blocs_journee(segments: list[Segment], seuil_trou_s: int = SEUIL_TROU_S) -> 
         )
     for b in blocs:
         b["duree_s"] = int((b["fin"] - b["debut"]).total_seconds())
-        b["applications"] = sorted(b["applications"])
+        b["applications"] = sorted({nom_application(a, noms) for a in b["applications"]})
         b["fichiers"] = sorted(b["fichiers"])
     return blocs
 

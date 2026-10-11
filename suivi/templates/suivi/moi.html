@@ -92,7 +92,7 @@
         <tbody>
         {% for a in activite.par_application %}
           <tr class="gic:border-b border-base-200 dark:border-base-800">
-            <td class="gic:py-2">{{ a.application }}</td>
+            <td class="gic:py-2" title="{{ a.executables|join:', ' }}">{{ a.application }}</td>
             <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ a.duree }}</td>
           </tr>
         {% endfor %}

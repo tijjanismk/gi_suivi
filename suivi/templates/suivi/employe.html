@@ -136,7 +136,7 @@
       <tbody>
       {% for a in rapport.applications %}
         <tr class="gic:border-b border-base-200 dark:border-base-800">
-          <td class="gic:py-1.5">{{ a.application }}</td>
+          <td class="gic:py-1.5" title="{{ a.executables|join:', ' }}">{{ a.application }}</td>
           <td class="gic:py-1.5 gic:text-right gic:tabular-nums">{{ a.heures }}</td>
         </tr>
       {% endfor %}

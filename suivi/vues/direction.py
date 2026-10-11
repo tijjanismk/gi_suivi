@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from identite.decorateurs import consultation_requise
 from suivi import rapports
+from suivi.applications import regrouper
 from suivi.models import Dossier, Employe, Segment
 from suivi.services import journaliser
 from suivi.vues.frise import _hm, contexte_couleurs, couleur_dossier, frise, legende
@@ -161,6 +162,7 @@ def employe(request, employe_id: int):
         f["heures"] = _hm(f["duree_s"])
         if f["dossier"]:
             couleur_dossier(couleurs, f["dossier"])
+    rapport["applications"] = regrouper(rapport["applications"])  # noms lisibles
     for a in rapport["applications"]:
         a["heures"] = _hm(a["duree_s"])
 
