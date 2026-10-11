@@ -17,7 +17,7 @@ from pathlib import Path
 from django.core.management.base import BaseCommand, CommandError
 
 from suivi.models import Parametre, Racine
-from suivi.services import CORRESPONDANCE_LECTEURS
+from suivi.services import CORRESPONDANCE_LECTEURS, demander_recalcul
 
 
 class Command(BaseCommand):
@@ -79,18 +79,25 @@ class Command(BaseCommand):
 
         lecteurs = brut.get("correspondance_lecteurs")
         if lecteurs:
-            self.stdout.write(f"correspondance_lecteurs : {lecteurs}")
-            if not simuler:
-                Parametre.objects.update_or_create(
-                    cle=CORRESPONDANCE_LECTEURS,
-                    defaults={
-                        "valeur": lecteurs,
-                        "description": "Lettre de lecteur réseau → chemin UNC.",
-                    },
-                )
+            actuelle = Parametre.objects.filter(cle=CORRESPONDANCE_LECTEURS).first()
+            if actuelle is None or actuelle.valeur != lecteurs:
+                self.stdout.write(f"~ correspondance_lecteurs : {lecteurs}")
+                if not simuler:
+                    Parametre.objects.update_or_create(
+                        cle=CORRESPONDANCE_LECTEURS,
+                        defaults={
+                            "valeur": lecteurs,
+                            "description": "Lettre de lecteur réseau → chemin UNC.",
+                        },
+                    )
+                    # les mesures déjà reçues en lettre de lecteur (E:\…) se rattachent après coup
+                    demander_recalcul("correspondance des lecteurs modifiée par suivi_racines")
+                change = True
+            else:
+                self.stdout.write("= correspondance_lecteurs inchangée")
 
         if change and not simuler:
-            # chaque racine créée ou modifiée a déjà déposé sa demande (signaux) ; on le dit
+            # les racines créées ou modifiées ont déjà déposé leur demande (signaux) ; on le dit
             self.stdout.write("Recalcul demandé (suivi_recalculer).")
         actives = Racine.objects.filter(active=True).count()
         self.stdout.write(f"{'Simulation : ' if simuler else ''}{actives} racine(s) active(s).")

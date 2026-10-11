@@ -1,5 +1,5 @@
 {
-  "_commentaire": "Configuration du pilote (postes installés à la main, D02) : envoi vers l'environnement test. Racines = les partages EXISTANTS, ceux sur lesquels l'équipe travaille (décision du 08/10 : rien ne change sur le serveur ; D:\\GIC servira à l'application d'avis plus tard). Les mêmes racines sont saisies côté serveur : manage.py suivi_racines agent\\config-pilote.json. correspondance_lecteurs : lettres mappées sur les postes (net use), à compléter.",
+  "_commentaire": "Configuration du pilote (postes installés à la main, D02) : envoi vers l'environnement test. Racines = les partages EXISTANTS, ceux sur lesquels l'équipe travaille (décision du 08/10 : rien ne change sur le serveur ; D:\\GIC servira à l'application d'avis plus tard). Les mêmes racines sont saisies côté serveur : manage.py suivi_racines agent\\config-pilote.json. correspondance_lecteurs : lettres mappées sur les postes (net use du poste de Dicko, 11/10) ; l'agent 0.2.3 les traduit aussi lui-même, cette table sert surtout au serveur pour rattacher les mesures déjà reçues en lettre de lecteur.",
   "url_api": "https://suivi-test.giconseils.local",
   "intervalle_s": 5,
   "seuil_inactivite_s": 300,
@@ -11,6 +11,14 @@
     {"chemin": "\\\\AD-SERVEUR\\AMI", "profondeur": 4},
     {"chemin": "\\\\AD-SERVEUR\\ESPACE DE TRAVAIL", "profondeur": 1}
   ],
-  "correspondance_lecteurs": {},
+  "correspondance_lecteurs": {
+    "L:": "\\\\AD-SERVEUR\\ESPACE DE TRAVAIL",
+    "M:": "\\\\AD-SERVEUR\\DICKO",
+    "N:": "\\\\AD-SERVEUR\\SUIVI-CONTROLE",
+    "O:": "\\\\AD-SERVEUR\\OFFRES",
+    "P:": "\\\\AD-SERVEUR\\ETUDES",
+    "Q:": "\\\\AD-SERVEUR\\AMI",
+    "R:": "\\\\AD-SERVEUR\\FINANCES"
+  },
   "journal_niveau": "INFO"
 }

@@ -47,6 +47,48 @@ def test_saisie_idempotente_et_recalcul(tmp_path):
     assert DemandeRecalcul.objects.count() == n
 
 
+def test_lecteurs_modifies_rattachent_le_passe(tmp_path, employes, postes, racines):
+    """Une mesure reçue en Q:\\… (lettre non déclarée) se rattache quand la lettre est déclarée."""
+    import uuid
+    from datetime import timedelta
+
+    from django.core.management import call_command as cc
+    from django.utils import timezone
+
+    from suivi.models import Segment
+
+    debut = timezone.now() - timedelta(hours=1)
+    s = Segment.objects.create(
+        employe=employes[0],
+        poste=postes[0],
+        debut=debut,
+        fin=debut + timedelta(minutes=10),
+        duree_s=600,
+        etat="ACTIF",
+        application="WINWORD.EXE",
+        fichier="Sommaire.docx",
+        chemin=r"Q:\2026-10\2026-SOMAPEP-001_recharge-nappe\Sommaire.docx",
+        statut_classement="a_classer",
+        lot_id=uuid.uuid4(),
+    )
+    DemandeRecalcul.objects.all().delete()
+    racines_json = [{"chemin": r.chemin, "profondeur": r.profondeur} for r in racines]
+    f = fichier(tmp_path, racines_json, {"Q:": r"\\AD-SERVEUR\GIC\AVIS\MALI"})
+    sortie = StringIO()
+    call_command("suivi_racines", f, stdout=sortie)
+    assert "~ correspondance_lecteurs" in sortie.getvalue()
+    assert DemandeRecalcul.objects.filter(motif__contains="lecteurs", traitee_le=None).exists()
+    cc("suivi_recalculer", stdout=StringIO())
+    s.refresh_from_db()
+    assert s.statut_classement == "dossier" and s.dossier.code == "2026-SOMAPEP-001"
+    # second passage : table inchangée, pas de nouvelle demande
+    n = DemandeRecalcul.objects.count()
+    sortie = StringIO()
+    call_command("suivi_racines", f, stdout=sortie)
+    assert "correspondance_lecteurs inchangée" in sortie.getvalue()
+    assert DemandeRecalcul.objects.count() == n
+
+
 def test_mise_a_jour_simulation_et_desactivation(tmp_path):
     Racine.objects.create(chemin=r"\\AD-SERVEUR\ETUDES", profondeur=2, active=False)
     Racine.objects.create(chemin=r"\\AD-SERVEUR\GIC\MISSIONS_EN_COURS", profondeur=1)
