@@ -164,6 +164,12 @@ ou par un autre nom du serveur. Agent **0.2.3** : traduit lui-même les lettres 
 préfixes réseau acceptés dans `correspondance_lecteurs` (ex. `"\\\\192.168.2.250": "\\\\AD-SERVEUR"`).
 Les segments déjà reçus en `E:\…` se rattachent après coup en déclarant la lettre dans
 `correspondance_lecteurs` puis `suivi_recalculer`.
+**Installation des postes (11/10)** : à la main, `Installer-GI-Suivi.cmd` du kit (double-clic :
+élévation, copie locale — l'administrateur ne voit pas les lecteurs réseau —, PowerShell en Bypass
+pour ce seul lancement). Pour les autres postes, **GPO** « GI-Suivi - Agent » :
+`deploy/gpo/creer-gpo-agent.ps1 -Kit <zip>`, script de démarrage `demarrage-gpo.cmd/.ps1` qui
+n'installe que si l'exécutable, la configuration ou le certificat a changé ; ciblage par le groupe
+d'ordinateurs `GI-Postes-Suivi` (`docs/exploitation/gpo-agent.md`).
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →

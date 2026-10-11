@@ -85,7 +85,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
 | D06 | Production | `installer.ps1 -Env prod`, site `suivi`, tâches planifiées, sauvegarde `pg_dump`, tag `v1.0.0` | Liste de contrôle de `docs/exploitation.md` § 5 cochée | à faire |
-| D07 | GPO sur tous les postes | Lier la GPO à l'OU des postes ; suivre « État des postes » une semaine | Tous les postes envoient depuis 5 jours ouvrés | à faire |
+| D07 | GPO sur tous les postes | GPO « GI-Suivi - Agent » (script de démarrage, sans MSI) filtrée sur le groupe d'ordinateurs `GI-Postes-Suivi` : `deploy/gpo/creer-gpo-agent.ps1 -Kit …`, procédure `docs/exploitation/gpo-agent.md`. Équiper un poste = l'ajouter au groupe et redémarrer | Tous les postes du groupe envoient depuis 5 jours ouvrés | scripts prêts le 11/10 ; à lancer sur le serveur |
 
 ## Ensuite
 
