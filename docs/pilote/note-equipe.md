@@ -39,6 +39,14 @@ des fichiers sur lesquels chacun travaille.
 - **Personne d'autre.** Les accès de la direction sont eux-mêmes journalisés (qui a consulté quoi,
   quand).
 
+## Les tâches confiées
+
+La direction peut vous confier une tâche sur un dossier (par exemple « mettre à jour le rapport
+APD », avec une échéance). Vous la voyez dans « Mon activité du jour », vous la passez « en cours »
+puis « terminée » d'un clic. **Le temps passé n'est pas à saisir** : il est calculé à partir de ce
+que l'agent mesure déjà sur les fichiers ou le dossier de la tâche. La direction voit l'état de la
+tâche, son échéance et ce temps calculé ; une tâche en retard est signalée, sans plus.
+
 ## À quoi ça sert — et à quoi ça ne sert pas
 
 - Sert à : chiffrer les offres, justifier les heures auprès des bailleurs, répartir la charge,

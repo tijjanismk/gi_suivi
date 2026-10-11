@@ -29,6 +29,39 @@
       {% endcomponent %}
     </div>
 
+    {% if taches %}
+    {% component "unfold/components/card.html" with title="Mes tâches" title_icon="task_alt" %}
+      <div class="gic:flex gic:flex-col gic:gap-3">
+        {% for t in taches %}
+        <div class="gic:flex gic:flex-wrap gic:items-start gic:justify-between gic:gap-3 gic:rounded-md gic:border border-base-200 dark:border-base-800 gic:p-3">
+          <div class="gic:flex gic:flex-col gic:gap-1 gic:min-w-0 gic:flex-1">
+            <span class="gic:font-medium text-important">{{ t.titre }}</span>
+            <span class="gic:text-xs text-subtle">
+              {{ t.dossier.code|default:t.dossier.nom }}
+              {% if t.echeance %}· échéance {{ t.echeance|date:"l j F" }}{% endif %}
+              · temps passé {{ t.temps }}
+            </span>
+            {% if t.description %}<span class="gic:text-sm text-subtle">{{ t.description|linebreaksbr }}</span>{% endif %}
+          </div>
+          <div class="gic:flex gic:items-center gic:gap-2">
+            {% if t.retard %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">en retard</span>{% endif %}
+            {% if t.etat == "faite" %}
+              <span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-green-100 gic:text-green-900">faite</span>
+            {% else %}
+              <form method="post" action="{% url 'ma_tache' t.pk %}" class="gic:flex gic:gap-2">
+                {% csrf_token %}
+                {% if t.etat == "a_faire" %}<button name="etat" value="en_cours" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 text-important">Commencer</button>{% else %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-blue-100 gic:text-blue-900">en cours</span>{% endif %}
+                <button name="etat" value="faite" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm gic:text-white bg-primary-600">Terminée</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      <p class="gic:mt-2 gic:text-xs text-subtle">Le temps passé est calculé à partir de ce que l'agent mesure sur les fichiers ou le dossier de la tâche ; vous n'avez rien à saisir.</p>
+    {% endcomponent %}
+    {% endif %}
+
     {% component "unfold/components/card.html" with title="Par dossier" title_icon="folder" %}
       {% if activite.par_dossier or activite.a_classer_s or activite.sans_fichier_s %}
         <table class="gic:w-full gic:text-sm">

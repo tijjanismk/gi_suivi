@@ -11,6 +11,7 @@ from suivi.models import (
     Racine,
     RegleException,
     Segment,
+    Tache,
 )
 from suivi.services import recalculer, valider_dossier
 
@@ -122,6 +123,18 @@ class SegmentAdmin(ModelAdmin):
 
     def has_change_permission(self, request, obj=None) -> bool:
         return False
+
+
+@admin.register(Tache)
+class TacheAdmin(ModelAdmin):
+    """Correction ponctuelle (titre, fichiers, personne) ; le suivi courant se fait dans l'écran
+    Tâches."""
+
+    list_display = ["titre", "dossier", "personne", "echeance", "etat", "creee_le"]
+    list_filter = ["etat", "personne"]
+    search_fields = ["titre", "dossier__code", "dossier__nom", "fichiers"]
+    readonly_fields = ["creee_par", "creee_le", "faite_le", "modifiee_le"]
+    list_select_related = ["dossier", "personne"]
 
 
 @admin.register(JournalAcces)

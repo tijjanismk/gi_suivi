@@ -5,6 +5,7 @@ from django.views.generic import RedirectView
 from config.vues import sante
 from identite.vues import refus_admin
 from suivi.vues.moi import mon_activite
+from suivi.vues.taches import ma_tache
 
 # L'administration n'a pas de page de connexion : l'utilisateur vient d'IIS.
 # Hors GI-Direction, l'admin renvoie vers cette vue, qui refuse au lieu de demander un mot de passe.
@@ -19,5 +20,6 @@ urlpatterns = [
     path("identite/", include("identite.urls")),
     path("api/", include("suivi.api.urls")),
     path("moi", mon_activite, name="moi"),  # l'icône de l'agent ouvre <url_api>/moi
+    path("moi/taches/<int:tache_id>", ma_tache, name="ma_tache"),
     path("admin/", admin.site.urls),
 ]

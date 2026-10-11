@@ -211,6 +211,57 @@ class Segment(models.Model):
         return f"{self.employe} {self.debut:%d/%m %H:%M} {self.application} {self.fichier}".strip()
 
 
+class Tache(models.Model):
+    """Une tâche confiée à une personne sur un dossier (F01). Le temps passé n'est jamais saisi :
+    il est calculé à partir des segments de l'agent (services.temps_tache)."""
+
+    class Etat(models.TextChoices):
+        A_FAIRE = "a_faire", "à faire"
+        EN_COURS = "en_cours", "en cours"
+        FAITE = "faite", "faite"
+        ANNULEE = "annulee", "annulée"
+
+    OUVERTES = (Etat.A_FAIRE, Etat.EN_COURS)
+
+    titre = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    dossier = models.ForeignKey(Dossier, on_delete=models.PROTECT, related_name="taches")
+    fichiers = models.TextField(
+        blank=True,
+        help_text=(
+            "Un nom de fichier ou un morceau de chemin par ligne (ex. rapport_APD.docx). "
+            "Vide : tout le temps de la personne sur le dossier compte."
+        ),
+    )
+    personne = models.ForeignKey(Employe, on_delete=models.PROTECT, related_name="taches")
+    echeance = models.DateField("échéance", null=True, blank=True)
+    etat = models.CharField("état", max_length=10, choices=Etat.choices, default=Etat.A_FAIRE)
+    creee_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    creee_le = models.DateTimeField("créée le", auto_now_add=True)
+    faite_le = models.DateTimeField("faite le", null=True, blank=True)
+    modifiee_le = models.DateTimeField("modifiée le", auto_now=True)
+
+    class Meta:
+        verbose_name = "tâche"
+        ordering = ["echeance", "creee_le"]
+        indexes = [models.Index(fields=["personne", "etat"], name="tache_personne_etat")]
+
+    def __str__(self) -> str:
+        return f"{self.titre} — {self.personne}"
+
+    @property
+    def motifs(self) -> list[str]:
+        return [m.strip() for m in self.fichiers.splitlines() if m.strip()]
+
+    def en_retard(self, aujourd_hui=None) -> bool:
+        from django.utils import timezone
+
+        aujourd_hui = aujourd_hui or timezone.localdate()
+        return bool(self.echeance and self.etat in self.OUVERTES and self.echeance < aujourd_hui)
+
+
 class JournalAcces(models.Model):
     """Qui a consulté ou modifié quoi, et quand. Jamais modifié, jamais purgé avec les segments."""
 

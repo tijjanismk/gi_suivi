@@ -149,6 +149,11 @@ l'application valide elle-même le ticket Kerberos (`identite/negotiate.py`, SSP
 avant chaque démarrage (`deploy/liberer-port.ps1` : l'interpréteur lancé par `venv\Scripts\python.exe`
 survivait et gardait l'ancien code ; `/api/sante` donne le commit en service, `verifier.ps1` le
 compare) et **`svc-application` en Kerberos AES** (tickets RC4 refusés par Server 2025).
+**F01 tâches confiées (11/10, avancé à la demande du porteur)** : `Tache` (dossier, fichiers en
+motifs, personne, échéance, état), `/suivi/taches/` pour la direction, « Mes tâches » dans `/moi`,
+temps passé calculé dans `suivi/taches.py` (segments actifs de la personne depuis le jour de
+création jusqu'à la clôture ; par motifs de fichiers sinon par dossier). Aucun changement serveur,
+IIS ou agent : un `Tout-en-un` suffit (migration 0005).
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →

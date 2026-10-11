@@ -1,0 +1,124 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <div class="gic:flex gic:flex-col gic:gap-1">
+    {% component "unfold/components/title.html" %}{{ titre }}{% endcomponent %}
+    {% component "unfold/components/text.html" %}
+      Une tâche confie un travail sur un dossier à une personne. Le temps passé se calcule seul, à partir de ce que l'agent mesure ; personne ne le saisit.
+      {% if not peut_agir %}<strong>Consultation seule : aucune action possible depuis ce compte.</strong>{% endif %}
+    {% endcomponent %}
+  </div>
+
+  {% if messages %}
+  <div class="gic:flex gic:flex-col gic:gap-2">
+    {% for m in messages %}
+      <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm {% if m.tags == 'error' %}gic:bg-red-100 gic:text-red-900{% elif m.tags == 'warning' %}gic:bg-amber-100 gic:text-amber-900{% else %}gic:bg-green-100 gic:text-green-900{% endif %}">{{ m }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if peut_agir %}
+  {% component "unfold/components/card.html" with title="Confier une tâche" title_icon="add_task" %}
+    <form method="post" action="{% url 'suivi:taches_creer' %}" class="gic:grid gic:gap-3 gic:lg:grid-cols-4">
+      {% csrf_token %}
+      <label class="gic:text-xs text-subtle gic:lg:col-span-2">Titre
+        <input id="tache-titre" name="titre" required maxlength="200" placeholder="Ex. Mettre à jour le rapport APD" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+      </label>
+      <label class="gic:text-xs text-subtle">Dossier
+        <select id="tache-dossier" name="dossier" required class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <option value="">—</option>
+          {% for d in dossiers %}<option value="{{ d.pk }}">{{ d.code|default:"(sans code)" }} — {{ d.nom }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="gic:text-xs text-subtle">Confiée à
+        <select id="tache-personne" name="personne" required class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <option value="">—</option>
+          {% for e in employes %}<option value="{{ e.pk }}">{{ e }}</option>{% endfor %}
+        </select>
+      </label>
+      <label class="gic:text-xs text-subtle gic:lg:col-span-2">Fichiers concernés <span class="gic:font-normal">(facultatif, un par ligne ; vide = tout le dossier)</span>
+        <textarea id="tache-fichiers" name="fichiers" rows="2" placeholder="rapport_APD.docx" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"></textarea>
+      </label>
+      <label class="gic:text-xs text-subtle">Précisions <span class="gic:font-normal">(facultatif)</span>
+        <textarea id="tache-description" name="description" rows="2" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"></textarea>
+      </label>
+      <div class="gic:flex gic:flex-col gic:gap-2">
+        <label class="gic:text-xs text-subtle">Échéance
+          <input id="tache-echeance" type="date" name="echeance" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Confier la tâche</button>
+      </div>
+    </form>
+  {% endcomponent %}
+  {% endif %}
+
+  {% component "unfold/components/card.html" with title="Suivi des tâches" title_icon="task_alt" %}
+    <form method="get" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2 gic:mb-4">
+      <div class="gic:flex gic:rounded-md gic:overflow-hidden border border-base-200 dark:border-base-700">
+        {% for cle, libelle in filtres %}
+          <a href="?etat={{ cle }}{% if personne_id %}&personne={{ personne_id }}{% endif %}" class="gic:px-3 gic:py-1.5 gic:text-sm {% if cle == filtre %}bg-primary-600 gic:text-white{% else %}bg-white text-subtle dark:bg-base-900 gic:hover:bg-gray-50{% endif %}">{{ libelle }}</a>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="etat" value="{{ filtre }}">
+      <select id="filtre-personne" name="personne" onchange="this.form.submit()" class="gic:w-56 gic:px-2 gic:py-1 gic:text-sm gic:rounded-md border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Toutes les personnes</option>
+        {% for e in employes %}<option value="{{ e.pk }}" {% if personne_id == e.pk|stringformat:"s" %}selected{% endif %}>{{ e }}</option>{% endfor %}
+      </select>
+      {% if en_retard %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">{{ en_retard }} en retard</span>{% endif %}
+    </form>
+
+    {% if taches %}
+    <div class="gic:overflow-x-auto">
+      <table class="gic:w-full gic:text-sm">
+        <thead>
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Tâche</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Dossier</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Confiée à</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">Échéance</th>
+            <th class="gic:text-right gic:font-medium text-subtle gic:py-2">Temps passé</th>
+            <th class="gic:text-left gic:font-medium text-subtle gic:py-2">État</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in taches %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top">
+            <td class="gic:py-2">
+              <span class="text-important gic:font-medium">{{ t.titre }}</span>
+              {% if t.motifs %}<div class="gic:text-xs text-subtle gic:break-all">{{ t.motifs|join:", " }}</div>{% endif %}
+              {% if t.description %}<div class="gic:text-xs text-subtle">{{ t.description|truncatechars:140 }}</div>{% endif %}
+            </td>
+            <td class="gic:py-2 gic:whitespace-nowrap" title="{{ t.dossier.nom }}">{{ t.dossier.code|default:t.dossier.nom }}</td>
+            <td class="gic:py-2 gic:whitespace-nowrap"><a class="text-primary-600 gic:hover:underline" href="{% url 'suivi:employe' t.personne_id %}?p=7j">{{ t.personne }}</a></td>
+            <td class="gic:py-2 gic:whitespace-nowrap gic:tabular-nums">
+              {% if t.echeance %}{{ t.echeance|date:"j M Y" }}{% else %}—{% endif %}
+              {% if t.retard %}<span class="gic:ml-1 gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">en retard</span>{% endif %}
+            </td>
+            <td class="gic:py-2 gic:text-right gic:tabular-nums">{{ t.temps }}</td>
+            <td class="gic:py-2 gic:whitespace-nowrap">
+              {% if peut_agir %}
+              <form method="post" action="{% url 'suivi:taches_modifier' t.pk %}" class="gic:flex gic:items-center gic:gap-2">
+                {% csrf_token %}
+                <select id="etat-{{ t.pk }}" name="etat" class="gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+                  {% for valeur, libelle in etats %}<option value="{{ valeur }}" {% if t.etat == valeur %}selected{% endif %}>{{ libelle }}</option>{% endfor %}
+                </select>
+                <button type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Enregistrer</button>
+              </form>
+              {% else %}{{ t.get_etat_display }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      {% component "unfold/components/text.html" %}Aucune tâche dans cette vue.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+</div>
+{% endblock %}

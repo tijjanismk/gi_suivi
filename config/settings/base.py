@@ -193,6 +193,11 @@ UNFOLD = {
                         "link": _lien("suivi:employes"),
                     },
                     {
+                        "title": "Tâches",
+                        "icon": "task_alt",
+                        "link": _lien("suivi:taches"),
+                    },
+                    {
                         "title": "Gestion des dossiers",
                         "icon": "rule_folder",
                         "link": _lien("suivi:gestion_dossiers"),
