@@ -16,6 +16,31 @@ def test_normalisation_lettre_vers_unc():
     )
 
 
+def test_normalisation_autres_noms_du_serveur():
+    # nom complet (FQDN) : ramené au nom court, sans réglage
+    assert (
+        normaliser_chemin(r"\\ad-serveur.giconseils.local\ETUDES\Bargondaga\a.docx")
+        == r"\\ad-serveur\etudes\bargondaga\a.docx"
+    )
+    # adresse IP : par la correspondance, comme une lettre de lecteur
+    alias = {"\\\\192.168.2.250": r"\\AD-SERVEUR", "E:": r"\\AD-SERVEUR\ETUDES"}
+    assert (
+        normaliser_chemin(r"\\192.168.2.250\ETUDES\x.docx", alias) == r"\\ad-serveur\etudes\x.docx"
+    )
+    assert normaliser_chemin(r"\\192.168.2.250", alias) == r"\\ad-serveur"
+    assert (
+        normaliser_chemin(r"E:\Bargondaga\x.docx", alias)
+        == r"\\ad-serveur\etudes\bargondaga\x.docx"
+    )
+    # sans correspondance, une IP reste telle quelle ; un chemin local n'est pas touché
+    assert normaliser_chemin(r"\\192.168.2.250\ETUDES") == r"\\192.168.2.250\etudes"
+    assert normaliser_chemin(r"C:\Users\x\Bureau.v2\a.docx") == r"c:\users\x\bureau.v2\a.docx"
+    # le classement en profite
+    r = Racine(r"\\AD-SERVEUR\ETUDES", 1)
+    c = classer_chemin(r"\\ad-serveur.giconseils.local\ETUDES\Bargondaga\a.docx", [r])
+    assert c.statut == "dossier" and c.dossier_nom == "bargondaga"
+
+
 def test_normalisation_accents_et_casse():
     assert (
         normaliser_chemin(r"\\AD-SERVEUR\GIC\Études\Rapport.docx")

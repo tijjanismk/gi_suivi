@@ -158,6 +158,12 @@ IIS ou agent : un `Tout-en-un` suffit (migration 0005).
 « Claude »… au lieu de l'exécutable (`suivi/applications.py`) ; les petits programmes de l'interface
 Windows (ShellExperienceHost, SearchHost…) sont regroupés ; l'API et la base gardent l'exécutable.
 Ajout sans redéploiement : paramètre `noms_applications` dans l'administration.
+**Fichiers des partages en « à classer » (11/10)** : chemins reçus par lettre de lecteur (`E:\…`)
+ou par un autre nom du serveur. Agent **0.2.3** : traduit lui-même les lettres réseau en UNC
+(`win32wnet.WNetGetConnection`, cache 5 min). Moteur : nom complet du serveur ramené au nom court,
+préfixes réseau acceptés dans `correspondance_lecteurs` (ex. `"\\\\192.168.2.250": "\\\\AD-SERVEUR"`).
+Les segments déjà reçus en `E:\…` se rattachent après coup en déclarant la lettre dans
+`correspondance_lecteurs` puis `suivi_recalculer`.
 Le 500.50 via IIS venait d'un doublon de `allowedServerVariables` (site + serveur) : désormais au
 niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de Dicko** : kit 0.2.2 +
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →

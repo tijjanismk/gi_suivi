@@ -17,22 +17,44 @@ _SEP = re.compile(r"[\\/]+")
 _EXTENSION = re.compile(r"\.[A-Za-z0-9]{1,5}$")
 
 
+def _sans_accents(c: str) -> str:
+    return unicodedata.normalize("NFKD", c).encode("ascii", "ignore").decode().lower()
+
+
+def _separateurs(c: str) -> str:
+    """Antislashs simples ; le double antislash d'un chemin réseau est conservé."""
+    c = _SEP.sub(lambda _m: "\\", c)
+    if c.startswith("\\") and not c.startswith("\\\\"):
+        c = "\\" + c  # UNC dont le double antislash a été réduit
+    return c
+
+
 def normaliser_chemin(chemin: str, correspondance_lecteurs: dict[str, str] | None = None) -> str:
     """Rend un chemin comparable : UNC, antislashs simples, minuscules, sans accents.
 
     `H:\\Dossier\\f.docx` avec {"H:": "\\\\AD-SERVEUR\\GIC"}
     -> `\\\\ad-serveur\\gic\\dossier\\f.docx`.
+
+    La correspondance accepte aussi des préfixes réseau, pour les autres noms du même serveur :
+    {"\\\\192.168.2.250": "\\\\AD-SERVEUR"}. Le nom complet du serveur est ramené à son nom court
+    (`\\\\ad-serveur.giconseils.local\\x` -> `\\\\ad-serveur\\x`).
     """
     c = chemin.strip()
     if correspondance_lecteurs and len(c) >= 2 and c[1] == ":":
         unc = correspondance_lecteurs.get(c[:2].upper())
         if unc:
             c = unc.rstrip("\\/") + c[2:]
-    c = _SEP.sub(lambda _m: "\\", c)
-    if c.startswith("\\") and not c.startswith("\\\\"):
-        c = "\\" + c  # UNC dont le double antislash a été réduit
-    c = unicodedata.normalize("NFKD", c).encode("ascii", "ignore").decode()
-    return c.lower().rstrip("\\")
+    c = _sans_accents(_separateurs(c)).rstrip("\\")
+    if c.startswith("\\\\"):
+        for prefixe, cible in (correspondance_lecteurs or {}).items():
+            p = _sans_accents(_separateurs(prefixe)).rstrip("\\")
+            if p.startswith("\\\\") and (c == p or c.startswith(p + "\\")):
+                c = _sans_accents(_separateurs(cible)).rstrip("\\") + c[len(p) :]
+                break
+        hote, _, reste = c[2:].partition("\\")
+        if "." in hote and not hote.replace(".", "").isdigit():
+            c = "\\\\" + hote.split(".")[0] + ("\\" + reste if reste else "")
+    return c
 
 
 def _niveaux(chemin_norm: str) -> list[str]:

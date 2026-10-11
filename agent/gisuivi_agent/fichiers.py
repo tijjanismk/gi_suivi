@@ -14,6 +14,7 @@ import logging
 import re
 import sys
 import threading
+import time
 from collections.abc import Iterable
 
 from moteur.suivi.classement import classer_chemin, normaliser_chemin
@@ -215,15 +216,49 @@ _en_cours: set[tuple[int, str]] = set()
 _verrou_ouverts = threading.Lock()
 
 
+# Lettres de lecteur réseau → chemin UNC, lues auprès de Windows (comme « net use ») et gardées
+# 5 minutes. Un fichier ouvert par E:\ETUDES\… est ainsi transmis \\AD-SERVEUR\ETUDES\… et se
+# rattache à sa racine sans aucun réglage sur le poste.
+_lecteurs_reseau: dict[str, tuple[float, str | None]] = {}
+_DUREE_LECTEURS_S = 300
+
+
+def _connexion_reseau(lettre: str) -> str | None:
+    if sys.platform != "win32":
+        return None
+    maintenant = time.monotonic()
+    connu = _lecteurs_reseau.get(lettre)
+    if connu and maintenant - connu[0] < _DUREE_LECTEURS_S:
+        return connu[1]
+    try:
+        import win32wnet
+
+        unc = win32wnet.WNetGetConnection(lettre) or None
+    except Exception:  # noqa: BLE001 — lecteur local ou déconnecté : pas de chemin réseau
+        unc = None
+    _lecteurs_reseau[lettre] = (maintenant, unc)
+    return unc
+
+
+def vers_unc(chemin: str | None, resoudre=None) -> str | None:
+    """E:\\ETUDES\\x.docx → \\\\AD-SERVEUR\\ETUDES\\x.docx si E: est un lecteur réseau."""
+    if not chemin or len(chemin) < 3 or chemin[1] != ":" or chemin[2] not in "\\/":
+        return chemin
+    unc = (resoudre or _connexion_reseau)(chemin[:2].upper())
+    return unc.rstrip("\\/") + chemin[2:] if unc else chemin
+
+
 def _ouverts_du_processus(pid: int) -> list[str]:
     import psutil
 
     p = psutil.Process(pid)
-    chemins = [f.path for f in p.open_files()]
+    chemins = [vers_unc(f.path) for f in p.open_files()]
     try:
         # Fichier passé au double-clic : « revit.exe C:\...\projet.rvt »
         chemins += [
-            a for a in p.cmdline()[1:] if len(a) > 3 and (a[1:3] == ":\\" or a.startswith("\\\\"))
+            vers_unc(a)
+            for a in p.cmdline()[1:]
+            if len(a) > 3 and (a[1:3] == ":\\" or a.startswith("\\\\"))
         ]
     except psutil.Error:
         pass
@@ -278,10 +313,10 @@ def identifier(
 ) -> tuple[str | None, str | None]:
     fichier, chemin = depuis_com(application)
     if chemin:
-        return fichier, chemin
+        return fichier, vers_unc(chemin)
     f2, c2 = depuis_titre(application, titre)
     if c2:
-        return (fichier or f2), c2
+        return (fichier or f2), vers_unc(c2)
     if pid and racines and application.lower() not in _NAVIGATEURS:
         c3 = depuis_processus(pid, titre, fichier or f2, racines, lecteurs)
         if c3:
