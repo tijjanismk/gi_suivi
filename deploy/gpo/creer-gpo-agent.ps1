@@ -9,8 +9,9 @@
   GPO, un lien ; aucune GPO, aucun groupe existant n'est modifié.
 
 .USAGE (contrôleur de domaine, PowerShell administrateur)
-    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.3-poste.zip
-    .\creer-gpo-agent.ps1 -Kit ...\GiSuivi-agent-0.2.4-poste.zip     # mise à jour : même commande
+    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.3-poste.zip -TousLesPostes   # tout le parc
+    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.3-poste.zip                  # groupe GI-Postes-Suivi seulement
+    .\creer-gpo-agent.ps1 -Kit ...\GiSuivi-agent-0.2.4-poste.zip -TousLesPostes   # mise à jour : même commande
     .\creer-gpo-agent.ps1 -Kit ... -WhatIf                             # montre sans faire
 
 .ENSUITE
@@ -24,7 +25,11 @@ param(
     [Parameter(Mandatory)][string]$Kit,                         # le zip produit par agent\preparer-kit.ps1
     [string]$Certificat = "C:\GIC\deploy\gic-serveur.cer",
     [string]$NomGpo = "GI-Suivi - Agent",
-    [string]$Groupe = "GI-Postes-Suivi"
+    [string]$Groupe = "GI-Postes-Suivi",
+    # Tous les postes du domaine (groupe intégré « Ordinateurs du domaine ») au lieu du seul groupe
+    # GI-Postes-Suivi. Les contrôleurs de domaine (dont AD-SERVEUR) n'en font pas partie : le
+    # serveur ne reçoit jamais l'agent.
+    [switch]$TousLesPostes
 )
 $ErrorActionPreference = "Stop"
 Import-Module ActiveDirectory; Import-Module GroupPolicy
@@ -55,11 +60,16 @@ if (-not $gpo) {
 $sidDomaine = $domaine.DomainSID.Value
 $nomOrdinateurs = (New-Object Security.Principal.SecurityIdentifier "$sidDomaine-515").Translate([Security.Principal.NTAccount]).Value.Split('\')[-1]
 $nomAuthentifies = (New-Object Security.Principal.SecurityIdentifier "S-1-5-11").Translate([Security.Principal.NTAccount]).Value.Split('\')[-1]
-if ($PSCmdlet.ShouldProcess($NomGpo, "Filtrage de sécurité : $Groupe seulement")) {
-    Set-GPPermission -Guid $gpo.Id -TargetName $Groupe -TargetType Group -PermissionLevel GpoApply | Out-Null
-    Set-GPPermission -Guid $gpo.Id -TargetName $nomOrdinateurs -TargetType Group -PermissionLevel GpoRead | Out-Null
+$cible = if ($TousLesPostes) { "tous les postes ($nomOrdinateurs)" } else { "le groupe $Groupe" }
+if ($PSCmdlet.ShouldProcess($NomGpo, "Filtrage de sécurité : $cible")) {
+    if ($TousLesPostes) {
+        Set-GPPermission -Guid $gpo.Id -TargetName $nomOrdinateurs -TargetType Group -PermissionLevel GpoApply | Out-Null
+    } else {
+        Set-GPPermission -Guid $gpo.Id -TargetName $Groupe -TargetType Group -PermissionLevel GpoApply | Out-Null
+        Set-GPPermission -Guid $gpo.Id -TargetName $nomOrdinateurs -TargetType Group -PermissionLevel GpoRead -Replace | Out-Null
+    }
     Set-GPPermission -Guid $gpo.Id -TargetName $nomAuthentifies -TargetType Group -PermissionLevel GpoRead -Replace | Out-Null
-    Write-Host "Filtrage : application pour $Groupe ; lecture pour $nomOrdinateurs et $nomAuthentifies."
+    Write-Host "Filtrage : application pour $cible ; lecture pour $nomAuthentifies. Contrôleurs de domaine exclus."
 }
 
 # 4. Réglages par stratégie (registre) : attendre le réseau au démarrage (SYSVOL joignable pour le
@@ -118,5 +128,9 @@ if ($liens -notcontains $NomGpo) {
     if ($PSCmdlet.ShouldProcess($dn, "Lier la GPO")) { New-GPLink -Guid $gpo.Id -Target $dn -LinkEnabled Yes | Out-Null; Write-Host "GPO liée à $dn." }
 } else { Write-Host "Lien existant sur $dn." }
 
-Write-Host "`nTerminé. Pour équiper un poste : ajouter l'ORDINATEUR au groupe $Groupe, puis redémarrer le poste."
+if ($TousLesPostes) {
+    Write-Host "`nTerminé. Chaque poste du domaine installe l'agent à son prochain démarrage (deux redémarrages au plus)."
+} else {
+    Write-Host "`nTerminé. Pour équiper un poste : ajouter l'ORDINATEUR au groupe $Groupe, puis redémarrer le poste."
+}
 Write-Host "Contrôle sur le poste : gpresult /r /scope computer (la GPO « $NomGpo » doit figurer) ; journal C:\ProgramData\GiSuivi\installation-gpo.log"
