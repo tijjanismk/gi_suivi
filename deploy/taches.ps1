@@ -40,7 +40,11 @@ function Tache($nom, $commande, $declencheurs, $compteExec = $compte, $mdpExec =
 # Tâches métier (sous SYSTEM par défaut, voir l'en-tête)
 Tache "purge"         "suivi_purger"        (New-ScheduledTaskTrigger -Daily -At 02:00)
 Tache "recalcul"      "suivi_recalculer"    (New-ScheduledTaskTrigger -Once -At (Get-Date).Date -RepetitionInterval (New-TimeSpan -Minutes 10))
-Tache "postes muets"  "suivi_postes_muets"  (New-ScheduledTaskTrigger -Once -At (Get-Date).Date.AddHours(7) -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 12))
+# Chaque jour de 7 h à 19 h, toutes les heures. Un déclencheur « -Once » répété 12 h ne valait
+# que pour le jour de création de la tâche : on pose la répétition sur un déclencheur quotidien.
+$muets = New-ScheduledTaskTrigger -Daily -At 07:00
+$muets.Repetition = (New-ScheduledTaskTrigger -Once -At 07:00 -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 12)).Repetition
+Tache "postes muets"  "suivi_postes_muets"  $muets
 # Le lundi à 00:05 : compteur hebdomadaire de démarrages des agents remis à zéro (alerte orange)
 Tache "démarrages hebdo" "suivi_postes_muets --remettre-demarrages" (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 00:05)
 
