@@ -114,7 +114,7 @@ def test_rattacher_erreurs_et_droits(client, jeu_de_segments, dossiers):
 
 @override_settings(**IIS)
 def test_consultation_seule_sans_bouton(client, jeu_de_segments):
-    html = client.get(URL, **VUE).content.decode()
+    html = client.get(URL + PERIODE, **VUE).content.decode()
     assert "notes.pdf" in html and ">Rattacher<" not in html and "Consultation seule" in html
 
 

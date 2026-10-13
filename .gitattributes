@@ -1,2 +1,2 @@
-﻿# Fichiers de commandes Windows : toujours en CRLF (cmd.exe lit mal les fins de ligne LF)
+# Fichiers de commandes Windows : toujours en CRLF (cmd.exe lit mal les fins de ligne LF)
 *.cmd text eol=crlf

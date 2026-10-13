@@ -1,12 +1,13 @@
 #!/usr/bin/env python
-"""Commandes Django. Réglages de développement par défaut (voir .env.exemple)."""
+"""Commandes Django. Réglages : variable d'environnement, sinon `.env`, sinon développement."""
 
-import os
 import sys
+
+from config.demarrage import choisir_reglages
 
 
 def main() -> None:
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings.dev")
+    choisir_reglages()
     from django.core.management import execute_from_command_line
 
     execute_from_command_line(sys.argv)
