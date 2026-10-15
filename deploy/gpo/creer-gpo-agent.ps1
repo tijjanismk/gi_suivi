@@ -9,9 +9,9 @@
   GPO, un lien ; aucune GPO, aucun groupe existant n'est modifié.
 
 .USAGE (contrôleur de domaine, PowerShell administrateur)
-    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.3-poste.zip -TousLesPostes   # tout le parc
-    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.3-poste.zip                  # groupe GI-Postes-Suivi seulement
-    .\creer-gpo-agent.ps1 -Kit ...\GiSuivi-agent-0.2.4-poste.zip -TousLesPostes   # mise à jour : même commande
+    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.4-poste.zip -TousLesPostes   # tout le parc
+    .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.4-poste.zip                  # groupe GI-Postes-Suivi seulement
+    .\creer-gpo-agent.ps1 -Kit ...\GiSuivi-agent-0.2.5-poste.zip -TousLesPostes   # mise à jour : même commande
     .\creer-gpo-agent.ps1 -Kit ... -WhatIf                             # montre sans faire
 
 .ENSUITE

@@ -12,6 +12,7 @@ démarrage le dit, et la note à l'équipe explique comment épingler l'icône.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import webbrowser
 from collections.abc import Callable
@@ -33,6 +34,36 @@ def _image(couleur: tuple[int, int, int]):
     # Un « G » stylisé : simple barre horizontale pour rester lisible en 16 px
     d.rectangle((24, 30, 42, 36), fill=(255, 255, 255, 255))
     return im
+
+
+def _ouvrir_windows(url: str) -> None:
+    try:
+        import pythoncom
+
+        pythoncom.CoInitialize()  # l'ouverture par le shell attend COM dans ce fil
+    except Exception as e:  # noqa: BLE001 — hors Windows ou déjà initialisé
+        log.debug("COM non initialisé : %s", e)
+    os.startfile(url)  # noqa: S606 — adresse fixe de la configuration, navigateur par défaut
+
+
+def ouvrir(url: str, ouvreur=None) -> threading.Thread:
+    """Ouvre `url` dans un fil à part. Appelée dans le fil de l'icône, une ouverture qui tarde
+    (navigateur lent à répondre) bloquait l'icône : les clics suivants ne faisaient plus rien.
+    En cas d'échec, essai par `webbrowser`, et trace dans le journal."""
+
+    def faire() -> None:
+        try:
+            (ouvreur or _ouvrir_windows)(url)
+        except Exception as e:  # noqa: BLE001
+            log.warning("Ouverture de %s impossible (%s), essai par webbrowser", url, e)
+            try:
+                webbrowser.open(url)
+            except Exception as e2:  # noqa: BLE001
+                log.error("Ouverture de %s impossible : %s", url, e2)
+
+    fil = threading.Thread(target=faire, name="ouvrir-page", daemon=True)
+    fil.start()
+    return fil
 
 
 def _duree(s: float) -> str:
@@ -98,7 +129,8 @@ class Icone:
     # -- actions du menu -----------------------------------------------------
     def _mon_activite(self, _icon=None, _item=None) -> None:
         if self.url and not self.mode_local:
-            webbrowser.open(self.url)
+            log.info("Clic : ouverture de %s", self.url)
+            ouvrir(self.url)
             return
         r = self.resume_du_jour()
         lignes = [f"Aujourd'hui : {_duree(r['total_s'])} d'activité"]
