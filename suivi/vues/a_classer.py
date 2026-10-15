@@ -16,11 +16,33 @@ from suivi.models import Dossier, Segment
 from suivi.services import journaliser, rattacher
 from suivi.vues.periode import selection_de
 
-TYPES = (
-    ("chemin", "ce fichier seulement (chemin exact)"),
-    ("prefixe", "tout le dossier qui le contient"),
-    ("mot_cle", "tout chemin contenant ce mot-clé"),
-)
+PLUS_DE_DOSSIERS = 6  # niveaux de dossier proposés au plus, du plus proche au plus large
+
+
+def _plus_court_proposable(parties: list[str]) -> int:
+    """Nombre d'éléments du plus court dossier proposé. Jamais un partage entier, un lecteur
+    entier ni le Bureau (Téléchargements, Documents…) entier : une règle si large rattacherait
+    à un seul dossier tout ce qui s'y trouve."""
+    if len(parties) > 3 and parties[0] == "" and parties[1] == "":  # \\serveur\partage\…
+        return 5
+    if len(parties) > 3 and parties[1].lower() == "users":  # C:\Users\nom\Desktop\…
+        # AppData : fichiers temporaires (pièces jointes, archives ouvertes), aucun dossier
+        return len(parties) if parties[3].lower() == "appdata" else 5
+    return 2  # Q:\dossier
+
+
+def portees(chemin: str, fichier: str = "") -> list[tuple[str, str]]:
+    """Choix de la règle pour un groupe : ce fichier, chacun des dossiers qui le contiennent
+    (du plus proche au plus large), ou un mot-clé. Valeur : « type|motif »."""
+    parties = chemin.split("\\")
+    choix = [("chemin|", "ce fichier seulement")]
+    niveaux = range(len(parties) - 1, _plus_court_proposable(parties) - 1, -1)
+    for n in niveaux[:PLUS_DE_DOSSIERS]:
+        dossier = "\\".join(parties[:n])
+        choix.append((f"prefixe|{dossier}", f"tout le dossier « {parties[n - 1]} »"))
+    mot = (fichier or parties[-1]).rsplit(".", 1)[0]
+    choix.append(("mot_cle|", f"tout chemin contenant « {mot} »"))
+    return choix
 
 
 def _hm(secondes) -> str:
@@ -43,9 +65,7 @@ def a_classer(request):
         g["rattachable"] = bool(
             g["chemin"]
         )  # un nom seul (PDF dans un navigateur) ne se rattache pas
-        g["dossier_parent"] = (
-            g["chemin"].rsplit("\\", 1)[0] if g["chemin"] and "\\" in g["chemin"] else ""
-        )
+        g["portees"] = portees(g["chemin"], g["fichier"]) if g["chemin"] else []
     dossiers = Dossier.objects.exclude(statut=Dossier.Statut.CLOS).order_by("statut", "code", "nom")
     return render(
         request,
@@ -63,7 +83,6 @@ def a_classer(request):
             "brouillons": rapport["brouillons"],
             "brouillons_heures": _hm(rapport["brouillons"]["duree_s"]),
             "dossiers": dossiers,
-            "types": TYPES,
             "peut_agir": request.user.direction,
         },
     )
@@ -80,10 +99,17 @@ def rattacher_groupe(request):
     if segment.statut_classement != Segment.StatutClassement.A_CLASSER:
         messages.warning(request, "Ce groupe n'est plus à classer (déjà rattaché ?).")
         return redirect(retour)
+    # « portee » vient de l'écran (type|motif) ; « type » et « motif » séparés restent acceptés
+    if request.POST.get("portee"):
+        type_regle, _, motif = request.POST["portee"].partition("|")
+    else:
+        type_regle, motif = request.POST.get("type"), request.POST.get("motif", "")
+    if type_regle == "prefixe" and motif:
+        if not segment.chemin.lower().startswith(motif.rstrip("\\").lower() + "\\"):
+            messages.error(request, f"Le dossier « {motif} » ne contient pas ce fichier.")
+            return redirect(retour)
     try:
-        regle, resultat = rattacher(
-            segment, dossier, request.POST.get("type"), request.POST.get("motif", ""), request.user
-        )
+        regle, resultat = rattacher(segment, dossier, type_regle, motif, request.user)
     except ValueError as e:
         messages.error(request, str(e))
         return redirect(retour)

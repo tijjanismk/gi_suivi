@@ -30,7 +30,7 @@
   <p class="gic:mb-3 gic:text-sm text-subtle">Rattacher crée une règle (exception) : les segments du groupe passent dans le dossier, et les prochains suivront la même règle.{% if not peut_agir %} <strong>Consultation seule : pas d'action depuis ce compte.</strong>{% endif %}</p>
   <div class="gic:flex gic:flex-col gic:gap-3">
     {% for g in groupes %}
-    <div class="gic:rounded-md gic:border border-base-200 dark:border-base-800 gic:p-3 gic:grid gic:gap-3 gic:lg:grid-cols-[1fr_auto] gic:items-center">
+    <div class="gic:rounded-md gic:border border-base-200 dark:border-base-800 gic:p-3 gic:grid gic:gap-3">
       <div class="gic:text-sm gic:min-w-0">
         <div class="text-important gic:font-medium gic:truncate" title="{{ g.chemin|default:g.fichier }}">{{ g.fichier|default:g.chemin }}</div>
         <div class="text-subtle gic:text-xs gic:break-all">{{ g.chemin|default:"nom seul — fichier vu dans un navigateur, sans chemin" }}</div>
@@ -41,12 +41,12 @@
         {% csrf_token %}
         <input type="hidden" name="segment" value="{{ g.segment_id }}">
         <input type="hidden" name="retour" value="{% url 'suivi:a_classer' %}?{{ requete_periode }}">
-        <select name="dossier" required class="gic:rounded-md gic:px-2 gic:py-1.5 border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <select name="dossier" required class="gic:max-w-xs gic:rounded-md gic:px-2 gic:py-1.5 border border-base-200 dark:border-base-700 dark:bg-base-900">
           <option value="">Dossier…</option>
           {% for d in dossiers %}<option value="{{ d.pk }}">{{ d.code|default:"(sans code)" }} — {{ d.nom }}{% if d.statut == 'detecte' %} (détecté){% endif %}</option>{% endfor %}
         </select>
-        <select name="type" class="gic:rounded-md gic:px-2 gic:py-1.5 border border-base-200 dark:border-base-700 dark:bg-base-900" title="Portée de la règle">
-          {% for cle, libelle in types %}<option value="{{ cle }}">{{ libelle }}</option>{% endfor %}
+        <select name="portee" class="gic:max-w-xs gic:rounded-md gic:px-2 gic:py-1.5 border border-base-200 dark:border-base-700 dark:bg-base-900" title="Portée de la règle : ce fichier, un des dossiers qui le contiennent (avec tout leur contenu), ou un mot-clé">
+          {% for valeur, libelle in g.portees %}<option value="{{ valeur }}">{{ libelle }}</option>{% endfor %}
         </select>
         <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Rattacher</button>
       </form>

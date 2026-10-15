@@ -150,3 +150,98 @@ def test_vue_ensemble_pointe_vers_la_file(client, jeu_de_segments):
         'href="/suivi/a-classer/?debut=2026-10-05&amp;fin=2026-10-07"' in html
         or 'href="/suivi/a-classer/?debut=2026-10-05&fin=2026-10-07"' in html
     )
+
+
+def test_portees_proposees():
+    from suivi.vues.a_classer import portees
+
+    bureau = r"C:\Users\odicko\Desktop\Offre 2026\Offre Unicef\Offre Vf\Metho.docx"
+    valeurs = [v for v, _ in portees(bureau, "Metho.docx")]
+    assert valeurs == [
+        "chemin|",
+        r"prefixe|C:\Users\odicko\Desktop\Offre 2026\Offre Unicef\Offre Vf",
+        r"prefixe|C:\Users\odicko\Desktop\Offre 2026\Offre Unicef",
+        r"prefixe|C:\Users\odicko\Desktop\Offre 2026",
+        "mot_cle|",
+    ]  # jamais le Bureau entier
+    assert portees(bureau)[2][1] == "tout le dossier « Offre Unicef »"
+    assert portees(bureau)[-1][1] == "tout chemin contenant « Metho »"
+    assert [v for v, _ in portees(r"C:\Users\odicko\Desktop\notes.pdf")] == ["chemin|", "mot_cle|"]
+    temp = r"C:\Users\odicko\AppData\Local\Temp\x_Dossier.zip\a.docx"
+    assert [v for v, _ in portees(temp)] == ["chemin|", "mot_cle|"]
+    unc = [v for v, _ in portees(r"\\AD-SERVEUR\AMI\AMI-2026\Cameroun\Lettre.docx")]
+    assert unc[1:-1] == [  # jamais le partage entier
+        r"prefixe|\\AD-SERVEUR\AMI\AMI-2026\Cameroun",
+        r"prefixe|\\AD-SERVEUR\AMI\AMI-2026",
+    ]
+    lettre = [v for v, _ in portees(r"Q:\AMI-2026\AMI-Cameroun\2. LETTRES\Lettre.docx")]
+    assert lettre[-2] == r"prefixe|Q:\AMI-2026"  # jamais le lecteur entier
+    profond = "Q:\\" + "\\".join(f"n{i}" for i in range(10)) + "\f.docx"
+    assert len(portees(profond)) == 8  # fichier + 6 dossiers au plus + mot-clé
+
+
+def _a_classer(employe, poste, chemin):
+    from datetime import timedelta
+    from uuid import uuid4
+
+    from django.utils import timezone
+
+    t = timezone.now() - timedelta(hours=1)
+    return Segment.objects.create(
+        employe=employe,
+        poste=poste,
+        debut=t,
+        fin=t + timedelta(minutes=5),
+        duree_s=300,
+        etat="ACTIF",
+        application="WINWORD.EXE",
+        fichier=chemin.rsplit("\\", 1)[-1],
+        chemin=chemin,
+        statut_classement="a_classer",
+        lot_id=uuid4(),
+    )
+
+
+@override_settings(**IIS)
+def test_rattacher_un_dossier_plus_large(client, employes, postes, dossiers):
+    base = r"C:\Users\odicko\Desktop\Offre 2026\Offre Unicef"
+    seg = _a_classer(employes[0], postes[0], base + r"\Offre Vf\Metho.docx")
+    _a_classer(employes[0], postes[0], base + r"\DP Unicef\Annexes.pdf")
+    autre = _a_classer(employes[0], postes[0], r"C:\Users\odicko\Desktop\Autre\x.docx")
+    html = client.get(URL, **DIR).content.decode()
+    assert 'name="portee"' in html and "tout le dossier « Offre Unicef »" in html
+    r = client.post(
+        URL + "rattacher",
+        {"segment": seg.pk, "dossier": dossiers[1].pk, "portee": "prefixe|" + base},
+        follow=True,
+        **DIR,
+    )
+    assert "2 segment(s) rattaché(s)" in r.content.decode()
+    assert RegleException.objects.get().motif == base
+    assert Segment.objects.filter(statut_classement="a_classer").get() == autre
+
+
+@override_settings(**IIS)
+def test_rattacher_refuse_un_dossier_qui_ne_contient_pas_le_fichier(
+    client, employes, postes, dossiers
+):
+    seg = _a_classer(employes[0], postes[0], r"C:\Users\odicko\Desktop\Offre\a.docx")
+    r = client.post(
+        URL + "rattacher",
+        {
+            "segment": seg.pk,
+            "dossier": dossiers[0].pk,
+            "portee": r"prefixe|C:\Users\odicko\Desktop\Of",
+        },
+        follow=True,
+        **DIR,
+    )
+    assert "ne contient pas ce fichier" in r.content.decode()
+    assert not RegleException.objects.exists()
+    r = client.post(
+        URL + "rattacher",
+        {"segment": seg.pk, "dossier": dossiers[0].pk, "portee": "chemin|"},
+        follow=True,
+        **DIR,
+    )
+    assert RegleException.objects.get().motif == r"C:\Users\odicko\Desktop\Offre\a.docx"
