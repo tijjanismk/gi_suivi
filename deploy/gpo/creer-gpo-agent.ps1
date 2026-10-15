@@ -101,6 +101,8 @@ if ($PSCmdlet.ShouldProcess($demarrage, "Publier le kit et le script de démarra
     Remove-Item $tmp -Recurse -Force
     # scripts.ini : en Unicode (UTF-16 LE), comme l'écrit la console de gestion des stratégies
     $ini = "[Startup]`r`n0CmdLine=demarrage-gpo.cmd`r`n0Parameters=`r`n"
+    # Fichier caché après le premier passage : .NET refuse de réécrire un fichier caché
+    if (Test-Path "$scripts\scripts.ini") { (Get-Item "$scripts\scripts.ini" -Force).Attributes = 'Normal' }
     [IO.File]::WriteAllText("$scripts\scripts.ini", $ini, [Text.Encoding]::Unicode)
     (Get-Item "$scripts\scripts.ini" -Force).Attributes = 'Hidden'
     Write-Host "Kit publié dans $demarrage\GiSuivi ; script de démarrage : demarrage-gpo.cmd"
