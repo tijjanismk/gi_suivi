@@ -48,7 +48,17 @@ elle aussi les anciens partages intacts.
 
 Le script `scripts\exploitation\Rangement-GIC.ps1` exécute les lignes
 « copie » de ce tableau, en simulation d'abord (`-Simuler`), puis pour de
-vrai, avec un journal par ligne.
+vrai.
+
+**Un contenu = un exemplaire dans `D:\GIC` (décision du 21/10/2026).** Deux
+fichiers de même contenu (SHA-256), quel que soit leur nom, ne sont copiés
+qu'une fois. L'exemplaire gardé est celui de la ligne la plus prioritaire :
+références (août, puis mai), experts, missions, avis du plus ancien au plus
+récent, offres, à classer, archives. Les autres exemplaires restent dans les
+anciens partages et sont notés dans `REFERENCES\00_REGISTRE\doublons.csv`
+(où ils étaient, où se trouve l'exemplaire gardé) ; `copies.csv` liste tout
+ce qui a été copié. Deux fichiers différents qui arriveraient au même chemin
+sont renommés `nom (2).ext`.
 
 ## 3. Désigner la liste maîtresse des références
 
@@ -114,7 +124,9 @@ du vivier de CV. Elle contient les **pièces sélectionnées pour cet avis**,
 copiées depuis `REFERENCES\02_JUSTIFICATIFS` et `EXPERTS` au moment du dépôt.
 Les listes et les CV ne se modifient qu'à un seul endroit. L'application
 automatisera cette sélection ; d'ici là, c'est une discipline, et c'est elle
-qui fera disparaître les doublons.
+qui fera disparaître les doublons. Le rangement part déjà sans doublon (§ 2) :
+un CV ou une attestation qui manque dans le dossier d'un ancien avis se
+retrouve par `doublons.csv`, à l'endroit où son exemplaire unique est gardé.
 
 ## 7. Ordre des opérations
 
