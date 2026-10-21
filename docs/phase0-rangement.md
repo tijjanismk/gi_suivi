@@ -30,7 +30,9 @@ elle aussi les anciens partages intacts.
 | `OFFRES\Références de GI-Conseils-Version arranger-Aout 2026\…` | `REFERENCES\01_SOURCES\2026-08_version-arrangee\` | copie |
 | `ESPACE DE TRAVAIL\Références actulisés 2026-Mai 2026\` | `REFERENCES\01_SOURCES\2026-05_actualisees\` | copie |
 | `ESPACE DE TRAVAIL\*.pdf, *.docx` (contrats isolés, attestation de services faits) | `REFERENCES\03_A_CLASSER\` | copie |
-| `AMI\AMI-2026\<pays>\<mois>\<avis>\` | `AVIS\<pays>\<AAAA-MM>\<avis>\` | copie, structure conservée, mois converti (`Août 2026` → `2026-08`) |
+| `AMI\AMI-2026\<pays>\<mois>\<avis>\` | `AVIS\<pays>\<AAAA-MM>\<avis>\` | copie, structure conservée, mois converti (`Août 2026` → `2026-08`) ; un sous-dossier qui n'est pas un mois est copié tel quel ; `caméron` → `Cameroun` |
+| `AMI\AMI-2026\<pays>\Juillet 2026\AMI-ADRS-JUILLET-2026\` (identique sous 6 pays) | `AVIS\MULTI-PAYS\2026-07\AMI-ADRS-JUILLET-2026\` | copie, une seule fois |
+| `AMI\AMI-2026\Dossier CIETRA SARL\` | `_ANCIEN\AMI\Dossier-CIETRA-SARL\` | copie |
 | `AMI\TOUTES LES NOUVELLES AMI-2026\` | `AVIS\_a_trier\` | copie |
 | `OFFRES\OFFRE-2026\<avis>\` | `AVIS\<pays>\<AAAA-MM>\<avis>\OFFRE\` quand l'avis correspondant existe, sinon `AVIS\_offres-sans-avis\<avis>\` | copie ; rapprochement à la main |
 | `OFFRES\Rapport-Facture`, `OFFRES\ADRS Rapports Finaux` | `MISSIONS_EN_COURS\_a_rattacher\` | copie |
