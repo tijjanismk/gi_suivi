@@ -108,4 +108,4 @@ if (Test-Path $Racine) {   # absent en simulation (-WhatIf) : rien à montrer
     Get-ChildItem $Racine -Directory | ForEach-Object { "`n[$($_.Name)]"; (& icacls $_.FullName | Select-String "GI-|Administrateurs" ) }
 }
 Write-Host "`nÉTAPE SUIVANTE : scripts\exploitation\Rangement-GIC.ps1 -Simuler, puis sans -Simuler (copie ; les anciens partages ne bougent pas, docs\phase0-rangement.md)."
-Stop-Transcript | Out-Null
+if (-not $WhatIfPreference) { Stop-Transcript | Out-Null }   # en -WhatIf, aucun journal n'a été ouvert
