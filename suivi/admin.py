@@ -2,15 +2,12 @@ from django.contrib import admin
 from unfold.admin import ModelAdmin, TabularInline
 
 from suivi.models import (
-    DemandeRecalcul,
     Dossier,
     Employe,
     JournalAcces,
     Parametre,
-    Poste,
     Racine,
     RegleException,
-    Segment,
     Tache,
 )
 from suivi.services import recalculer, valider_dossier
@@ -70,18 +67,9 @@ class DossierAdmin(ModelAdmin):
         self.message_user(request, f"{n} dossier(s) validé(s) ; recalcul demandé.")
 
 
-@admin.register(DemandeRecalcul)
-class DemandeRecalculAdmin(ModelAdmin):
-    """Consultation : la file se vide par la commande suivi_recalculer (tâche planifiée)."""
-
-    list_display = ["creee_le", "motif", "traitee_le"]
-    list_filter = ["traitee_le"]
-
-    def has_add_permission(self, request) -> bool:
-        return False
-
-    def has_change_permission(self, request, obj=None) -> bool:
-        return False
+# Pas de page pour Poste, Segment ni DemandeRecalcul (retirées le 21/10/2026) : l'écran
+# « État des postes » montre les postes, les écrans Journée, Personnes et « À classer » montrent
+# les segments, et la file de recalcul se vide seule (tâche planifiée suivi_recalculer).
 
 
 @admin.register(Employe)
@@ -90,39 +78,6 @@ class EmployeAdmin(ModelAdmin):
     list_filter = ["actif"]
     search_fields = ["nom_affiche", "login"]
     readonly_fields = ["sid_ad"]
-
-
-@admin.register(Poste)
-class PosteAdmin(ModelAdmin):
-    list_display = ["nom", "version_agent", "dernier_envoi", "demarrages_semaine"]
-    readonly_fields = ["nom", "version_agent", "dernier_envoi", "demarrages_semaine", "premier_vu"]
-
-    def has_add_permission(self, request) -> bool:
-        return False  # un poste naît de son premier lot (POST /api/segments)
-
-
-@admin.register(Segment)
-class SegmentAdmin(ModelAdmin):
-    """Consultation seulement : les segments bruts ne se corrigent pas à la main."""
-
-    list_display = [
-        "debut",
-        "employe",
-        "application",
-        "fichier",
-        "duree_s",
-        "statut_classement",
-        "dossier",
-    ]
-    list_filter = ["statut_classement", "etat"]
-    date_hierarchy = "debut"
-    list_select_related = ["employe", "dossier"]
-
-    def has_add_permission(self, request) -> bool:
-        return False
-
-    def has_change_permission(self, request, obj=None) -> bool:
-        return False
 
 
 @admin.register(Tache)

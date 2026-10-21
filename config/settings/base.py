@@ -167,7 +167,9 @@ UNFOLD = {
     "SIDEBAR": {
         "show_search": True,
         "show_all_applications": False,
-        # Ordre voulu par le porteur (08/10/2026) : les Écrans d'abord, l'administration ensuite
+        # Ordre voulu par le porteur (08/10/2026) : les Écrans d'abord, l'administration ensuite.
+        # Allégé le 21/10/2026 : plus de doublons des Écrans (tableau de bord, dossiers, postes)
+        # ni de pages techniques (segments, recalculs) ; « Qui suis-je ? » reste à son adresse
         "navigation": [
             {
                 "title": "Écrans",
@@ -215,36 +217,6 @@ UNFOLD = {
                 ],
             },
             {
-                "title": "Suivi",
-                "items": [
-                    {
-                        "title": "Tableau de bord",
-                        "icon": "space_dashboard",
-                        "link": _lien("admin:index"),
-                    },
-                    {
-                        "title": "Dossiers",
-                        "icon": "folder",
-                        "link": _lien("admin:suivi_dossier_changelist"),
-                    },
-                    {
-                        "title": "Employés",
-                        "icon": "badge",
-                        "link": _lien("admin:suivi_employe_changelist"),
-                    },
-                    {
-                        "title": "Postes",
-                        "icon": "computer",
-                        "link": _lien("admin:suivi_poste_changelist"),
-                    },
-                    {
-                        "title": "Segments",
-                        "icon": "timeline",
-                        "link": _lien("admin:suivi_segment_changelist"),
-                    },
-                ],
-            },
-            {
                 "title": "Classement",
                 "items": [
                     {
@@ -263,6 +235,11 @@ UNFOLD = {
                 "title": "Administration",
                 "items": [
                     {
+                        "title": "Employés",
+                        "icon": "badge",
+                        "link": _lien("admin:suivi_employe_changelist"),
+                    },
+                    {
                         "title": "Paramètres",
                         "icon": "tune",
                         "link": _lien("admin:suivi_parametre_changelist"),
@@ -276,16 +253,6 @@ UNFOLD = {
                         "title": "Journal d'accès",
                         "icon": "history",
                         "link": _lien("admin:suivi_journalacces_changelist"),
-                    },
-                    {
-                        "title": "Recalculs",
-                        "icon": "sync",
-                        "link": _lien("admin:suivi_demanderecalcul_changelist"),
-                    },
-                    {
-                        "title": "Qui suis-je ?",
-                        "icon": "fingerprint",
-                        "link": _lien("identite:qui_suis_je"),
                     },
                 ],
             },

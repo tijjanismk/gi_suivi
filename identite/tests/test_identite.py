@@ -70,6 +70,17 @@ def test_direction_garde_toutes_les_actions(client):
     assert u.direction and not u.lecture_seule and u.has_perm("suivi.delete_racine")
 
 
+@override_settings(**IIS)
+def test_admin_sans_les_pages_retirees(client):
+    # 21/10/2026 : postes, segments et recalculs n'ont plus de page ; les cartes mènent aux écrans
+    for page in ("poste", "segment", "demanderecalcul"):
+        r = client.get(f"/admin/suivi/{page}/", REMOTE_USER="giconseils\\directrice")
+        assert r.status_code == 404, page
+    accueil = client.get("/admin/", REMOTE_USER="giconseils\\directrice").content.decode()
+    assert "/admin/suivi/segment/" not in accueil and "/admin/suivi/poste/" not in accueil
+    assert "/suivi/journee/" in accueil and "/suivi/postes/" in accueil
+
+
 @override_settings(**IIS, ROOT_URLCONF=__name__)
 def test_consultation_requise_accepte_les_deux_groupes(client):
     assert (

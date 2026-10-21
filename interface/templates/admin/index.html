@@ -25,7 +25,7 @@
             {% component "unfold/components/text.html" %}
                 {{ dossiers_a_valider }} dossier{{ dossiers_a_valider|pluralize }} vu{{ dossiers_a_valider|pluralize }} par les agents,
                 pas encore validé{{ dossiers_a_valider|pluralize }}.
-                <a class="text-primary-600 gic:underline" href="{% url 'admin:suivi_dossier_changelist' %}?statut__exact=detecte">Les voir</a>
+                <a class="text-primary-600 gic:underline" href="{% url 'suivi:gestion_dossiers' %}">Les voir</a>
             {% endcomponent %}
         {% endcomponent %}
     {% endif %}

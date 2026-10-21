@@ -1,6 +1,7 @@
 """Indicateurs de l'accueil de l'administration (Unfold, DASHBOARD_CALLBACK).
 
 Avant-goût de T02 (vue d'ensemble) : quatre chiffres lus en base, sans calcul métier ici.
+Chaque carte mène à l'écran qui détaille le chiffre (l'admin n'a plus de page Segments ni Postes).
 """
 
 from __future__ import annotations
@@ -28,13 +29,13 @@ def contexte(request, context: dict) -> dict:
             "titre": "Temps actif aujourd'hui",
             "valeur": _heures(du_jour.aggregate(s=Sum("duree_s"))["s"]),
             "icone": "schedule",
-            "lien": reverse("admin:suivi_segment_changelist"),
+            "lien": reverse("suivi:journee"),
         },
         {
             "titre": "Personnes actives aujourd'hui",
             "valeur": du_jour.values("employe").distinct().count(),
             "icone": "groups",
-            "lien": reverse("admin:suivi_employe_changelist"),
+            "lien": reverse("suivi:employes"),
         },
         {
             "titre": "À classer (7 derniers jours)",
@@ -43,8 +44,7 @@ def contexte(request, context: dict) -> dict:
                 debut__gte=debut_jour - timedelta(days=7),
             ).count(),
             "icone": "inbox",
-            "lien": reverse("admin:suivi_segment_changelist")
-            + "?statut_classement__exact=a_classer",
+            "lien": reverse("suivi:a_classer"),
         },
         {
             "titre": "Postes muets depuis 24 h",
@@ -52,7 +52,7 @@ def contexte(request, context: dict) -> dict:
                 Q(dernier_envoi__lt=maintenant - timedelta(hours=24)) | Q(dernier_envoi=None)
             ).count(),
             "icone": "desktop_access_disabled",
-            "lien": reverse("admin:suivi_poste_changelist"),
+            "lien": reverse("suivi:postes"),
         },
     ]
     context["dossiers_a_valider"] = Dossier.objects.filter(statut=Dossier.Statut.DETECTE).count()
