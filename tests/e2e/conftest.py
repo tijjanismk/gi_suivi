@@ -46,12 +46,14 @@ def donnees_de_depart(db):
     from django.apps import apps
 
     from administratif.models import TypePiece
-    from referentiel.models import Domaine
+    from referentiel.models import Domaine, TypeOuvrage
 
     if not TypePiece.objects.exists():
         importlib.import_module("administratif.migrations.0002_types_initiaux").creer(apps, None)
     if not Domaine.objects.exists():
         importlib.import_module("referentiel.migrations.0002_domaines").creer(apps, None)
+    if not TypeOuvrage.objects.exists():
+        importlib.import_module("referentiel.migrations.0004_types_de_depart").creer(apps, None)
 
 
 def capturer(page, nom: str) -> None:

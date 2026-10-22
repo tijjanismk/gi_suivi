@@ -80,3 +80,47 @@ def test_lecture_seule_sans_decision(onglet, live_server, liste_fictive, setting
     onglet.goto(f"{live_server.url}/references/doublons/")
     sync_api.expect(onglet.get_by_text("Consultation seule")).to_be_visible()
     sync_api.expect(onglet.get_by_role("button", name="Contrats différents")).to_have_count(0)
+
+
+def test_justificatifs_et_ouvrages(onglet, live_server, liste_fictive, tmp_path, settings):
+    from administratif.demo import pdf
+
+    page, expect = onglet, sync_api.expect
+    settings.PARTAGE_GIC = str(tmp_path)
+    dossier = tmp_path / "REFERENCES" / "02_JUSTIFICATIFS" / "GIC-ENV-ETU-020"
+    dossier.mkdir(parents=True)
+    for nom in ("GARDE.pdf", "SIGNATURE.pdf", "ATTESTATION.pdf"):
+        (dossier / nom).write_bytes(pdf(f"{nom} Samé Ouolof"))
+
+    page.goto(f"{live_server.url}/references/GIC-ENV-ETU-020/")
+    expect(page.locator("#bilan-justificatifs")).to_contain_text("Page de garde : manquante")
+    page.get_by_role("link", name="Rattacher et auditer").click()
+    for nom in ("ATTESTATION.pdf", "GARDE.pdf", "SIGNATURE.pdf"):
+        page.locator(f'#table-fichiers tr[data-fichier="{nom}"]').get_by_role(
+            "button", name="Rattacher"
+        ).click()
+        expect(page.get_by_text(f"« {nom} » rattaché")).to_be_visible()
+    for type_ in ("garde", "signature", "attestation"):
+        carte = page.locator(f'[data-emplacement="{type_}"]')
+        carte.locator('select[name="lisible"]').select_option("oui")
+        carte.locator('select[name="coherente"]').select_option("oui")
+        carte.get_by_role("button", name="Enregistrer l'audit").click()
+        expect(page.locator(f'[data-emplacement="{type_}"] [data-etat="bonne"]')).to_be_visible()
+    expect(page.locator("#justificatifs-bilan")).to_contain_text("Référence complète")
+    capturer(page, "10-justificatifs")
+
+    page.goto(f"{live_server.url}/references/GIC-ENV-ETU-020/ouvrages")
+    page.locator("#ouvrage-micro-barrage").check()
+    page.locator("#livrable-apd").check()
+    page.locator("#q-superficie-ha").fill("30,5")
+    page.locator("#s-superficie-ha").fill("contrat p. 4")
+    page.get_by_role("button", name="Enregistrer").click()
+    expect(page.locator("#fiche-ouvrages")).to_contain_text("Micro-barrage")
+    expect(page.locator("#fiche-ouvrages")).to_contain_text("Superficie aménagée : 30,5 ha")
+    capturer(page, "11-fiche-reference")
+
+    page.goto(f"{live_server.url}/references/?pieces=completes&ouvrage=micro-barrage")
+    expect(page.locator("#ref-total")).to_have_text("1 référence")
+    expect(page.locator('#table-references tr[data-code="GIC-ENV-ETU-020"]')).to_contain_text(
+        "3 / 3"
+    )
