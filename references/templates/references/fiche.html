@@ -1,0 +1,47 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:liste' %}">Références du bureau</a><span aria-hidden="true">›</span><span class="text-important">{{ m.code }}</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}{{ m.libelle }}{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+{% if m.absorbee_par %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900" id="absorbee">Même contrat qu'une autre référence : c'est <a class="gic:underline" href="{% url 'references:fiche' m.absorbee_par.code %}">{{ m.absorbee_par.code }}</a> qui compte. Cette fiche est gardée pour la trace.</div>{% endif %}
+
+{% component "unfold/components/card.html" with title="La référence" %}
+  <dl class="gic:grid gic:grid-cols-[minmax(10rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="fiche-reference">
+    <dt class="text-subtle">Code</dt><dd class="text-important gic:font-mono">{{ m.code }}{% if m.statut_code == 'nouveau' %} <span class="text-subtle gic:font-sans">(attribué au chantier 2)</span>{% endif %}</dd>
+    <dt class="text-subtle">Intitulé</dt><dd class="text-important">{{ m.intitule }}</dd>
+    <dt class="text-subtle">Domaine principal</dt><dd class="text-important">{{ m.domaine }}</dd>
+    <dt class="text-subtle">Domaines secondaires</dt><dd class="text-important" id="secondaires">{% for d in secondaires %}{{ d }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
+    <dt class="text-subtle">Nature</dt><dd class="text-important">{{ m.nature }} — {{ m.get_nature_display }}</dd>
+    <dt class="text-subtle">Catégorie</dt><dd class="text-important">{{ m.categorie|default:"—" }}</dd>
+    <dt class="text-subtle">Client</dt><dd class="text-important">{{ m.client.nom|default:"—" }}</dd>
+    <dt class="text-subtle">Bailleur</dt><dd class="text-important">{{ m.bailleur|default:"—" }}</dd>
+    <dt class="text-subtle">Année</dt><dd class="text-important">{{ m.annee|default:"—" }}</dd>
+    <dt class="text-subtle">Montant</dt><dd class="text-important gic:tabular-nums">{% if m.montant is not None %}{{ m.montant|floatformat:"0g" }} {{ m.devise }}{% else %}—{% endif %}</dd>
+    <dt class="text-subtle">Rôle du bureau</dt><dd class="text-important">{{ m.get_role_display }}{% if m.part_bureau is not None %}, part {{ m.part_bureau|floatformat:"-2" }} %{% endif %}</dd>
+    <dt class="text-subtle">Vérification</dt><dd class="text-important">{{ m.get_statut_verification_display }}</dd>
+    <dt class="text-subtle">Source</dt><dd class="text-important">{{ m.source_word|default:"—" }}{% if m.numero_source %} · n° {{ m.numero_source }}{% endif %}</dd>
+    {% if m.observations %}<dt class="text-subtle">Observations</dt><dd class="text-important">{{ m.observations|linebreaksbr }}</dd>{% endif %}
+  </dl>
+{% endcomponent %}
+
+{% if absorbees %}
+{% component "unfold/components/card.html" with title="Fiches absorbées par cette référence" %}
+  <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="absorbees">
+    {% for x in absorbees %}<li><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' x.code %}">{{ x.code }}</a> · {{ x.libelle }}</li>{% endfor %}
+  </ul>
+{% endcomponent %}
+{% endif %}
+
+{% if decisions %}
+{% component "unfold/components/card.html" with title="Décisions sur les doublons" %}
+  <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm">
+    {% for d in decisions %}<li>{{ d.le|date:"d/m/Y" }} · {{ d.mission_a.code }} / {{ d.mission_b.code }} : {% if d.meme_contrat %}même contrat, {{ d.gardee.code }} gardée{% else %}contrats différents{% endif %}{% if d.par %} · {{ d.par.nom_affiche|default:d.par.login_windows }}{% endif %}{% if d.note %} · {{ d.note }}{% endif %}</li>{% endfor %}
+  </ul>
+{% endcomponent %}
+{% endif %}
+{% endblock %}

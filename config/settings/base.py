@@ -54,6 +54,8 @@ INSTALLED_APPS = [
     "identite",
     "suivi",
     "administratif",  # pièces administratives du bureau (ADR 0010)
+    "referentiel",  # domaines, catégories, clients, bailleurs
+    "references",  # références du bureau : une mission = un contrat (ADR 0008)
 ]
 
 MIDDLEWARE = [
@@ -221,9 +223,19 @@ UNFOLD = {
                 ],
             },
             {
-                # Pièces administratives du bureau (ADR 0010) ; Avis s'y ajoutera
+                # Références (ADR 0008) et pièces administratives (ADR 0010) ; Avis s'y ajoutera
                 "title": "Offres",
                 "items": [
+                    {
+                        "title": "Références",
+                        "icon": "library_books",
+                        "link": _lien("references:liste"),
+                    },
+                    {
+                        "title": "Doublons à arbitrer",
+                        "icon": "difference",
+                        "link": _lien("references:doublons"),
+                    },
                     {
                         "title": "Pièces administratives",
                         "icon": "verified",

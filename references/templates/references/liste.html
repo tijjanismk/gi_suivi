@@ -1,0 +1,85 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><span class="text-important">Références du bureau</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Une référence = un contrat signé, un code attribué une fois et jamais modifié (ADR 0008). Une fiche reconnue comme doublon est « absorbée » par le code gardé : elle n'est jamais supprimée.{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  <a href="{% url 'references:doublons' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Doublons à arbitrer</a>
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" %}
+  <form method="get" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3" id="filtres-references">
+    <label class="gic:text-xs text-subtle">Recherche
+      <input type="search" id="ref-q" name="q" value="{{ q }}" placeholder="code, intitulé, client" class="gic:mt-1 gic:block gic:w-72 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:text-xs text-subtle">Domaine
+      <select id="ref-domaine" name="domaine" class="gic:mt-1 gic:block gic:w-56 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Tous</option>
+        {% for d in domaines %}<option value="{{ d.code }}" {% if d.code == domaine %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="gic:text-xs text-subtle">Nature
+      <select id="ref-nature" name="nature" class="gic:mt-1 gic:block gic:w-44 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Toutes</option>
+        {% for v, l in natures %}<option value="{{ v }}" {% if v == nature %}selected{% endif %}>{{ v }} — {{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="gic:text-xs text-subtle">Vérification
+      <select id="ref-verification" name="verification" class="gic:mt-1 gic:block gic:w-40 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Toutes</option>
+        {% for v, l in verifications %}<option value="{{ v }}" {% if v == verification %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important gic:pb-1.5" for="ref-absorbees">
+      <input type="checkbox" id="ref-absorbees" name="absorbees" value="1" {% if avec_absorbees %}checked{% endif %}> Afficher les {{ nb_absorbees }} absorbée{{ nb_absorbees|pluralize }}
+    </label>
+    <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Filtrer</button>
+  </form>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Références" %}
+  <p class="gic:mb-3 gic:text-sm text-subtle" id="ref-total">{{ total }} référence{{ total|pluralize }}</p>
+  {% if page.object_list %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-references">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Code</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Intitulé</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Client</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Année</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Domaines</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Vérification</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in page.object_list %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ m.code }}">
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' m.code %}">{{ m.code }}</a></td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ m.libelle }}{% if m.absorbee_par %}<div class="gic:text-xs text-subtle">absorbée par {{ m.absorbee_par.code }}</div>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3">{{ m.client|default:"—" }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ m.annee|default:"—" }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap">{{ m.domaine.code }}{% for d in m.domaines_secondaires.all %} <span class="text-subtle">+ {{ d.code }}</span>{% endfor %}</td>
+          <td class="gic:py-2">{{ m.get_statut_verification_display }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if page.has_other_pages %}
+  <nav class="gic:mt-3 gic:flex gic:items-center gic:gap-3 gic:text-sm" aria-label="Pages">
+    {% if page.has_previous %}<a class="text-primary-600 gic:hover:underline" href="?{{ requete }}&page={{ page.previous_page_number }}">Précédentes</a>{% endif %}
+    <span class="text-subtle">page {{ page.number }} sur {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="text-primary-600 gic:hover:underline" href="?{{ requete }}&page={{ page.next_page_number }}">Suivantes</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucune référence. La liste maîtresse s'importe avec <span class="gic:font-mono gic:text-xs">manage.py references_importer liste.csv</span>.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+{% endblock %}

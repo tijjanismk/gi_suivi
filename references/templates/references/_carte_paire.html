@@ -1,0 +1,5 @@
+<div class="gic:rounded-md gic:border border-base-200 dark:border-base-800 gic:p-3 gic:text-sm">
+  <a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' m.code %}">{{ m.code }}</a>
+  <div class="text-important gic:mt-1">{{ m.intitule }}</div>
+  <div class="gic:text-xs text-subtle gic:mt-1">{{ m.client.nom|default:"client inconnu" }} · {{ m.annee|default:"année inconnue" }} · {{ m.get_nature_display }}{% if m.montant is not None %} · {{ m.montant|floatformat:"0g" }} {{ m.devise }}{% endif %}{% if m.numero_contrat %} · contrat {{ m.numero_contrat }}{% endif %}</div>
+</div>

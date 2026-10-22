@@ -51,7 +51,7 @@ jobs:
       - name: Migrations à jour
         run: python manage.py makemigrations --check --dry-run
       - name: Tests rapides (moteur, unitaires, intégration)
-        run: pytest --cov=moteur --cov=suivi --cov=identite --cov=administratif --cov-report=term-missing -m "not e2e and not windows"
+        run: pytest --cov=moteur --cov=suivi --cov=identite --cov=administratif --cov=referentiel --cov=references --cov-report=term-missing -m "not e2e and not windows"
       - name: Parcours de bout en bout
         # Code 5 = aucun test collecté : normal tant que le parcours e2e (phase 4) n'existe pas
         run: pytest -m e2e || [ $? -eq 5 ]

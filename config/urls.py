@@ -17,6 +17,7 @@ urlpatterns = [
     path("", RedirectView.as_view(pattern_name="suivi:journee", permanent=False)),
     path("suivi/", include("suivi.urls")),
     path("administratif/", include("administratif.urls")),  # pièces administratives (ADR 0010)
+    path("references/", include("references.urls")),  # références du bureau (ADR 0008)
     path("sante/", sante, name="sante"),
     path("identite/", include("identite.urls")),
     path("api/", include("suivi.api.urls")),

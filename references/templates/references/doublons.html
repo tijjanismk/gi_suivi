@@ -1,0 +1,42 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:liste' %}">Références du bureau</a><span aria-hidden="true">›</span><span class="text-important">Doublons à arbitrer</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Paires de références qui pourraient décrire le même contrat : même numéro de contrat, même client et même montant, ou intitulés très proches. Rien n'est fusionné sans décision ; une paire tranchée ne revient plus.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+<p class="gic:text-sm text-subtle" id="doublons-total">{{ total }} paire{{ total|pluralize }} à arbitrer{% if total > paires|length %}, les {{ paires|length }} plus probables affichées{% endif %} ; {{ tranchees }} déjà tranchée{{ tranchees|pluralize }}.{% if not peut_agir %} <strong>Consultation seule : pas de décision depuis ce compte.</strong>{% endif %}</p>
+
+{% for x in paires %}
+{% component "unfold/components/card.html" %}
+  <div class="gic:flex gic:flex-col gic:gap-3" data-paire="{{ x.a.code }}|{{ x.b.code }}">
+    <p class="gic:text-sm text-important"><span class="gic:font-semibold">Pourquoi :</span> {{ x.raisons }}</p>
+    <div class="gic:grid gic:gap-3 gic:md:grid-cols-2">
+      {% with m=x.a %}{% include "references/_carte_paire.html" %}{% endwith %}
+      {% with m=x.b %}{% include "references/_carte_paire.html" %}{% endwith %}
+    </div>
+    {% if peut_agir %}
+    <form method="post" action="{% url 'references:trancher' %}" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+      {% csrf_token %}
+      <input type="hidden" name="a" value="{{ x.a.pk }}">
+      <input type="hidden" name="b" value="{{ x.b.pk }}">
+      <input type="hidden" name="raisons" value="{{ x.raisons }}">
+      <button type="submit" name="choix" value="garder_a" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm {% if x.proposee == x.a.code %}gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90{% else %}border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50{% endif %}">Même contrat : garder {{ x.a.code }}</button>
+      <button type="submit" name="choix" value="garder_b" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm {% if x.proposee == x.b.code %}gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90{% else %}border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50{% endif %}">Même contrat : garder {{ x.b.code }}</button>
+      <button type="submit" name="choix" value="differents" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Contrats différents</button>
+      <label class="gic:sr-only" for="note-{{ forloop.counter }}">Note</label>
+      <input id="note-{{ forloop.counter }}" name="note" maxlength="300" placeholder="Note (facultative)" class="gic:w-64 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </form>
+    <p class="gic:text-xs text-subtle">Proposition : garder {{ x.proposee }}, le code attribué en premier. Le code gardé reçoit les domaines de l'autre en domaines secondaires ; étude + contrôle du même marché donne ETC.</p>
+    {% endif %}
+  </div>
+{% endcomponent %}
+{% empty %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}Aucune paire suspecte à arbitrer.{% endcomponent %}
+  {% endcomponent %}
+{% endfor %}
+{% endblock %}
