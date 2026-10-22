@@ -30,7 +30,7 @@ foreach ($g in $groupes) {
 # Arborescence. AVIS suit AMI-2026 : AVIS\<pays>\<AAAA-MM>\<avis>, sous-dossiers créés par Rangement-GIC.ps1
 $dossiers = @(
     "REFERENCES\00_REGISTRE", "REFERENCES\01_SOURCES", "REFERENCES\02_JUSTIFICATIFS", "REFERENCES\03_A_CLASSER",
-    "MISSIONS_EN_COURS", "AVIS\_a_trier", "EXPERTS", "ADMINISTRATIF", "VEILLE", "UTILISATEURS", "_ANCIEN",
+    "MISSIONS_EN_COURS", "AVIS\_a_trier", "EXPERTS", "ADMINISTRATIF", "ADMINISTRATIF\PRESENTATION", "VEILLE", "UTILISATEURS", "_ANCIEN",
     "deploy\agent"
 )
 # Pièces administratives (ADR 0010) : un dossier par type, codes de la migration 0002_types_initiaux
