@@ -52,9 +52,21 @@ la vue d'ensemble affiche ses heures, la vue dossiers la répartition, la file
 totaux bougent ; l'export Excel contient les mêmes chiffres.** Si ce test
 passe, le produit fait ce qu'il promet.
 
-Pas de Playwright ni de Selenium au MVP : le coût de maintenance est
-disproportionné pour huit écrans HTMX lus par trois personnes. À reconsidérer
-si des interactions complexes apparaissent.
+**Parcours dans un vrai navigateur (demande du porteur, 22/10/2026).** Les écrans des
+pièces administratives ont des formulaires à plusieurs étapes (dépôt, échéance proposée puis
+confirmée, nouveau scan) : `tests/e2e/test_navigateur_pieces.py` les parcourt dans Chromium
+avec Playwright, sur la base de test remplie de pièces fictives (`administratif/demo.py`, PDF
+écrits dans un dossier temporaire qui joue le partage). Marqueurs `e2e` et `navigateur`.
+
+```
+pip install -e ".[dev]" ; playwright install chromium     # une fois, sur le poste
+pytest -m navigateur                                       # Chromium invisible
+set GIC_CAPTURES=C:\dev\livraisons\captures & pytest -m navigateur   # avec captures
+```
+
+Sans Playwright ou sans Chromium, ces tests sont ignorés (intégration continue). Pour essayer
+les écrans à la main sur une base d'essai : `manage.py administratif_jeu_demo --partage
+C:\dev\essai-gic`, puis `PARTAGE_GIC=C:\dev\essai-gic` dans `.env`.
 
 ## 4. Tests de l'agent — sur un poste Windows, à la main
 

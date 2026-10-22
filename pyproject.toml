@@ -29,6 +29,7 @@ dev = [
     "ruff>=0.6",
     "pre-commit>=3.7",
     "freezegun>=1.5",
+    "pytest-playwright>=0.5",  # parcours dans un vrai navigateur (marqueur navigateur), poste seulement
 ]
 # L'agent de poste a ses propres dépendances, installées uniquement sur un
 # poste Windows de construction (voir agent/pyproject.toml). Elles ne sont
@@ -55,9 +56,10 @@ ignore = ["S101"]  # assert autorisé dans les tests
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.test"
 python_files = ["test_*.py"]
-testpaths = ["moteur", "suivi", "identite", "tests"]
+testpaths = ["moteur", "suivi", "identite", "administratif", "tests"]
 markers = [
     "e2e: parcours complets, nécessitent PostgreSQL",
     "windows: tests qui n'ont de sens que sur un poste Windows (agent)",
+    "navigateur: parcours dans Chromium par Playwright (pip install pytest-playwright, playwright install chromium)",
 ]
 addopts = "-ra --strict-markers -m 'not windows'"
