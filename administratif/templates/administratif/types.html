@@ -1,18 +1,18 @@
 {% extends "administratif/base.html" %}
 {% load unfold %}
 
-{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">Types de pièces</span>{% endblock %}
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span aria-hidden="true">›</span><span class="text-important">Types de pièces</span>{% endblock %}
 
 {% block sous_titre %}
   {% component "unfold/components/text.html" %}La règle de validité de chaque pièce, son rappel et son dossier sur le partage. Réglé une fois par la direction ; les échéances proposées au dépôt en découlent.{% endcomponent %}
 {% endblock %}
 
 {% block actions %}
-  {% if peut_agir %}<a href="{% url 'administratif:type_ajouter' %}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">add</span>Ajouter un type de pièce</a>{% endif %}
+  {% if peut_agir %}<a href="{% url 'administratif:type_ajouter' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Ajouter un type de pièce</a>{% endif %}
 {% endblock %}
 
 {% block ecran %}
-{% component "unfold/components/card.html" with title="Types" title_icon="category" %}
+{% component "unfold/components/card.html" with title="Types" %}
   <div class="gic:overflow-x-auto">
     <table class="gic:w-full gic:text-sm" id="table-types">
       <thead>
@@ -29,7 +29,7 @@
       </thead>
       <tbody>
         {% for x in types %}
-        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top {% if not x.actif %}gic:opacity-60{% endif %}" data-code="{{ x.code }}">
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ x.code }}">
           <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs gic:whitespace-nowrap">{{ x.code }}</td>
           <td class="gic:py-2 gic:pr-3 text-important">{{ x.libelle }}{% if not x.actif %} <span class="text-subtle">(inactif)</span>{% endif %}</td>
           <td class="gic:py-2 gic:pr-3">{{ x.organisme }}</td>

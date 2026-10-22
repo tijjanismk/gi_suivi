@@ -1,7 +1,7 @@
 {% extends "administratif/base.html" %}
 {% load unfold %}
 
-{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:types' %}">Types de pièces</a><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">{% if t %}{{ t.code }}{% else %}Nouveau type{% endif %}</span>{% endblock %}
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:types' %}">Types de pièces</a><span aria-hidden="true">›</span><span class="text-important">{% if t %}{{ t.code }}{% else %}Nouveau type{% endif %}</span>{% endblock %}
 
 {% block ecran %}
 {% component "unfold/components/card.html" %}

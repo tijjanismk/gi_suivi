@@ -1,15 +1,15 @@
 {% extends "administratif/base.html" %}
 {% load unfold %}
 
-{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">Pièces administratives</span>{% endblock %}
+{% block ariane %}<span aria-hidden="true">›</span><span class="text-important">Pièces administratives</span>{% endblock %}
 
 {% block sous_titre %}
   {% component "unfold/components/text.html" %}Les pièces du bureau exigées dans les dossiers d'offre. Une seule version en cours par pièce ; les anciennes restent dans l'historique. Échéances calculées au {{ aujourd_hui|date:"d/m/Y" }}.{% endcomponent %}
 {% endblock %}
 
 {% block actions %}
-  <a href="{% url 'administratif:types' %}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">category</span>Types de pièces</a>
-  {% if peut_agir %}<a href="{% url 'administratif:deposer' %}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">upload_file</span>Déposer une nouvelle version</a>{% endif %}
+  <a href="{% url 'administratif:types' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Types de pièces</a>
+  {% if peut_agir %}<a href="{% url 'administratif:deposer' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Déposer une nouvelle version</a>{% endif %}
 {% endblock %}
 
 {% block ecran %}
@@ -19,19 +19,19 @@
 
 <div class="gic:grid gic:gap-4 gic:sm:grid-cols-2 gic:xl:grid-cols-4">
   {% component "unfold/components/card.html" %}
-    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle" aria-hidden="true">check_circle</span>Valides{% endcomponent %}
+    {% component "unfold/components/text.html" %}Valides{% endcomponent %}
     <div class="gic:text-xl gic:font-semibold text-important" data-compteur="valides">{{ nombres.valides }}</div>
   {% endcomponent %}
   {% component "unfold/components/card.html" %}
-    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle" aria-hidden="true">schedule</span>À renouveler bientôt{% endcomponent %}
+    {% component "unfold/components/text.html" %}À renouveler bientôt{% endcomponent %}
     <div class="gic:text-xl gic:font-semibold gic:text-amber-700" data-compteur="a_renouveler">{{ nombres.a_renouveler }}</div>
   {% endcomponent %}
   {% component "unfold/components/card.html" %}
-    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle" aria-hidden="true">event_busy</span>Expirées{% endcomponent %}
+    {% component "unfold/components/text.html" %}Expirées{% endcomponent %}
     <div class="gic:text-xl gic:font-semibold gic:text-red-700" data-compteur="expirees">{{ nombres.expirees }}</div>
   {% endcomponent %}
   {% component "unfold/components/card.html" %}
-    {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle" aria-hidden="true">help</span>Manquantes (exigées){% endcomponent %}
+    {% component "unfold/components/text.html" %}Manquantes (exigées){% endcomponent %}
     <div class="gic:text-xl gic:font-semibold gic:text-red-700" data-compteur="manquantes">{{ nombres.manquantes }}</div>
   {% endcomponent %}
 </div>
@@ -42,7 +42,7 @@
   {% endfor %}
 </div>
 
-{% component "unfold/components/card.html" with title="Pièces" title_icon="verified" %}
+{% component "unfold/components/card.html" with title="Pièces" %}
   {% if lignes %}
   <div class="gic:overflow-x-auto">
     <table class="gic:w-full gic:text-sm" id="table-pieces">
@@ -58,7 +58,7 @@
       </thead>
       <tbody>
         {% for x in lignes %}
-        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top {% if x.cle_etat == 'expiree' or x.cle_etat == 'manquante' %}gic:bg-red-50{% elif x.cle_etat == 'a_renouveler' %}gic:bg-amber-50{% endif %}" data-code="{{ x.type.code }}">
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ x.type.code }}">
           <td class="gic:py-2 gic:pr-3">
             <a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'administratif:fiche' x.type.code %}">{{ x.type.libelle }}</a>
             <div class="gic:text-xs text-subtle">{{ x.type.organisme }}{% if not x.exigee %} · si l'avis la demande{% endif %}</div>
@@ -68,7 +68,7 @@
           <td class="gic:py-2 gic:pr-3">{% include "administratif/_etat.html" with cle=x.cle_etat libelle=x.libelle_etat %}</td>
           <td class="gic:py-2 gic:pr-3">
             {% if x.demande %}Demandée le {{ x.demande.demandee_le|date:"d/m/Y" }}{% if x.demande.relance_prevue_le %}<div class="gic:text-xs text-subtle">relance le {{ x.demande.relance_prevue_le|date:"d/m/Y" }}</div>{% endif %}
-            {% elif x.alerte %}<span class="gic:font-medium gic:text-red-700">À demander</span>
+            {% elif x.alerte %}<span class="gic:font-semibold text-important">À demander</span>
             {% else %}—{% endif %}
           </td>
           <td class="gic:py-2 gic:whitespace-nowrap">{% if x.type.responsable %}{{ x.type.responsable.nom_affiche|default:x.type.responsable.login_windows }}{% else %}Direction{% endif %}</td>

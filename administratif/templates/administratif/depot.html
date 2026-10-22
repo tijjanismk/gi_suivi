@@ -1,7 +1,7 @@
 {% extends "administratif/base.html" %}
 {% load unfold %}
 
-{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a>{% if t %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:fiche' t.code %}">{{ t.libelle }}</a>{% endif %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">Nouvelle version</span>{% endblock %}
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a>{% if t %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:fiche' t.code %}">{{ t.libelle }}</a>{% endif %}<span aria-hidden="true">›</span><span class="text-important">Nouvelle version</span>{% endblock %}
 
 {% block sous_titre %}
   {% component "unfold/components/text.html" %}Posez d'abord le PDF scanné dans le dossier de la pièce sur le partage. L'application le retrouve, vérifie qu'il n'est pas déjà enregistré, puis vous saisissez ses dates.{% endcomponent %}
@@ -9,7 +9,7 @@
 
 {% block ecran %}
 <div class="gic:flex gic:flex-col gic:gap-6 gic:max-w-4xl">
-  {% component "unfold/components/card.html" with title="1. La pièce" title_icon="category" %}
+  {% component "unfold/components/card.html" with title="1. La pièce" %}
     <form method="get" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3">
       <label class="gic:text-xs text-subtle">Type de pièce
         <select id="depot-type" name="type" onchange="this.form.submit()" class="gic:mt-1 gic:w-80 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
@@ -28,7 +28,7 @@
   <form method="post" class="gic:flex gic:flex-col gic:gap-6">
     {% csrf_token %}
     <input type="hidden" name="type" value="{{ t.code }}">
-    {% component "unfold/components/card.html" with title="2. Le fichier" title_icon="upload_file" %}
+    {% component "unfold/components/card.html" with title="2. Le fichier" %}
       {% if fichiers %}
       <fieldset class="gic:flex gic:flex-col gic:gap-2">
         <legend class="gic:mb-2 gic:text-sm gic:font-medium text-important">Fichiers du dossier</legend>
@@ -69,7 +69,7 @@
     {% endcomponent %}
     {% endif %}
 
-    {% component "unfold/components/card.html" with title="3. Les dates" title_icon="event" %}
+    {% component "unfold/components/card.html" with title="3. Les dates" %}
       <div class="gic:grid gic:gap-4 gic:sm:grid-cols-3">
         <label class="gic:text-xs text-subtle">Date d'émission
           <input type="date" id="depot-emission" name="date_emission" value="{{ date_emission }}" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
@@ -88,7 +88,7 @@
 
     <div class="gic:flex gic:flex-wrap gic:gap-2">
       <button type="submit" name="action" value="proposer" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Calculer l'échéance</button>
-      <button type="submit" name="action" value="enregistrer" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">save</span>Enregistrer la nouvelle version</button>
+      <button type="submit" name="action" value="enregistrer" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer la nouvelle version</button>
       <a href="{% url 'administratif:fiche' t.code %}" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-subtle gic:hover:bg-gray-50">Annuler</a>
     </div>
   </form>

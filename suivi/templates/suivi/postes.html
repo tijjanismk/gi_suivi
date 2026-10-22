@@ -46,7 +46,7 @@
         </thead>
         <tbody>
           {% for p in postes %}
-          <tr class="gic:border-b border-base-200 dark:border-base-800 {% if p.alerte == 'rouge' %}gic:bg-red-50 gic:dark:bg-red-950/30{% elif p.alerte == 'orange' %}gic:bg-amber-50 gic:dark:bg-amber-950/30{% endif %}">
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
             <td class="gic:py-2 text-important gic:font-medium gic:whitespace-nowrap">{{ p.nom }}</td>
             <td class="gic:py-2">
               {% if p.alerte == 'rouge' %}<span class="gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">rouge — muet</span>

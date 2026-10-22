@@ -1,7 +1,7 @@
 {% extends "administratif/base.html" %}
 {% load unfold %}
 
-{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">{{ t.libelle }}</span>{% endblock %}
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span aria-hidden="true">›</span><span class="text-important">{{ t.libelle }}</span>{% endblock %}
 
 {% block badge_titre %}{% include "administratif/_etat.html" with cle=ligne.cle_etat libelle=ligne.libelle_etat %}{% endblock %}
 
@@ -10,15 +10,15 @@
 {% endblock %}
 
 {% block actions %}
-  {% if ligne.version %}<a href="{% url 'administratif:fichier' ligne.version.pk %}" target="_blank" rel="noopener" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">picture_as_pdf</span>Ouvrir le fichier</a>{% endif %}
-  {% if peut_agir %}<a href="{% url 'administratif:deposer' %}?type={{ t.code }}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">upload_file</span>Déposer la nouvelle version</a>{% endif %}
+  {% if ligne.version %}<a href="{% url 'administratif:fichier' ligne.version.pk %}" target="_blank" rel="noopener" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Ouvrir le fichier</a>{% endif %}
+  {% if peut_agir %}<a href="{% url 'administratif:deposer' %}?type={{ t.code }}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Déposer la nouvelle version</a>{% endif %}
 {% endblock %}
 
 {% block ecran %}
 {% if alerte_partage %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">{{ alerte_partage }}</div>{% endif %}
 
 <div class="gic:grid gic:gap-6 gic:lg:grid-cols-2 gic:items-start">
-  {% component "unfold/components/card.html" with title="Version en cours" title_icon="description" %}
+  {% component "unfold/components/card.html" with title="Version en cours" %}
     {% if ligne.version %}
     {% with v=ligne.version %}
     <dl class="gic:grid gic:grid-cols-[minmax(8rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="version-en-cours">
@@ -35,7 +35,7 @@
     {% endif %}
   {% endcomponent %}
 
-  {% component "unfold/components/card.html" with title="Renouvellement" title_icon="autorenew" %}
+  {% component "unfold/components/card.html" with title="Renouvellement" %}
     <dl class="gic:grid gic:grid-cols-[minmax(8rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm">
       <dt class="text-subtle">Responsable</dt><dd class="text-important">{% if t.responsable %}{{ t.responsable.nom_affiche|default:t.responsable.login_windows }}{% else %}Direction{% endif %}</dd>
       <dt class="text-subtle">Rappel</dt><dd class="text-important">{% if t.regle_validite == 'permanente' %}aucun (pièce permanente){% else %}{{ t.rappel_jours }} jours avant l'échéance{% endif %}</dd>
@@ -69,7 +69,7 @@
   {% endcomponent %}
 </div>
 
-{% component "unfold/components/card.html" with title="Historique des versions" title_icon="history" %}
+{% component "unfold/components/card.html" with title="Historique des versions" %}
   {% component "unfold/components/text.html" %}Rien n'est effacé : une version remplacée reste consultable. Une version déposée par erreur se retire, avec un motif.{% endcomponent %}
   {% if ligne.versions %}
   <div class="gic:overflow-x-auto gic:mt-3">
@@ -118,7 +118,7 @@
 {% endcomponent %}
 
 {% if demandes %}
-{% component "unfold/components/card.html" with title="Demandes de renouvellement" title_icon="edit_note" %}
+{% component "unfold/components/card.html" with title="Demandes de renouvellement" %}
   <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm">
     {% for d in demandes %}<li>{{ d.demandee_le|date:"d/m/Y" }}{% if d.aupres_de %} · {{ d.aupres_de }}{% endif %}{% if d.note %} · {{ d.note }}{% endif %} · <span class="text-subtle">{% if d.close_le %}close le {{ d.close_le|date:"d/m/Y" }}{% else %}en cours{% endif %}</span></li>{% endfor %}
   </ul>
