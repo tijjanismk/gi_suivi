@@ -175,6 +175,13 @@ niveau serveur seulement, par `appcmd`. **Pilote lancé le 09/10 sur le poste de
 `gic-serveur.cer` + zone Intranet local (`zone-intranet.ps1`, aussi dans `installer-poste.ps1`) →
 navigateur sans boîte de connexion, agent vert, lots du tampon repris (G04 validé) ;
 `relancer-agent.ps1` pour forcer un nouvel essai après une période d'échecs.
+**21-22/10 (sur AD-SERVEUR)** : menu allégé (doublons des Écrans et pages techniques retirés) ;
+`D:\GIC` créé par `05-Partage-GIC.ps1` (AD inchangé, groupes GI-Offres, GI-Ingenieurs,
+GI-Administratif, GI-Terrain encore vides) puis rempli par `Rangement-GIC.ps1` **sans doublon** :
+3 174 fichiers (20,1 Go) copiés, 2 613 exemplaires en trop notés dans
+`REFERENCES\00_REGISTRE\doublons.csv`. **ADR 0010 proposé** : pièces administratives à
+échéances, contrôlées à la date de dépôt (application `administratif`, tâches AD01-AD07),
+maquettes Unfold bleu publiées.
 **Prochaine étape :** vérifier « État des postes » et « Journée » depuis le poste de Dicko ; test
 de restauration (P01) ; CONTROLE n° 6 ; note D01 signée ; relevés D03 ; WiX ; P07 mémoire. Toujours
 `scripts\dev\verifier.ps1` avant d'envoyer (docs/git.md). Penser à `manage.py migrate` sur la

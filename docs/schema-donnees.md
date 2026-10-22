@@ -87,6 +87,20 @@ Règles d'interprétation :
 | `forfait` | `plafond` si le filtre retient au moins `nb_min_missions`, sinon 0 | « Avoir une agence au Mali » |
 | `manuel` | `note_manuelle` saisie | SOMAPEP 3 : organisation, moyens |
 
+## administratif
+
+Pièces administratives du bureau (ADR 0010, proposé). Les fichiers restent sur `PARTAGE_GIC`,
+sous `ADMINISTRATIF\PIECES\<CODE>\` ; l'application les lit.
+
+| Table | Champs clés | Notes |
+|---|---|---|
+| `TypePiece` | `code` unique, `libelle`, `organisme`, `regle_validite` (apres_emission / fin_annee / date_du_document / revue_periodique / permanente), `duree_mois` null, `rappel_jours`, `exigee_par_defaut` bool, `dossier`, `responsable` FK Utilisateur null, `ordre`, `actif` | Réglé par la direction ; types de départ = chantier 8. |
+| `PieceAdministrative` | `type` FK, `chemin`, `empreinte` (SHA-256) unique, `taille`, `nb_pages`, `numero`, `date_emission`, `valide_jusqu_au` null, `deposee_par`, `deposee_le`, `retiree` bool, `motif_retrait` | Une ligne par version, jamais supprimée. En cours = la plus récente non retirée. |
+| `DemandeRenouvellement` | `type` FK, `demandee_le`, `aupres_de`, `par` FK, `relance_prevue_le` null, `note`, `close_le` null | Close par l'enregistrement d'une version émise après la demande. |
+
+Avec le module avis : `avis.PieceExigee` (avis, type) et la trace de la version jointe à
+l'assemblage, avec son état à la date limite de dépôt.
+
 ## identite
 
 | Table | Champs clés | Notes |
