@@ -1,0 +1,47 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">Types de pièces</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}La règle de validité de chaque pièce, son rappel et son dossier sur le partage. Réglé une fois par la direction ; les échéances proposées au dépôt en découlent.{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if peut_agir %}<a href="{% url 'administratif:type_ajouter' %}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">add</span>Ajouter un type de pièce</a>{% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="Types" title_icon="category" %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-types">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Code</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Pièce</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Délivrée par</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Validité</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Rappel</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Dans chaque dossier</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Dossier sur le partage</th>
+          {% if peut_agir %}<th scope="col" class="gic:py-2"><span class="gic:sr-only">Action</span></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in types %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top {% if not x.actif %}gic:opacity-60{% endif %}" data-code="{{ x.code }}">
+          <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs gic:whitespace-nowrap">{{ x.code }}</td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ x.libelle }}{% if not x.actif %} <span class="text-subtle">(inactif)</span>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3">{{ x.organisme }}</td>
+          <td class="gic:py-2 gic:pr-3">{{ x.regle_texte }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap">{% if x.regle_validite == 'permanente' %}—{% else %}{{ x.rappel_jours }} j avant{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3">{% if x.exigee_par_defaut %}oui{% else %}si l'avis la demande{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs gic:break-all">{{ x.dossier }}</td>
+          {% if peut_agir %}<td class="gic:py-2"><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:type_modifier' x.code %}">Modifier</a></td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endcomponent %}
+{% endblock %}

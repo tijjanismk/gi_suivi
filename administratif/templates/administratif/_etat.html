@@ -1,0 +1,4 @@
+{% comment %} Pastille d'état d'une pièce. Paramètres : cle (valide, a_renouveler, expiree, manquante, non_requise, permanente), libelle. {% endcomment %}
+<span class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:whitespace-nowrap {% if cle == 'valide' %}gic:bg-green-100 gic:text-green-900{% elif cle == 'a_renouveler' %}gic:bg-amber-100 gic:text-amber-900{% elif cle == 'expiree' or cle == 'manquante' %}gic:bg-red-100 gic:text-red-900{% else %}gic:bg-gray-100 gic:text-gray-700{% endif %}" data-etat="{{ cle }}">
+  <span class="material-symbols-outlined gic:text-sm!" aria-hidden="true">{% if cle == 'valide' %}check_circle{% elif cle == 'a_renouveler' %}schedule{% elif cle == 'expiree' %}event_busy{% elif cle == 'manquante' %}help{% elif cle == 'permanente' %}all_inclusive{% else %}remove{% endif %}</span>{{ libelle }}
+</span>

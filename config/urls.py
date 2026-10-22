@@ -16,6 +16,7 @@ urlpatterns = [
     # Accueil : la journée de chaque personne (demande du porteur, 08/10/2026)
     path("", RedirectView.as_view(pattern_name="suivi:journee", permanent=False)),
     path("suivi/", include("suivi.urls")),
+    path("administratif/", include("administratif.urls")),  # pièces administratives (ADR 0010)
     path("sante/", sante, name="sante"),
     path("identite/", include("identite.urls")),
     path("api/", include("suivi.api.urls")),

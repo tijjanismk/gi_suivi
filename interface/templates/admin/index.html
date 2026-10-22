@@ -11,7 +11,7 @@
         {% component "unfold/components/text.html" %}Activité mesurée par les agents de poste, aujourd'hui.{% endcomponent %}
     </div>
 
-    <div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-4">
+    <div class="gic:grid gic:gap-4 gic:md:grid-cols-2 gic:xl:grid-cols-5">
         {% for i in indicateurs %}
             {% component "unfold/components/card.html" with href=i.lien %}
                 {% component "unfold/components/text.html" %}<span class="material-symbols-outlined gic:text-lg! gic:align-middle gic:mr-1 text-subtle">{{ i.icone }}</span>{{ i.titre }}{% endcomponent %}

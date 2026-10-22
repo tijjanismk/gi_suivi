@@ -1,0 +1,127 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">{{ t.libelle }}</span>{% endblock %}
+
+{% block badge_titre %}{% include "administratif/_etat.html" with cle=ligne.cle_etat libelle=ligne.libelle_etat %}{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}{{ t.organisme|default:"Organisme non précisé" }} · {{ t.regle_texte }} · {% if t.exigee_par_defaut %}exigée par défaut dans les dossiers d'offre{% else %}jointe si l'avis la demande{% endif %}{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if ligne.version %}<a href="{% url 'administratif:fichier' ligne.version.pk %}" target="_blank" rel="noopener" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">picture_as_pdf</span>Ouvrir le fichier</a>{% endif %}
+  {% if peut_agir %}<a href="{% url 'administratif:deposer' %}?type={{ t.code }}" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">upload_file</span>Déposer la nouvelle version</a>{% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% if alerte_partage %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">{{ alerte_partage }}</div>{% endif %}
+
+<div class="gic:grid gic:gap-6 gic:lg:grid-cols-2 gic:items-start">
+  {% component "unfold/components/card.html" with title="Version en cours" title_icon="description" %}
+    {% if ligne.version %}
+    {% with v=ligne.version %}
+    <dl class="gic:grid gic:grid-cols-[minmax(8rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="version-en-cours">
+      <dt class="text-subtle">Émise le</dt><dd class="text-important">{{ v.date_emission|date:"d/m/Y" }}</dd>
+      <dt class="text-subtle">Valide jusqu'au</dt><dd class="text-important"><strong>{{ v.valide_jusqu_au|date:"d/m/Y"|default:"Permanente" }}</strong></dd>
+      {% if v.numero %}<dt class="text-subtle">Numéro</dt><dd class="text-important">{{ v.numero }}</dd>{% endif %}
+      <dt class="text-subtle">Fichier</dt><dd class="text-important gic:font-mono gic:text-xs gic:break-all">{{ v.chemin }}</dd>
+      <dt class="text-subtle">Empreinte</dt><dd class="gic:font-mono gic:text-xs gic:break-all" title="{{ v.empreinte }}">{{ v.empreinte|slice:":4" }} {{ v.empreinte|slice:"4:8" }} … {{ v.empreinte|slice:"-4:" }} <span class="text-subtle">(SHA-256)</span></dd>
+      <dt class="text-subtle">Enregistrée</dt><dd class="text-important">{{ v.deposee_le|date:"d/m/Y" }}{% if v.deposee_par %} par {{ v.deposee_par.nom_affiche|default:v.deposee_par.login_windows }}{% endif %}</dd>
+    </dl>
+    {% endwith %}
+    {% else %}
+      {% component "unfold/components/text.html" %}Aucune version enregistrée. Posez le PDF scanné dans <span class="gic:font-mono gic:text-xs">{{ t.dossier }}</span> sur le partage, puis déposez-le.{% endcomponent %}
+    {% endif %}
+  {% endcomponent %}
+
+  {% component "unfold/components/card.html" with title="Renouvellement" title_icon="autorenew" %}
+    <dl class="gic:grid gic:grid-cols-[minmax(8rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm">
+      <dt class="text-subtle">Responsable</dt><dd class="text-important">{% if t.responsable %}{{ t.responsable.nom_affiche|default:t.responsable.login_windows }}{% else %}Direction{% endif %}</dd>
+      <dt class="text-subtle">Rappel</dt><dd class="text-important">{% if t.regle_validite == 'permanente' %}aucun (pièce permanente){% else %}{{ t.rappel_jours }} jours avant l'échéance{% endif %}</dd>
+      {% if ligne.demande %}
+        <dt class="text-subtle">Demande faite</dt><dd class="text-important" id="demande-ouverte">{{ ligne.demande.demandee_le|date:"d/m/Y" }}{% if ligne.demande.aupres_de %} auprès de {{ ligne.demande.aupres_de }}{% endif %}</dd>
+        {% if ligne.demande.relance_prevue_le %}<dt class="text-subtle">Relance prévue</dt><dd class="text-important">{{ ligne.demande.relance_prevue_le|date:"d/m/Y" }}</dd>{% endif %}
+        {% if ligne.demande.note %}<dt class="text-subtle">Note</dt><dd class="text-important">{{ ligne.demande.note }}</dd>{% endif %}
+      {% endif %}
+    </dl>
+    {% if peut_agir %}
+    <details class="gic:mt-4" {% if ligne.alerte and not ligne.demande %}open{% endif %}>
+      <summary class="gic:cursor-pointer gic:text-sm text-primary-600">Noter une demande ou une relance</summary>
+      <form method="post" action="{% url 'administratif:demande' t.code %}" class="gic:mt-3 gic:grid gic:gap-3 gic:sm:grid-cols-2">
+        {% csrf_token %}
+        <label class="gic:text-xs text-subtle">Demandée le
+          <input type="date" id="demande-date" name="demandee_le" value="{{ aujourd_hui|date:'Y-m-d' }}" required class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <label class="gic:text-xs text-subtle">Relance prévue le
+          <input type="date" id="demande-relance" name="relance_prevue_le" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <label class="gic:text-xs text-subtle">Auprès de
+          <input id="demande-aupres" name="aupres_de" placeholder="{{ t.organisme }}" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <label class="gic:text-xs text-subtle">Note
+          <input id="demande-note" name="note" maxlength="300" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <div><button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Noter la demande</button></div>
+      </form>
+    </details>
+    {% endif %}
+  {% endcomponent %}
+</div>
+
+{% component "unfold/components/card.html" with title="Historique des versions" title_icon="history" %}
+  {% component "unfold/components/text.html" %}Rien n'est effacé : une version remplacée reste consultable. Une version déposée par erreur se retire, avec un motif.{% endcomponent %}
+  {% if ligne.versions %}
+  <div class="gic:overflow-x-auto gic:mt-3">
+    <table class="gic:w-full gic:text-sm" id="historique">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Émise le</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Valide jusqu'au</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Fichier</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">État</th>
+          {% if peut_agir %}<th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2"><span class="gic:sr-only">Action</span></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for v in ligne.versions %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top">
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ v.date_emission|date:"d/m/Y" }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ v.valide_jusqu_au|date:"d/m/Y"|default:"Permanente" }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs gic:break-all"><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:fichier' v.pk %}" target="_blank" rel="noopener">{{ v.nom_fichier }}</a></td>
+          <td class="gic:py-2 gic:pr-3">
+            {% if v.retiree %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-gray-100 gic:text-gray-700" title="{{ v.motif_retrait }}">retirée</span><div class="gic:text-xs text-subtle">{{ v.motif_retrait }}</div>
+            {% elif v == ligne.version %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-blue-100 gic:text-blue-900">en cours</span>
+            {% else %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-gray-100 gic:text-gray-700">remplacée</span>{% endif %}
+          </td>
+          {% if peut_agir %}
+          <td class="gic:py-2">
+            {% if not v.retiree %}
+            <details>
+              <summary class="gic:cursor-pointer gic:text-xs text-primary-600">Retirer</summary>
+              <form method="post" action="{% url 'administratif:retirer' v.pk %}" class="gic:mt-2 gic:flex gic:flex-wrap gic:gap-2">
+                {% csrf_token %}
+                <label class="gic:sr-only" for="motif-{{ v.pk }}">Motif du retrait</label>
+                <input id="motif-{{ v.pk }}" name="motif" required maxlength="300" placeholder="Motif (ex. mauvais type)" class="gic:rounded-md gic:px-2 gic:py-1 gic:text-xs border border-base-200 dark:border-base-700 dark:bg-base-900">
+                <button type="submit" class="gic:rounded-md gic:px-2 gic:py-1 gic:text-xs border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Retirer</button>
+              </form>
+            </details>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% endcomponent %}
+
+{% if demandes %}
+{% component "unfold/components/card.html" with title="Demandes de renouvellement" title_icon="edit_note" %}
+  <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm">
+    {% for d in demandes %}<li>{{ d.demandee_le|date:"d/m/Y" }}{% if d.aupres_de %} · {{ d.aupres_de }}{% endif %}{% if d.note %} · {{ d.note }}{% endif %} · <span class="text-subtle">{% if d.close_le %}close le {{ d.close_le|date:"d/m/Y" }}{% else %}en cours{% endif %}</span></li>{% endfor %}
+  </ul>
+{% endcomponent %}
+{% endif %}
+{% endblock %}

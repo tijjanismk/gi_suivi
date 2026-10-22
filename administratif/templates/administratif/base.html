@@ -1,0 +1,34 @@
+{% extends "unfold/layouts/base_simple.html" %}
+{% load unfold %}
+
+{% block title %}{{ titre }} | {{ site_title|default:"GI-SUIVI" }}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:py-2">
+  <nav aria-label="Fil d'Ariane" class="gic:flex gic:flex-wrap gic:items-center gic:gap-1 gic:text-sm text-subtle">
+    <span>Offres</span>
+    {% block ariane %}{% endblock %}
+  </nav>
+  <div class="gic:flex gic:flex-wrap gic:items-end gic:justify-between gic:gap-4">
+    <div class="gic:flex gic:flex-col gic:gap-1 gic:max-w-3xl">
+      <div class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+        {% component "unfold/components/title.html" %}{{ titre }}{% endcomponent %}
+        {% block badge_titre %}{% endblock %}
+      </div>
+      {% block sous_titre %}{% endblock %}
+    </div>
+    <div class="gic:flex gic:flex-wrap gic:gap-2">{% block actions %}{% endblock %}</div>
+  </div>
+
+  {% if messages %}
+  <div class="gic:flex gic:flex-col gic:gap-2" role="status">
+    {% for m in messages %}
+      <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm {% if m.tags == 'error' %}gic:bg-red-100 gic:text-red-900{% elif m.tags == 'warning' %}gic:bg-amber-100 gic:text-amber-900{% elif m.tags == 'info' %}gic:bg-blue-50 gic:text-blue-900{% else %}gic:bg-green-100 gic:text-green-900{% endif %}">{{ m }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% block ecran %}{% endblock %}
+</div>
+{% endblock %}

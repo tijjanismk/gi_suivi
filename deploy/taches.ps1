@@ -45,6 +45,8 @@ Tache "recalcul"      "suivi_recalculer"    (New-ScheduledTaskTrigger -Once -At 
 $muets = New-ScheduledTaskTrigger -Daily -At 07:00
 $muets.Repetition = (New-ScheduledTaskTrigger -Once -At 07:00 -RepetitionInterval (New-TimeSpan -Hours 1) -RepetitionDuration (New-TimeSpan -Hours 12)).Repetition
 Tache "postes muets"  "suivi_postes_muets"  $muets
+# Chaque matin à 07:15 : pièces administratives expirées ou à renouveler (ADR 0010, AD06)
+Tache "pièces administratives" "administratif_echeances" (New-ScheduledTaskTrigger -Daily -At 07:15)
 # Le lundi à 00:05 : compteur hebdomadaire de démarrages des agents remis à zéro (alerte orange)
 Tache "démarrages hebdo" "suivi_postes_muets --remettre-demarrages" (New-ScheduledTaskTrigger -Weekly -DaysOfWeek Monday -At 00:05)
 

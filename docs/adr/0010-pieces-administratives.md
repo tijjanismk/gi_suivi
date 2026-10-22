@@ -146,6 +146,16 @@ de la dénomination et six adresses pour un seul NIF (025004950G). Le porteur a 
 de travailler avec les pièces telles quelles, sans note explicative ; un projet de note reste dans
 `ADMINISTRATIF\` si la question revient.
 
+### 10. Nouveau scan d'une version (initiative du porteur, 22/10/2026)
+
+Des PDF de pièces sont sales ; le porteur organise une séance de rescan. Un rescan est le même
+document : ce n'est pas un renouvellement. L'écran de dépôt propose « Nouveau scan de la version
+en cours » : le fichier choisi est enregistré avec les dates et le numéro de la version en cours,
+il devient la version en cours, et l'ancien scan est retiré avec le motif « remplacée par un
+nouveau scan du même document ». Rien n'est effacé, l'historique distingue un rescan d'un
+renouvellement, et les demandes de renouvellement restent ouvertes. Le rescan de la séance du
+22/10 se fait avant tout enregistrement : seuls les scans propres entrent dans la base.
+
 ## Options écartées
 
 | Option | Pourquoi non |

@@ -1,0 +1,97 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a>{% if t %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:fiche' t.code %}">{{ t.libelle }}</a>{% endif %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">Nouvelle version</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Posez d'abord le PDF scanné dans le dossier de la pièce sur le partage. L'application le retrouve, vérifie qu'il n'est pas déjà enregistré, puis vous saisissez ses dates.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+<div class="gic:flex gic:flex-col gic:gap-6 gic:max-w-4xl">
+  {% component "unfold/components/card.html" with title="1. La pièce" title_icon="category" %}
+    <form method="get" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3">
+      <label class="gic:text-xs text-subtle">Type de pièce
+        <select id="depot-type" name="type" onchange="this.form.submit()" class="gic:mt-1 gic:w-80 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <option value="">—</option>
+          {% for x in types %}<option value="{{ x.code }}" {% if t and t.pk == x.pk %}selected{% endif %}>{{ x.libelle }}</option>{% endfor %}
+        </select>
+      </label>
+      <noscript><button type="submit" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200">Choisir</button></noscript>
+    </form>
+    {% if t %}<p class="gic:mt-2 gic:text-xs text-subtle">Dossier lu : <span class="gic:font-mono">{{ t.dossier }}</span> · {{ t.regle_texte }}</p>{% endif %}
+  {% endcomponent %}
+
+  {% if erreur_partage %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900" role="alert">{{ erreur_partage }}</div>{% endif %}
+
+  {% if t and not erreur_partage %}
+  <form method="post" class="gic:flex gic:flex-col gic:gap-6">
+    {% csrf_token %}
+    <input type="hidden" name="type" value="{{ t.code }}">
+    {% component "unfold/components/card.html" with title="2. Le fichier" title_icon="upload_file" %}
+      {% if fichiers %}
+      <fieldset class="gic:flex gic:flex-col gic:gap-2">
+        <legend class="gic:mb-2 gic:text-sm gic:font-medium text-important">Fichiers du dossier</legend>
+        {% for f in fichiers %}
+        <label class="gic:flex gic:gap-3 gic:items-start gic:rounded-md gic:px-4 gic:py-3 border {% if f.enregistrable %}border-base-200 dark:border-base-700{% else %}border-base-200 dark:border-base-800 gic:bg-gray-50 dark:bg-base-900{% endif %}" data-statut="{{ f.statut }}">
+          <input type="radio" name="empreinte" value="{{ f.empreinte }}" class="gic:mt-1" {% if not f.enregistrable %}disabled{% elif f.empreinte == choisi %}checked{% endif %}>
+          <span class="gic:flex gic:flex-col gic:gap-1 gic:min-w-0">
+            <span class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+              <span class="gic:font-mono gic:text-sm gic:break-all {% if f.enregistrable %}text-important{% else %}text-subtle{% endif %}">{{ f.nom }}</span>
+              {% if f.statut == 'nouveau' %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-green-100 gic:text-green-900">nouveau contenu</span>
+              {% elif f.statut == 'doublon' %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">doublon</span>
+              {% elif f.statut == 'enregistre' %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-gray-100 gic:text-gray-700">enregistré</span>
+              {% else %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:bg-red-100 gic:text-red-900">déjà enregistré</span>{% endif %}
+            </span>
+            <span class="gic:text-xs text-subtle">
+              {% if f.statut == 'doublon' %}Même contenu, octet pour octet, que « {{ f.meme_que }} ». Il ne sera pas enregistré une deuxième fois.
+              {% elif f.statut == 'enregistre' %}Fichier de la version « {{ f.meme_que }} ».
+              {% elif f.statut == 'deja_enregistre' %}Copie identique de la version « {{ f.meme_que }} ». Cette copie peut être retirée du dossier.
+              {% else %}Modifié le {{ f.modifie_le|date:"d/m/Y" }} · {{ f.taille|filesizeformat }}{% if f.nb_pages %} · {{ f.nb_pages }} page{{ f.nb_pages|pluralize }}{% endif %}{% endif %}
+            </span>
+          </span>
+        </label>
+        {% endfor %}
+      </fieldset>
+      {% else %}
+        {% component "unfold/components/text.html" %}Aucun fichier dans <span class="gic:font-mono gic:text-xs">{{ t.dossier }}</span>. Posez-y le PDF scanné, puis rechargez la page.{% endcomponent %}
+      {% endif %}
+    {% endcomponent %}
+
+    {% if courante %}
+    {% component "unfold/components/card.html" %}
+      <label class="gic:flex gic:items-start gic:gap-3 gic:text-sm text-important" for="depot-nouveau-scan">
+        <input type="checkbox" id="depot-nouveau-scan" name="nouveau_scan" value="1" class="gic:mt-1">
+        <span>Nouveau scan de la version en cours (même document, du {{ courante.date_emission|date:"d/m/Y" }})
+          <span class="gic:block gic:text-xs text-subtle">Les dates et le numéro sont repris de la version en cours ; l'ancien scan passe dans l'historique avec le motif « remplacée par un nouveau scan ». Laissez décoché pour un renouvellement.</span>
+        </span>
+      </label>
+    {% endcomponent %}
+    {% endif %}
+
+    {% component "unfold/components/card.html" with title="3. Les dates" title_icon="event" %}
+      <div class="gic:grid gic:gap-4 gic:sm:grid-cols-3">
+        <label class="gic:text-xs text-subtle">Date d'émission
+          <input type="date" id="depot-emission" name="date_emission" value="{{ date_emission }}" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <span class="gic:block gic:mt-1">Celle qui figure sur le document.</span>
+        </label>
+        <label class="gic:text-xs text-subtle">Valide jusqu'au
+          <input type="date" id="depot-fin" name="valide_jusqu_au" value="{{ valide_jusqu_au }}" {% if t.regle_validite == 'permanente' %}disabled{% endif %} class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <span class="gic:block gic:mt-1">{% if t.regle_validite == 'permanente' %}Pièce permanente.{% elif proposition %}Proposée : {{ t.regle_texte }}. À corriger si le document porte une autre date.{% else %}Proposée à partir de la date d'émission.{% endif %}</span>
+        </label>
+        <label class="gic:text-xs text-subtle">Numéro du document
+          <input id="depot-numero" name="numero" value="{{ numero }}" maxlength="100" class="gic:mt-1 gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+      </div>
+      {% if courante %}<p class="gic:mt-4 gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-blue-50 gic:text-blue-900">La version du {{ courante.date_emission|date:"d/m/Y" }} passera dans l'historique. Rien n'est effacé.</p>{% endif %}
+    {% endcomponent %}
+
+    <div class="gic:flex gic:flex-wrap gic:gap-2">
+      <button type="submit" name="action" value="proposer" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Calculer l'échéance</button>
+      <button type="submit" name="action" value="enregistrer" class="gic:inline-flex gic:items-center gic:gap-1 gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90"><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">save</span>Enregistrer la nouvelle version</button>
+      <a href="{% url 'administratif:fiche' t.code %}" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-subtle gic:hover:bg-gray-50">Annuler</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

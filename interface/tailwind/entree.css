@@ -16,3 +16,5 @@
 @source "../../interface/templates/**/*.html";
 @source "../../identite/templates/**/*.html";
 @source "../../suivi/templates/**/*.html";
+@source "../../administratif/templates/**/*.html";
+@source "../../administratif/vues/**/*.py";

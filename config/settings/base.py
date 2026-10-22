@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",
     "identite",
     "suivi",
+    "administratif",  # pièces administratives du bureau (ADR 0010)
 ]
 
 MIDDLEWARE = [
@@ -121,6 +122,9 @@ GROUPE_DIRECTION = env.str("GROUPE_DIRECTION", "GI-Direction")
 # créer en P04.
 GROUPE_DIRECTION_LECTURE = env.str("GROUPE_DIRECTION_LECTURE", "GI-Direction-Lecture")
 GROUPE_OFFRES = env.str("GROUPE_OFFRES", "GI-Offres")
+# Partage des documents du bureau (D:\GIC). Les pièces administratives y sont lues, jamais écrites
+# (ADR 0010, règle 4). Vide en développement : les écrans le signalent.
+PARTAGE_GIC = env.str("PARTAGE_GIC", "")
 
 
 # --- Interface (Unfold, ADR 0005) -----------------------------------------------------
@@ -213,6 +217,24 @@ UNFOLD = {
                         "title": "État des postes",
                         "icon": "computer",
                         "link": _lien("suivi:postes"),
+                    },
+                ],
+            },
+            {
+                # Pièces administratives du bureau (ADR 0010) ; Avis s'y ajoutera
+                "title": "Offres",
+                "items": [
+                    {
+                        "title": "Pièces administratives",
+                        "icon": "verified",
+                        "link": _lien("administratif:registre"),
+                        "badge": "administratif.vues.registre.pastille",
+                        "badge_variant": "warning",
+                    },
+                    {
+                        "title": "Types de pièces",
+                        "icon": "category",
+                        "link": _lien("administratif:types"),
                     },
                 ],
             },

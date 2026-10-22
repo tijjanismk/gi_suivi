@@ -55,5 +55,15 @@ def contexte(request, context: dict) -> dict:
             "lien": reverse("suivi:postes"),
         },
     ]
+    from administratif.services import a_traiter  # ADR 0010 : carte « Pièces à renouveler »
+
+    context["indicateurs"].append(
+        {
+            "titre": "Pièces administratives à traiter",
+            "valeur": a_traiter(),
+            "icone": "verified",
+            "lien": reverse("administratif:registre"),
+        }
+    )
     context["dossiers_a_valider"] = Dossier.objects.filter(statut=Dossier.Statut.DETECTE).count()
     return context

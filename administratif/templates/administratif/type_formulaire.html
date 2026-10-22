@@ -1,0 +1,29 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:types' %}">Types de pièces</a><span class="material-symbols-outlined gic:text-base!" aria-hidden="true">chevron_right</span><span class="text-important">{% if t %}{{ t.code }}{% else %}Nouveau type{% endif %}</span>{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" %}
+  <form method="post" class="gic:grid gic:gap-4 gic:sm:grid-cols-2 gic:max-w-4xl" novalidate>
+    {% csrf_token %}
+    {% if formulaire.non_field_errors %}<div class="gic:sm:col-span-2 gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-red-100 gic:text-red-900">{{ formulaire.non_field_errors|join:" " }}</div>{% endif %}
+    {% for champ in formulaire %}
+      <div class="{% if champ.name == 'libelle' or champ.name == 'dossier' %}gic:sm:col-span-2{% endif %}">
+        {% if champ.widget_type == 'checkbox' %}
+          <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important" for="{{ champ.id_for_label }}">{{ champ }} {{ champ.label|capfirst }}</label>
+        {% else %}
+          <label class="gic:text-xs text-subtle" for="{{ champ.id_for_label }}">{{ champ.label|capfirst }}</label>
+          {{ champ }}
+        {% endif %}
+        {% if champ.help_text %}<p class="gic:mt-1 gic:text-xs text-subtle">{{ champ.help_text }}</p>{% endif %}
+        {% for e in champ.errors %}<p class="gic:mt-1 gic:text-xs gic:text-red-700">{{ e }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="gic:sm:col-span-2 gic:flex gic:gap-2">
+      <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer</button>
+      <a href="{% url 'administratif:types' %}" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-subtle gic:hover:bg-gray-50">Annuler</a>
+    </div>
+  </form>
+{% endcomponent %}
+{% endblock %}
