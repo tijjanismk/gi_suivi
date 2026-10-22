@@ -176,3 +176,24 @@ def test_lecture_seule_ne_voit_pas_les_actions(onglet, live_server, base_essai, 
     sync_api.expect(page.get_by_role("link", name="Déposer une nouvelle version")).to_have_count(0)
     page.goto(f"{live_server.url}/administratif/deposer")
     sync_api.expect(page.get_by_text("GI-Direction").first).to_be_visible()  # page de refus
+
+
+def test_controle_avant_un_depot(onglet, live_server, base_essai):
+    page, expect = onglet, sync_api.expect
+    depot = date.today() + timedelta(days=21)  # le quitus fictif expire dans 15 jours
+    page.goto(f"{live_server.url}/administratif/")
+    page.get_by_role("link", name="Contrôler avant un dépôt").click()
+    page.locator("#controle-date").fill(depot.isoformat())
+    page.locator("#controle-avis").fill("AMI fictif")
+    page.locator("#avec-TVA").check()
+    page.get_by_role("button", name="Contrôler à cette date").click()
+    expect(page.locator('[data-compteur="a_regler"]')).to_have_text("3")
+    rangs = page.locator("#table-controle tbody tr")
+    expect(rangs.first).to_have_attribute("data-code", "QUITUS-FISCAL")
+    quitus = page.locator('#table-controle tr[data-code="QUITUS-FISCAL"]')
+    expect(quitus).to_contain_text("périmée 6 j avant le dépôt")
+    expect(quitus).to_contain_text("Aucune version valide à joindre")
+    expect(page.locator('#table-controle tr[data-code="TVA"]')).to_contain_text("manquante")
+    expect(page.locator("#frise")).to_contain_text("dépôt : AMI fictif")
+    expect(page.locator("#avec-TVA")).to_be_checked()
+    capturer(page, "7-controle")

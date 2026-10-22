@@ -269,6 +269,86 @@ def a_traiter() -> int:
     return compteurs(registre())["a_traiter"]
 
 
+# -- contrôle à une date (ADR 0010, § 6 ; AD07, étape 1) -------------------------------------
+@dataclass
+class LigneControle:
+    """Une pièce demandée, la version qu'on joindrait et son état à la date limite de dépôt."""
+
+    type: TypePiece
+    version: PieceAdministrative | None
+    etat: echeances.EtatPiece
+    ajoutee: bool  # demandée en plus par l'avis (non exigée par défaut)
+    demande: DemandeRenouvellement | None = None
+
+    @property
+    def cle_etat(self) -> str:
+        return self.etat.etat.value
+
+    @property
+    def a_regler(self) -> bool:
+        return self.etat.etat in (echeances.Etat.EXPIREE, echeances.Etat.MANQUANTE)
+
+    @property
+    def libelle_etat(self) -> str:
+        e, j = self.etat.etat, self.etat.jours
+        if e == echeances.Etat.EXPIREE:
+            return f"périmée {-j} j avant le dépôt"
+        if e == echeances.Etat.VALIDE:
+            return "valide le jour du dépôt, pas au-delà" if j == 0 else f"valide · {j} j de marge"
+        return LIBELLES.get(e.value, e.value)
+
+
+def controle_a_la_date(date_limite: date, codes_en_plus: list[str] = ()) -> list[LigneControle]:
+    """Les pièces exigées par défaut, plus celles que l'avis demande en plus, à `date_limite` :
+    pour chacune, la version la plus récente déjà émise à cette date (hors versions retirées)
+    et son état ce jour-là. Les pièces à régler d'abord (moteur.controle)."""
+    types = {
+        t.code: t
+        for t in TypePiece.objects.filter(actif=True).order_by("ordre", "libelle")
+        if t.exigee_par_defaut or t.code in codes_en_plus
+    }
+    versions: dict[str, list[PieceAdministrative]] = {code: [] for code in types}
+    for v in PieceAdministrative.objects.filter(type__code__in=types, retiree=False):
+        versions[v.type.code].append(v)
+    par_pk = {v.pk: v for vs in versions.values() for v in vs}
+    demandes = {
+        d.type.code: d
+        for d in DemandeRenouvellement.objects.filter(
+            type__code__in=types, close_le=None
+        ).select_related("type")
+    }
+    lignes = echeances.controle(
+        list(types),
+        {code: [v.pour_moteur() for v in vs] for code, vs in versions.items()},
+        date_limite,
+    )
+    return [
+        LigneControle(
+            types[x.code],
+            par_pk.get(x.version.ident) if x.version else None,
+            x.etat,
+            not types[x.code].exigee_par_defaut,
+            demandes.get(x.code),
+        )
+        for x in lignes
+    ]
+
+
+def expirations_d_ici(date_limite: date, lignes: list[LigneControle]) -> list[LigneRegistre]:
+    """Les versions valides aujourd'hui qui expirent avant la date limite : ce qu'il faut
+    renouveler à temps, dans l'ordre des échéances."""
+    aujourd_hui = timezone.localdate()
+    en_cours = {x.type.pk: x for x in registre(aujourd_hui, types=[x.type for x in lignes])}
+    resultat = [
+        en_cours[x.type.pk]
+        for x in lignes
+        if en_cours[x.type.pk].version
+        and en_cours[x.type.pk].version.valide_jusqu_au
+        and aujourd_hui <= en_cours[x.type.pk].version.valide_jusqu_au < date_limite
+    ]
+    return sorted(resultat, key=lambda x: x.version.valide_jusqu_au)
+
+
 # -- actions ----------------------------------------------------------------------------------
 @transaction.atomic
 def enregistrer_version(

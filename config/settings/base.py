@@ -232,6 +232,11 @@ UNFOLD = {
                         "badge_variant": "warning",
                     },
                     {
+                        "title": "Contrôle avant un dépôt",
+                        "icon": "fact_check",
+                        "link": _lien("administratif:controle"),
+                    },
+                    {
                         "title": "Types de pièces",
                         "icon": "category",
                         "link": _lien("administratif:types"),

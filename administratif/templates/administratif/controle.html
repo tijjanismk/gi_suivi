@@ -1,0 +1,98 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:registre' %}">Pièces administratives</a><span aria-hidden="true">›</span><span class="text-important">Contrôle avant un dépôt</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Chaque pièce est vérifiée à la date limite de dépôt, pas à la date du jour : une pièce valide aujourd'hui peut être périmée le jour du dépôt.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="L'avis" %}
+  <form method="get" class="gic:flex gic:flex-col gic:gap-4" id="form-controle">
+    <div class="gic:flex gic:flex-wrap gic:items-end gic:gap-4">
+      <label class="gic:text-xs text-subtle">Date limite de dépôt
+        <input type="date" id="controle-date" name="date" value="{{ date_limite|date:'Y-m-d' }}" required class="gic:mt-1 gic:block gic:w-44 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+      </label>
+      <label class="gic:text-xs text-subtle gic:grow">Avis (facultatif, pour l'impression)
+        <input id="controle-avis" name="avis" value="{{ avis }}" maxlength="200" placeholder="Ex. AMI n° 09/2026/001 SOMAPEP" class="gic:mt-1 gic:block gic:w-full gic:max-w-xl gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+      </label>
+    </div>
+    {% if facultatives %}
+    <fieldset>
+      <legend class="gic:text-xs text-subtle gic:mb-2">Pièces que l'avis demande en plus de celles exigées par défaut</legend>
+      <div class="gic:grid gic:gap-2 gic:sm:grid-cols-2 gic:lg:grid-cols-3">
+        {% for t in facultatives %}
+        <label class="gic:flex gic:items-start gic:gap-2 gic:text-sm text-important" for="avec-{{ t.code }}">
+          <input type="checkbox" id="avec-{{ t.code }}" name="avec" value="{{ t.code }}" class="gic:mt-1" {% if t.code in en_plus %}checked{% endif %}>
+          <span>{{ t.libelle }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+    {% endif %}
+    <div><button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Contrôler à cette date</button></div>
+  </form>
+{% endcomponent %}
+
+{% if passe %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">La date limite est passée : le contrôle montre ce qui était valide ce jour-là.</div>{% endif %}
+
+<div class="gic:grid gic:gap-4 gic:sm:grid-cols-2">
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}Valides au {{ date_limite|date:"d/m/Y" }}{% endcomponent %}
+    <div class="gic:text-xl gic:font-semibold text-important" data-compteur="valides">{{ valides }}</div>
+  {% endcomponent %}
+  {% component "unfold/components/card.html" %}
+    {% component "unfold/components/text.html" %}À régler avant le dépôt{% endcomponent %}
+    <div class="gic:text-xl gic:font-semibold {% if a_regler %}gic:text-red-700{% else %}text-important{% endif %}" data-compteur="a_regler">{{ a_regler }}</div>
+  {% endcomponent %}
+</div>
+
+{% if expirations %}
+{% component "unfold/components/card.html" with title="D'ici au dépôt" %}
+  <ol class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="frise">
+    <li><span class="gic:tabular-nums gic:font-medium text-important">{{ aujourd_hui|date:"d/m" }}</span> · aujourd'hui</li>
+    {% for x in expirations %}<li><span class="gic:tabular-nums gic:font-medium text-important">{{ x.version.valide_jusqu_au|date:"d/m" }}</span> · fin de validité : {{ x.type.libelle }}</li>{% endfor %}
+    <li><span class="gic:tabular-nums gic:font-medium text-important">{{ date_limite|date:"d/m" }}</span> · dépôt{% if avis %} : {{ avis }}{% endif %}</li>
+  </ol>
+{% endcomponent %}
+{% endif %}
+
+{% component "unfold/components/card.html" with title="Pièces demandées" %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-controle">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Pièce</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Version disponible</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Au {{ date_limite|date:"d/m/Y" }}</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Ce qui sera joint</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for x in lignes %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ x.type.code }}">
+          <td class="gic:py-2 gic:pr-3">
+            <a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'administratif:fiche' x.type.code %}">{{ x.type.libelle }}</a>
+            {% if x.ajoutee %}<div class="gic:text-xs text-subtle">demandée par l'avis</div>{% endif %}
+          </td>
+          <td class="gic:py-2 gic:pr-3">
+            {% if x.version %}Émise le {{ x.version.date_emission|date:"d/m/Y" }}{% if x.version.valide_jusqu_au %}, valide jusqu'au {{ x.version.valide_jusqu_au|date:"d/m/Y" }}{% else %}, permanente{% endif %}
+            {% else %}Aucune{% endif %}
+          </td>
+          <td class="gic:py-2 gic:pr-3">{% include "administratif/_etat.html" with cle=x.cle_etat libelle=x.libelle_etat %}</td>
+          <td class="gic:py-2">
+            {% if x.a_regler %}
+              <span class="gic:font-semibold text-important">Aucune version valide à joindre</span>
+              <div class="gic:text-xs text-subtle">{% if x.demande %}Demandée le {{ x.demande.demandee_le|date:"d/m/Y" }}{% else %}À demander{% endif %}{% if peut_agir %} · <a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:deposer' %}?type={{ x.type.code }}">déposer une version</a>{% endif %}</div>
+            {% else %}Version du {{ x.version.date_emission|date:"d/m/Y" }}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endcomponent %}
+
+{% component "unfold/components/text.html" %}L'assemblage du dossier PDF, avec une page « PIÈCE PÉRIMÉE » ou « PIÈCE MANQUANTE » à la place d'une pièce à régler, viendra dans une étape suivante.{% endcomponent %}
+{% endblock %}

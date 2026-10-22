@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block actions %}
+  <a href="{% url 'administratif:controle' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Contrôler avant un dépôt</a>
   <a href="{% url 'administratif:types' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Types de pièces</a>
   {% if peut_agir %}<a href="{% url 'administratif:deposer' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Déposer une nouvelle version</a>{% endif %}
 {% endblock %}
