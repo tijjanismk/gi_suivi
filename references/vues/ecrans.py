@@ -12,9 +12,10 @@ from django.views.decorators.http import require_POST
 
 from identite.decorateurs import consultation_requise, groupe_requis
 from moteur.references.doublons import code_le_plus_ancien
+from references import justificatifs as js
 from references import services
 from references.models import DecisionDoublon, Mission
-from referentiel.models import Domaine
+from referentiel.models import Domaine, TypeOuvrage
 from suivi.services import journaliser
 
 PAR_PAGE = 100
@@ -45,6 +46,15 @@ def liste(request):
     verification = request.GET.get("verification", "")
     if verification in Mission.Verification.values:
         qs = qs.filter(statut_verification=verification)
+    qs = js.avec_nb_bonnes(qs)
+    pieces = request.GET.get("pieces", "")
+    if pieces == "completes":
+        qs = qs.filter(nb_bonnes=3)
+    elif pieces == "incompletes":
+        qs = qs.filter(nb_bonnes__lt=3)
+    ouvrage = request.GET.get("ouvrage", "")
+    if ouvrage:
+        qs = qs.filter(types_ouvrage__cle=ouvrage)
     avec_absorbees = request.GET.get("absorbees") == "1"
     if not avec_absorbees:
         qs = qs.filter(absorbee_par=None)
@@ -66,6 +76,9 @@ def liste(request):
             "domaine": domaine,
             "nature": nature,
             "verification": verification,
+            "pieces": pieces,
+            "ouvrage": ouvrage,
+            "types_ouvrage": TypeOuvrage.objects.filter(actif=True),
             "avec_absorbees": avec_absorbees,
             "requete": filtres.urlencode(),
             "nb_absorbees": Mission.objects.exclude(absorbee_par=None).count(),
@@ -96,6 +109,10 @@ def fiche(request, code: str):
             "secondaires": m.domaines_secondaires.all(),
             "absorbees": m.absorbees.order_by("code"),
             "decisions": decisions,
+            "etat": js.etat_justificatifs(m),
+            "ouvrages": m.types_ouvrage.all(),
+            "livrables": m.livrables.all(),
+            "quantites": m.quantites.select_related("type"),
             "peut_agir": request.user.direction,
         },
     )

@@ -1,0 +1,255 @@
+"""Justificatifs, réclamations, ouvrages et quantités des références (ADR 0011).
+
+Les fichiers sont lus dans REFERENCES/02_JUSTIFICATIFS/<code> du partage GIC, jamais écrits :
+mêmes fonctions de lecture que les pièces administratives (ADR 0010).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from decimal import Decimal, InvalidOperation
+
+from django.db import transaction
+from django.db.models import Count, Q, QuerySet
+from django.utils import timezone
+
+from administratif.services import (
+    PartageIndisponibleError,
+    chemin_absolu,
+    empreinte,
+    nb_pages,
+    relatif,
+)
+from moteur.suivi.classement import est_technique
+from references.models import TYPES_ESSENTIELS, Mission, PieceJustificative, Quantite, Reclamation
+from referentiel.models import TypeQuantite
+
+DOSSIER = "REFERENCES\\02_JUSTIFICATIFS"
+NOMS_NORMALISES = ("GARDE.PDF", "SIGNATURE.PDF", "ATTESTATION.PDF", "CONTRAT_COMPLET.PDF")
+BONNE = Q(pieces__lisible__in=("oui", "moyen"), pieces__coherente="oui")
+
+
+def dossier_de(mission: Mission) -> str:
+    return f"{DOSSIER}\\{mission.code}"
+
+
+def type_propose(nom: str) -> str:
+    """D'après le nom normalisé du rangement : GARDE.pdf, SIGNATURE.pdf, ATTESTATION.pdf,
+    CONTRAT_COMPLET.pdf ; un avenant ; sinon « autre »."""
+    n = nom.upper()
+    for mot, type_ in (  # « page de garde du contrat » est une garde : CONTRAT en dernier
+        ("AVENANT", "avenant"),
+        ("GARDE", "garde"),
+        ("SIGNATURE", "signature"),
+        ("ATTESTATION", "attestation"),
+        ("PV", "attestation"),
+        ("CONTRAT", "contrat_complet"),
+    ):
+        if mot in n:
+            return type_
+    return "autre"
+
+
+@dataclass
+class Fichier:
+    nom: str
+    chemin: str
+    empreinte: str
+    taille: int
+    nb_pages: int | None
+    type_propose: str
+    statut: str = "nouveau"  # nouveau | rattache | ailleurs | doublon
+    piece: PieceJustificative | None = None
+
+
+def fichiers(mission: Mission) -> list[Fichier]:
+    """Les fichiers posés dans le dossier du code (pas ses sous-dossiers), avec leur statut :
+    nouveau, déjà rattaché à cette référence, rattaché à une autre, ou doublon d'un autre."""
+    dossier = chemin_absolu(dossier_de(mission))
+    if not dossier.is_dir():
+        raise PartageIndisponibleError(
+            f"dossier introuvable sur le partage : {dossier_de(mission)}"
+        )
+    lus = [
+        Fichier(
+            nom=p.name,
+            chemin=relatif(p),
+            empreinte=empreinte(p),
+            taille=p.stat().st_size,
+            nb_pages=nb_pages(p),
+            type_propose=type_propose(p.name),
+        )
+        for p in sorted(dossier.iterdir(), key=lambda x: x.name.lower())
+        if p.is_file() and not est_technique(p.name)
+    ]
+    connues = {
+        x.empreinte: x
+        for x in PieceJustificative.objects.select_related("mission").filter(
+            empreinte__in=[f.empreinte for f in lus]
+        )
+    }
+    # entre fichiers identiques, le « nouveau » est celui au nom normalisé (GARDE.pdf…), sinon
+    # le nom le plus court ; les autres sont des doublons
+    premiers: dict[str, Fichier] = {}
+    for f in sorted(lus, key=lambda x: (x.nom.upper() not in NOMS_NORMALISES, len(x.nom), x.nom)):
+        premiers.setdefault(f.empreinte, f)
+    for f in lus:
+        if f.empreinte in connues:
+            f.piece = connues[f.empreinte]
+            f.statut = "rattache" if f.piece.mission_id == mission.pk else "ailleurs"
+        elif premiers[f.empreinte] is not f:
+            f.statut = "doublon"
+    return lus
+
+
+@transaction.atomic
+def rattacher(mission: Mission, fichier: Fichier, type_: str, utilisateur) -> PieceJustificative:
+    if fichier.statut != "nouveau":
+        raise ValueError(f"« {fichier.nom} » ne peut pas être rattaché : {fichier.statut}")
+    if type_ not in PieceJustificative.Type.values:
+        raise ValueError("type de pièce inconnu")
+    if type_ in TYPES_ESSENTIELS and mission.pieces.filter(type=type_).exists():
+        libelle = PieceJustificative.Type(type_).label
+        raise ValueError(f"cette référence a déjà une {libelle} : détachez-la d'abord")
+    chemin = chemin_absolu(fichier.chemin)
+    if not chemin.is_file() or empreinte(chemin) != fichier.empreinte:
+        raise ValueError(f"« {fichier.nom} » a changé ou disparu : rechargez la page")
+    return PieceJustificative.objects.create(
+        mission=mission,
+        type=type_,
+        chemin=fichier.chemin,
+        empreinte=fichier.empreinte,
+        taille=fichier.taille,
+        nb_pages=fichier.nb_pages,
+        rattachee_par=utilisateur if getattr(utilisateur, "pk", None) else None,
+    )
+
+
+def auditer(piece: PieceJustificative, donnees: dict, utilisateur) -> PieceJustificative:
+    """Les quatre questions du chantier 3 : présente (rattachée), lisible, de la bonne nature,
+    cohérente avec les deux autres."""
+    for champ, choix in (
+        ("nature_exacte", PieceJustificative.Nature.values),
+        ("lisible", PieceJustificative.Lisible.values),
+        ("coherente", PieceJustificative.Coherente.values),
+    ):
+        valeur = donnees.get(champ, "")
+        if valeur and valeur not in choix:
+            raise ValueError(f"{champ} : « {valeur} » inconnu")
+        setattr(piece, champ, valeur)
+    piece.date_document = donnees.get("date_document") or None
+    piece.observations = (donnees.get("observations") or "").strip()[:500]
+    piece.auditee_par = utilisateur if getattr(utilisateur, "pk", None) else None
+    piece.auditee_le = timezone.now()
+    piece.save()
+    return piece
+
+
+def reclamer(mission: Mission, type_: str, etat: str, le, contact: str, note: str, utilisateur):
+    if type_ not in PieceJustificative.Type.values or etat not in Reclamation.Etat.values:
+        raise ValueError("pièce ou état de réclamation inconnu")
+    return Reclamation.objects.create(
+        mission=mission,
+        type=type_,
+        etat=etat,
+        le=le or timezone.localdate(),
+        contact_client=contact.strip()[:200],
+        note=note.strip()[:300],
+        par=utilisateur if getattr(utilisateur, "pk", None) else None,
+    )
+
+
+@dataclass
+class Emplacement:
+    """Une des trois pièces qui rendent une référence complète."""
+
+    type: str
+    libelle: str
+    piece: PieceJustificative | None
+    reclamation: Reclamation | None = None
+
+    @property
+    def etat(self) -> str:
+        if self.piece is None:
+            return "manquante"
+        if not self.piece.lisible or not self.piece.coherente:
+            return "a_auditer"
+        return "bonne" if self.piece.bonne else "faible"
+
+
+@dataclass
+class EtatJustificatifs:
+    emplacements: list[Emplacement]
+    autres: list[PieceJustificative] = field(default_factory=list)
+
+    @property
+    def complete(self) -> bool:
+        return all(e.etat == "bonne" for e in self.emplacements)
+
+    @property
+    def nb_bonnes(self) -> int:
+        return sum(1 for e in self.emplacements if e.etat == "bonne")
+
+
+def etat_justificatifs(mission: Mission) -> EtatJustificatifs:
+    pieces = list(mission.pieces.select_related("auditee_par").order_by("type", "pk"))
+    reclamations: dict[str, Reclamation] = {}
+    for r in mission.reclamations.order_by("le", "pk"):
+        reclamations[r.type] = r  # la plus récente l'emporte
+    emplacements = [
+        Emplacement(
+            t,
+            PieceJustificative.Type(t).label,
+            next((p for p in pieces if p.type == t), None),
+            reclamations.get(t),
+        )
+        for t in TYPES_ESSENTIELS
+    ]
+    return EtatJustificatifs(emplacements, [p for p in pieces if p.type not in TYPES_ESSENTIELS])
+
+
+def avec_nb_bonnes(qs: QuerySet[Mission]) -> QuerySet[Mission]:
+    """Annote chaque référence du nombre de ses pièces essentielles bonnes (0 à 3)."""
+    return qs.annotate(
+        nb_bonnes=Count(
+            "pieces", filter=BONNE & Q(pieces__type__in=TYPES_ESSENTIELS), distinct=True
+        )
+    )
+
+
+# -- ouvrages, livrables, quantités -----------------------------------------------------------
+def lire_quantite(texte: str) -> Decimal | None:
+    t = (texte or "").replace(" ", "").replace("\xa0", "").replace(" ", "").replace(",", ".")
+    if not t:
+        return None
+    try:
+        valeur = Decimal(t)
+    except InvalidOperation as e:
+        raise ValueError(f"quantité illisible : {texte}") from e
+    if valeur < 0:
+        raise ValueError(f"quantité négative : {texte}")
+    return valeur
+
+
+@transaction.atomic
+def enregistrer_ouvrages(
+    mission: Mission,
+    types_ouvrage: list[int],
+    livrables: list[int],
+    quantites: dict[int, tuple[str, str]],
+) -> None:
+    """Remplace les ouvrages et livrables de la référence ; une quantité vide est retirée.
+    ValueError (rien n'est gardé) si une quantité est illisible."""
+    mission.types_ouvrage.set(types_ouvrage)
+    mission.livrables.set(livrables)
+    for type_q in TypeQuantite.objects.filter(pk__in=quantites):
+        texte, source = quantites[type_q.pk]
+        valeur = lire_quantite(texte)
+        if valeur is None:
+            Quantite.objects.filter(mission=mission, type=type_q).delete()
+        else:
+            Quantite.objects.update_or_create(
+                mission=mission,
+                type=type_q,
+                defaults={"valeur": valeur, "source": source.strip()[:200]},
+            )

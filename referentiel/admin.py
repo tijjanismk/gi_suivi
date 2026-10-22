@@ -1,7 +1,15 @@
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from referentiel.models import Bailleur, Categorie, Client, Domaine
+from referentiel.models import (
+    Bailleur,
+    Categorie,
+    Client,
+    Domaine,
+    Livrable,
+    TypeOuvrage,
+    TypeQuantite,
+)
 
 
 @admin.register(Domaine)
@@ -30,3 +38,20 @@ class ClientAdmin(ModelAdmin):
 class BailleurAdmin(ModelAdmin):
     list_display = ["nom", "sigle"]
     search_fields = ["nom", "sigle"]
+
+
+@admin.register(TypeOuvrage)
+class TypeOuvrageAdmin(ModelAdmin):
+    list_display = ["libelle", "famille", "cle", "ordre", "actif"]
+    list_filter = ["famille", "actif"]
+    search_fields = ["libelle", "cle", "famille"]
+
+
+@admin.register(Livrable)
+class LivrableAdmin(ModelAdmin):
+    list_display = ["libelle", "cle", "ordre"]
+
+
+@admin.register(TypeQuantite)
+class TypeQuantiteAdmin(ModelAdmin):
+    list_display = ["libelle", "unite", "cle", "ordre"]

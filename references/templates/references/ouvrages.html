@@ -1,0 +1,51 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:liste' %}">Références du bureau</a><span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:fiche' m.code %}">{{ m.code }}</a><span aria-hidden="true">›</span><span class="text-important">Ouvrages et quantités</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}À renseigner à partir du contrat ou du rapport : les types d'ouvrages, les livrables produits et seulement les quantités qui existent, avec la page où elles sont lues.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+<form method="post" class="gic:flex gic:flex-col gic:gap-6 gic:max-w-5xl" id="form-ouvrages">
+  {% csrf_token %}
+  {% component "unfold/components/card.html" with title="Types d'ouvrages" %}
+    <div class="gic:grid gic:gap-2 gic:sm:grid-cols-2 gic:lg:grid-cols-3 gic:text-sm">
+      {% for t in types_ouvrage %}
+      <label class="gic:flex gic:items-start gic:gap-2 text-important" for="ouvrage-{{ t.cle }}">
+        <input type="checkbox" id="ouvrage-{{ t.cle }}" name="types_ouvrage" value="{{ t.pk }}" class="gic:mt-1" {% if t.pk in choisis %}checked{% endif %}>
+        <span>{{ t.libelle }}<span class="gic:block gic:text-xs text-subtle">{{ t.famille }}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with title="Livrables" %}
+    <div class="gic:grid gic:gap-2 gic:sm:grid-cols-2 gic:lg:grid-cols-3 gic:text-sm">
+      {% for l in livrables %}
+      <label class="gic:flex gic:items-center gic:gap-2 text-important" for="livrable-{{ l.cle }}"><input type="checkbox" id="livrable-{{ l.cle }}" name="livrables" value="{{ l.pk }}" {% if l.pk in livrables_choisis %}checked{% endif %}> {{ l.libelle }}</label>
+      {% endfor %}
+    </div>
+  {% endcomponent %}
+  {% component "unfold/components/card.html" with title="Quantités" %}
+    <div class="gic:flex gic:flex-col gic:gap-3">
+      {% for t, q in quantites %}
+      <div class="gic:grid gic:gap-2 gic:sm:grid-cols-[minmax(14rem,auto)_10rem_1fr] gic:items-end">
+        <span class="gic:text-sm text-important">{{ t.libelle }} <span class="text-subtle">({{ t.unite }})</span></span>
+        <label class="gic:text-xs text-subtle">Valeur
+          <input id="q-{{ t.cle }}" name="q-{{ t.pk }}" value="{% if q %}{{ q.valeur_texte }}{% endif %}" inputmode="decimal" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+        <label class="gic:text-xs text-subtle">Lue où
+          <input id="s-{{ t.cle }}" name="s-{{ t.pk }}" value="{{ q.source|default:'' }}" maxlength="200" placeholder="contrat p. 4, rapport, estimation" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        </label>
+      </div>
+      {% endfor %}
+      <p class="gic:text-xs text-subtle">Une valeur vide retire la quantité.</p>
+    </div>
+  {% endcomponent %}
+  <div class="gic:flex gic:gap-2">
+    <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer</button>
+    <a href="{% url 'references:fiche' m.code %}" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-subtle gic:hover:bg-gray-50">Annuler</a>
+  </div>
+</form>
+{% endblock %}

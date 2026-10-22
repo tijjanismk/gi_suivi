@@ -4,7 +4,7 @@ doublons). Aucune suppression : une fiche en double est absorbée, jamais effac�
 from django.contrib import admin
 from unfold.admin import ModelAdmin
 
-from references.models import DecisionDoublon, Mission
+from references.models import DecisionDoublon, Mission, PieceJustificative, Quantite, Reclamation
 
 
 @admin.register(Mission)
@@ -21,7 +21,7 @@ class MissionAdmin(ModelAdmin):
     list_filter = ["domaine", "nature", "statut_verification", "statut_code"]
     search_fields = ["code", "intitule", "intitule_court", "client__nom", "numero_contrat"]
     list_select_related = ["domaine", "client"]
-    filter_horizontal = ["domaines_secondaires"]
+    filter_horizontal = ["domaines_secondaires", "types_ouvrage", "livrables"]
     readonly_fields = ["cree_le", "modifie_le"]
 
     def get_readonly_fields(self, request, obj=None):
@@ -45,3 +45,28 @@ class DecisionDoublonAdmin(ModelAdmin):
 
     def has_delete_permission(self, request, obj=None) -> bool:
         return False
+
+
+@admin.register(PieceJustificative)
+class PieceJustificativeAdmin(ModelAdmin):
+    list_display = ["mission", "type", "nature_exacte", "lisible", "coherente", "chemin"]
+    list_filter = ["type", "lisible", "coherente"]
+    search_fields = ["mission__code", "chemin"]
+    readonly_fields = ["empreinte", "taille", "nb_pages", "rattachee_par", "rattachee_le"]
+
+    def has_add_permission(self, request) -> bool:
+        return False  # un justificatif se rattache par l'écran, qui lit le fichier et son empreinte
+
+
+@admin.register(Reclamation)
+class ReclamationAdmin(ModelAdmin):
+    list_display = ["mission", "type", "etat", "le", "contact_client"]
+    list_filter = ["etat", "type"]
+    search_fields = ["mission__code", "contact_client"]
+
+
+@admin.register(Quantite)
+class QuantiteAdmin(ModelAdmin):
+    list_display = ["mission", "type", "valeur", "source"]
+    list_filter = ["type"]
+    search_fields = ["mission__code"]

@@ -1,0 +1,115 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:liste' %}">Références du bureau</a><span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:fiche' m.code %}">{{ m.code }}</a><span aria-hidden="true">›</span><span class="text-important">Justificatifs</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Une référence compte quand ses trois pièces sont rattachées, lisibles et cohérentes entre elles. Les fichiers sont lus dans <span class="gic:font-mono gic:text-xs">{{ dossier }}</span> sur le partage ; l'application ne les modifie pas.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+<p class="gic:text-sm text-important" id="justificatifs-bilan">{% if etat.complete %}<strong>Référence complète</strong> : les trois pièces sont bonnes.{% else %}{{ etat.nb_bonnes }} pièce{{ etat.nb_bonnes|pluralize }} bonne{{ etat.nb_bonnes|pluralize }} sur 3.{% endif %}</p>
+
+<div class="gic:grid gic:gap-4 gic:lg:grid-cols-3">
+  {% for e in etat.emplacements %}
+  {% component "unfold/components/card.html" with title=e.libelle|capfirst %}
+    <div class="gic:flex gic:flex-col gic:gap-3 gic:text-sm" data-emplacement="{{ e.type }}">
+      <span class="gic:self-start gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if e.etat == 'bonne' %}gic:bg-green-100 gic:text-green-900{% elif e.etat == 'manquante' or e.etat == 'faible' %}gic:bg-red-100 gic:text-red-900{% else %}gic:bg-amber-100 gic:text-amber-900{% endif %}" data-etat="{{ e.etat }}">{% if e.etat == 'bonne' %}bonne{% elif e.etat == 'manquante' %}manquante{% elif e.etat == 'faible' %}faible{% else %}à auditer{% endif %}</span>
+      {% if e.piece %}
+        {% with p=e.piece %}
+        <a class="text-primary-600 gic:font-mono gic:text-xs gic:break-all gic:hover:underline" href="{% url 'references:fichier_justificatif' p.pk %}" target="_blank" rel="noopener">{{ p.nom_fichier }}</a>
+        <span class="gic:text-xs text-subtle">{% if p.nb_pages %}{{ p.nb_pages }} page{{ p.nb_pages|pluralize }} · {% endif %}{{ p.get_nature_exacte_display|default:"nature non qualifiée" }}{% if p.date_document %} · du {{ p.date_document|date:"d/m/Y" }}{% endif %}{% if p.auditee_le %} · auditée le {{ p.auditee_le|date:"d/m/Y" }}{% endif %}</span>
+        {% if p.observations %}<span class="gic:text-xs text-important">{{ p.observations }}</span>{% endif %}
+        {% if peut_agir %}
+        <form method="post" action="{% url 'references:auditer' p.pk %}" class="gic:grid gic:gap-2">
+          {% csrf_token %}
+          <label class="gic:text-xs text-subtle">Nature exacte
+            <select name="nature_exacte" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+              <option value="">—</option>{% for v, l in natures %}<option value="{{ v }}" {% if p.nature_exacte == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+            </select>
+          </label>
+          <div class="gic:grid gic:grid-cols-2 gic:gap-2">
+            <label class="gic:text-xs text-subtle">Lisible
+              <select name="lisible" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+                <option value="">—</option>{% for v, l in lisibles %}<option value="{{ v }}" {% if p.lisible == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+              </select>
+            </label>
+            <label class="gic:text-xs text-subtle">Cohérente
+              <select name="coherente" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+                <option value="">—</option>{% for v, l in coherentes %}<option value="{{ v }}" {% if p.coherente == v %}selected{% endif %}>{{ l }}</option>{% endfor %}
+              </select>
+            </label>
+          </div>
+          <label class="gic:text-xs text-subtle">Date du document
+            <input type="date" name="date_document" value="{{ p.date_document|date:'Y-m-d' }}" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          </label>
+          <label class="gic:text-xs text-subtle">Observations
+            <input name="observations" value="{{ p.observations }}" maxlength="500" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          </label>
+          <div><button type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer l'audit</button></div>
+        </form>
+        <form method="post" action="{% url 'references:detacher' p.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Détacher ce fichier</button></form>
+        {% endif %}
+        {% endwith %}
+      {% endif %}
+      {% if e.reclamation %}<span class="gic:text-xs text-important" data-reclamation="{{ e.reclamation.etat }}">Réclamation : {{ e.reclamation.get_etat_display }} le {{ e.reclamation.le|date:"d/m/Y" }}{% if e.reclamation.contact_client %} · {{ e.reclamation.contact_client }}{% endif %}</span>{% elif e.etat == 'manquante' or e.etat == 'faible' %}<span class="gic:text-xs gic:font-semibold text-important">Aucune réclamation</span>{% endif %}
+      {% if peut_agir and e.etat != 'bonne' %}
+      <details>
+        <summary class="gic:cursor-pointer gic:text-xs text-primary-600">Noter une réclamation</summary>
+        <form method="post" action="{% url 'references:reclamer' m.code %}" class="gic:mt-2 gic:grid gic:gap-2">
+          {% csrf_token %}
+          <input type="hidden" name="type" value="{{ e.type }}">
+          <select name="etat" aria-label="État de la réclamation" class="gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">{% for v, l in etats_reclamation %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+          <input type="date" name="le" aria-label="Date" class="gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <input name="contact_client" placeholder="Contact chez le client" maxlength="200" class="gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <input name="note" placeholder="Note" maxlength="300" class="gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+          <div><button type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Noter</button></div>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+  {% endcomponent %}
+  {% endfor %}
+</div>
+
+{% if etat.autres %}
+{% component "unfold/components/card.html" with title="Autres pièces" %}
+  <ul class="gic:flex gic:flex-col gic:gap-2 gic:text-sm" id="autres-pieces">
+    {% for p in etat.autres %}<li class="gic:flex gic:flex-wrap gic:items-center gic:gap-2"><span class="text-important">{{ p.get_type_display|capfirst }}</span> · <a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fichier_justificatif' p.pk %}" target="_blank" rel="noopener">{{ p.nom_fichier }}</a>{% if peut_agir %}<form method="post" action="{% url 'references:detacher' p.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Détacher</button></form>{% endif %}</li>{% endfor %}
+  </ul>
+{% endcomponent %}
+{% endif %}
+
+{% component "unfold/components/card.html" with title="Fichiers du dossier" %}
+  {% if erreur_partage %}
+    <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900" role="alert">{{ erreur_partage }}</div>
+  {% elif fichiers %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-fichiers">
+      <thead><tr class="gic:border-b border-base-200 dark:border-base-800"><th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Fichier</th><th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">État</th><th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2"><span class="gic:sr-only">Action</span></th></tr></thead>
+      <tbody>
+        {% for f in fichiers %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-fichier="{{ f.nom }}" data-statut="{{ f.statut }}">
+          <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs gic:break-all">{{ f.nom }}<div class="gic:font-sans text-subtle">{{ f.taille|filesizeformat }}{% if f.nb_pages %} · {{ f.nb_pages }} page{{ f.nb_pages|pluralize }}{% endif %}</div></td>
+          <td class="gic:py-2 gic:pr-3">{% if f.statut == 'rattache' %}rattaché : {{ f.piece.get_type_display }}{% elif f.statut == 'ailleurs' %}déjà rattaché à {{ f.piece.mission.code }}{% elif f.statut == 'doublon' %}doublon d'un autre fichier du dossier{% else %}nouveau{% endif %}</td>
+          <td class="gic:py-2">
+            {% if peut_agir and f.statut == 'nouveau' %}
+            <form method="post" action="{% url 'references:rattacher' m.code %}" class="gic:flex gic:flex-wrap gic:items-center gic:gap-2">
+              {% csrf_token %}
+              <input type="hidden" name="empreinte" value="{{ f.empreinte }}">
+              <label class="gic:sr-only" for="type-{{ forloop.counter }}">Type de pièce</label>
+              <select id="type-{{ forloop.counter }}" name="type" class="gic:rounded-md gic:px-2 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">{% for v, l in types %}<option value="{{ v }}" {% if v == f.type_propose %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+              <button type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Rattacher</button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucun fichier dans le dossier. Posez-y les scans nommés GARDE.pdf, SIGNATURE.pdf, ATTESTATION.pdf ou CONTRAT_COMPLET.pdf.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+{% endblock %}

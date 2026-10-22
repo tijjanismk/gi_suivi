@@ -33,6 +33,22 @@
   </dl>
 {% endcomponent %}
 
+{% component "unfold/components/card.html" with title="Justificatifs" %}
+  <div class="gic:flex gic:flex-wrap gic:items-center gic:gap-2 gic:text-sm" id="bilan-justificatifs">
+    {% for e in etat.emplacements %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if e.etat == 'bonne' %}gic:bg-green-100 gic:text-green-900{% elif e.etat == 'manquante' or e.etat == 'faible' %}gic:bg-red-100 gic:text-red-900{% else %}gic:bg-amber-100 gic:text-amber-900{% endif %}">{{ e.libelle|capfirst }} : {% if e.etat == 'bonne' %}bonne{% elif e.etat == 'manquante' %}manquante{% elif e.etat == 'faible' %}faible{% else %}à auditer{% endif %}</span>{% endfor %}
+    <a class="text-primary-600 gic:hover:underline" href="{% url 'references:justificatifs' m.code %}">{% if peut_agir %}Rattacher et auditer{% else %}Voir les pièces{% endif %}</a>
+  </div>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Ouvrages, livrables et quantités" %}
+  <dl class="gic:grid gic:grid-cols-[minmax(10rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="fiche-ouvrages">
+    <dt class="text-subtle">Types d'ouvrages</dt><dd class="text-important">{% for o in ouvrages %}{{ o.libelle }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
+    <dt class="text-subtle">Livrables</dt><dd class="text-important">{% for l in livrables %}{{ l.libelle }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
+    <dt class="text-subtle">Quantités</dt><dd class="text-important">{% for q in quantites %}{{ q.type.libelle }} : {{ q.valeur_texte }} {{ q.type.unite }}{% if q.source %} <span class="text-subtle">({{ q.source }})</span>{% endif %}{% if not forloop.last %} · {% endif %}{% empty %}—{% endfor %}</dd>
+  </dl>
+  {% if peut_agir %}<a class="gic:mt-3 gic:inline-block gic:text-sm text-primary-600 gic:hover:underline" href="{% url 'references:ouvrages' m.code %}">Renseigner les ouvrages et quantités</a>{% endif %}
+{% endcomponent %}
+
 {% if absorbees %}
 {% component "unfold/components/card.html" with title="Fiches absorbées par cette référence" %}
   <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="absorbees">

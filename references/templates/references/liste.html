@@ -36,6 +36,19 @@
         {% for v, l in verifications %}<option value="{{ v }}" {% if v == verification %}selected{% endif %}>{{ l }}</option>{% endfor %}
       </select>
     </label>
+    <label class="gic:text-xs text-subtle">Justificatifs
+      <select id="ref-pieces" name="pieces" class="gic:w-40 gic:mt-1 gic:block gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Tous</option>
+        <option value="completes" {% if pieces == 'completes' %}selected{% endif %}>complets</option>
+        <option value="incompletes" {% if pieces == 'incompletes' %}selected{% endif %}>incomplets</option>
+      </select>
+    </label>
+    <label class="gic:text-xs text-subtle">Type d'ouvrage
+      <select id="ref-ouvrage" name="ouvrage" class="gic:w-56 gic:mt-1 gic:block gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Tous</option>
+        {% for t in types_ouvrage %}<option value="{{ t.cle }}" {% if t.cle == ouvrage %}selected{% endif %}>{{ t.libelle }}</option>{% endfor %}
+      </select>
+    </label>
     <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important gic:pb-1.5" for="ref-absorbees">
       <input type="checkbox" id="ref-absorbees" name="absorbees" value="1" {% if avec_absorbees %}checked{% endif %}> Afficher les {{ nb_absorbees }} absorbée{{ nb_absorbees|pluralize }}
     </label>
@@ -55,6 +68,7 @@
           <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Client</th>
           <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Année</th>
           <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Domaines</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Pièces</th>
           <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Vérification</th>
         </tr>
       </thead>
@@ -66,6 +80,7 @@
           <td class="gic:py-2 gic:pr-3">{{ m.client|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ m.annee|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap">{{ m.domaine.code }}{% for d in m.domaines_secondaires.all %} <span class="text-subtle">+ {{ d.code }}</span>{% endfor %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums gic:whitespace-nowrap" title="pièces bonnes : garde, signature, attestation">{{ m.nb_bonnes }} / 3</td>
           <td class="gic:py-2">{{ m.get_statut_verification_display }}</td>
         </tr>
         {% endfor %}

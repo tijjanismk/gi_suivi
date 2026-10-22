@@ -1,11 +1,12 @@
 """Référentiel partagé par les références, les experts et les avis (docs/schema-donnees.md).
 
-Premier lot (ADR 0008) : domaines du code de référence, catégories, clients, bailleurs. Les
-types d'ouvrages, localités et types de quantités viennent avec le chantier 4.
+Domaines du code de référence, catégories, clients, bailleurs (ADR 0008) ; types d'ouvrages,
+livrables et types de quantités (ADR 0011). Les localités viendront avec le module avis.
 """
 
 from __future__ import annotations
 
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 
@@ -70,3 +71,54 @@ class Bailleur(models.Model):
 
     def __str__(self) -> str:
         return self.sigle or self.nom
+
+
+class TypeOuvrage(models.Model):
+    """Liste fermée du chantier 4 (ADR 0011), avec la famille et les synonymes qui relient le
+    vocabulaire des bailleurs au nôtre : « recharge de nappe » trouve les seuils."""
+
+    cle = models.SlugField("clé", max_length=60, unique=True)
+    libelle = models.CharField("libellé", max_length=120)
+    famille = models.CharField(max_length=120, blank=True)
+    synonymes = ArrayField(models.CharField(max_length=120), default=list, blank=True)
+    ordre = models.PositiveSmallIntegerField(default=100)
+    actif = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "type d'ouvrage"
+        verbose_name_plural = "types d'ouvrages"
+        ordering = ["ordre", "libelle"]
+
+    def __str__(self) -> str:
+        return self.libelle
+
+
+class Livrable(models.Model):
+    """Ce que la mission a produit : APS, APD, DAO, EIES, NIES, suivi-contrôle."""
+
+    cle = models.SlugField("clé", max_length=40, unique=True)
+    libelle = models.CharField("libellé", max_length=120)
+    ordre = models.PositiveSmallIntegerField(default=100)
+
+    class Meta:
+        ordering = ["ordre", "libelle"]
+
+    def __str__(self) -> str:
+        return self.libelle
+
+
+class TypeQuantite(models.Model):
+    """Superficie, longueur, forages, sites, capacité : ajouter un type sans migration."""
+
+    cle = models.SlugField("clé", max_length=40, unique=True)
+    libelle = models.CharField("libellé", max_length=120)
+    unite = models.CharField("unité", max_length=20)
+    ordre = models.PositiveSmallIntegerField(default=100)
+
+    class Meta:
+        verbose_name = "type de quantité"
+        verbose_name_plural = "types de quantités"
+        ordering = ["ordre", "libelle"]
+
+    def __str__(self) -> str:
+        return f"{self.libelle} ({self.unite})"
