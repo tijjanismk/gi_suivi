@@ -138,12 +138,13 @@ rappel à 15 jours de l'expiration pour toutes les pièces.
 | `MOYENS` | Liste des moyens matériels et logistiques | Interne | `revue_periodique`, 12 mois | 15 j |
 | `NIF` | Carte d'identification fiscale | DGI | `permanente` | — |
 | `STATUTS` | Statuts à jour | Notaire | `permanente` (jusqu'à modification) | — |
-| `DENOMINATIONS` | Note sur les dénominations, adresses et NIF successifs | Interne, signée par la direction | `permanente` | — |
+| `DENOMINATIONS` | Note sur les dénominations, adresses et NIF successifs (**non retenue** par le porteur le 22/10/2026 : type gardé, non exigé, aucune alerte) | Interne, signée par la direction | `permanente` | — |
 
 Organismes et libellés vérifiés sur les pièces fournies le 22/10/2026 (OMH, ARMDS, Trésorerie de
-Gao, OICM) ; tout se corrige ensuite dans l'écran Types de pièces. Les pièces lues le 22/10 portent six graphies
-de la dénomination et cinq adresses pour un seul NIF (025004950G) : la note `DENOMINATIONS` les
-recense.
+Gao, OICM) ; tout se corrige ensuite dans l'écran Types de pièces. Les pièces lues le 22/10 portent huit graphies
+de la dénomination et six adresses pour un seul NIF (025004950G). Le porteur a décidé le même jour
+de travailler avec les pièces telles quelles, sans note explicative ; un projet de note reste dans
+`ADMINISTRATIF\` si la question revient.
 
 ## Options écartées
 

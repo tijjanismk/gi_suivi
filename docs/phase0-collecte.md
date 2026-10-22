@@ -282,7 +282,7 @@ porteur (ADR 0010 § 9). Rappel : 15 jours avant l'expiration.
 | NIF (carte d'identification fiscale) | permanent | DGI |
 | Statuts à jour | permanent, jusqu'à modification | Notaire / archives |
 | Liste des moyens matériels et logistiques | à revoir tous les 12 mois | interne |
-| Note explicative sur les dénominations et NIF successifs du bureau | permanent | interne, à rédiger |
+| Note explicative sur les dénominations et NIF successifs du bureau | permanent | interne ; **non retenue** le 22/10/2026 (on travaille avec les pièces telles quelles) |
 
 La dernière ligne répond à un problème vu sur les justificatifs : le bureau
 y apparaît sous quatre noms, deux NIF et deux adresses (les pièces administratives
