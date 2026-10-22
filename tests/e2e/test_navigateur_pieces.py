@@ -14,65 +14,26 @@ Sans Playwright ou sans Chromium (intégration continue), ces tests sont ignoré
 
 from __future__ import annotations
 
-import os
 import re
 from datetime import date, timedelta
-from pathlib import Path
 
 import pytest
+
+from tests.e2e.conftest import capturer
 
 pytestmark = [pytest.mark.e2e, pytest.mark.navigateur, pytest.mark.django_db(transaction=True)]
 
 sync_api = pytest.importorskip("playwright.sync_api")
 
 
-@pytest.fixture(scope="module")
-def navigateur():
-    # Playwright tourne une boucle asyncio dans ce fil : l'ORM des tests l'accepte ainsi
-    os.environ.setdefault("DJANGO_ALLOW_ASYNC_UNSAFE", "true")
-    try:
-        pw = sync_api.sync_playwright().start()
-        chromium = pw.chromium.launch(headless=os.environ.get("GIC_HEADED") != "1")
-    except Exception as e:  # noqa: BLE001 — Chromium absent : on ignore, comme sans Playwright
-        pytest.skip(f"Chromium indisponible ({e.__class__.__name__}) : playwright install chromium")
-    yield chromium
-    chromium.close()
-    pw.stop()
-
-
 @pytest.fixture
-def onglet(navigateur):
-    contexte = navigateur.new_context(viewport={"width": 1366, "height": 900}, locale="fr-FR")
-    p = contexte.new_page()
-    erreurs: list[str] = []
-    p.on("pageerror", lambda e: erreurs.append(str(e)))
-    yield p
-    contexte.close()
-    assert not erreurs, f"erreurs JavaScript : {erreurs}"
-
-
-@pytest.fixture
-def base_essai(tmp_path, settings):
-    """Types de départ (vidés par les tests transactionnels précédents) et pièces fictives."""
-    from django.apps import apps
-
+def base_essai(tmp_path, settings, donnees_de_depart):
+    """Pièces fictives ; le dossier temporaire joue le partage."""
     from administratif import demo
-    from administratif.models import TypePiece
 
-    if not TypePiece.objects.exists():
-        import importlib
-
-        importlib.import_module("administratif.migrations.0002_types_initiaux").creer(apps, None)
     settings.PARTAGE_GIC = str(tmp_path)
     demo.remplir(tmp_path, date.today())
     return tmp_path
-
-
-def capturer(page, nom: str) -> None:
-    dossier = os.environ.get("GIC_CAPTURES")
-    if dossier:
-        Path(dossier).mkdir(parents=True, exist_ok=True)
-        page.screenshot(path=str(Path(dossier) / f"{nom}.png"), full_page=True)
 
 
 def ligne(page, code: str):
