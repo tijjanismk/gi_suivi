@@ -5,7 +5,8 @@ journée) et correspond à une branche `dev/<id>-<mot-clé>` et une pull
 request. L'état est tenu ici : `à faire` → `en cours` → `fait (tag)`.
 
 Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
-`G` agent, `T` tableau de bord, `D` déploiement et pilote.
+`G` agent, `T` tableau de bord, `D` déploiement et pilote, `C` chantiers de collecte
+(`docs/phase0-collecte.md`), `AD` pièces administratives (ADR 0010).
 
 ## Phase 0 — Décisions et serveur (semaines 1-2)
 
@@ -14,9 +15,9 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | P01 | Sauvegarde complète de l'état du système | `wbadmin` vers D:, vérification, copie sur USB dès que possible | `wbadmin get versions` montre la sauvegarde ; un fichier restauré avec succès | fait le 08/10 (sauvegarde 17:25 + tâches 22:00 / 23:30 / clichés) ; test de restauration à faire |
 | P02 | Bureau à distance limité au réseau local | Règle de pare-feu `192.168.2.0/24`, NLA activée, test depuis un poste | Connexion RDP depuis le LAN fonctionne ; retour arrière documenté | à faire |
 | P03 | Mises à jour Windows | Appliquer les mises à jour en attente, redémarrer hors heures, planifier les suivantes | `Get-HotFix` montre une mise à jour de moins de 30 jours | à faire |
-| P04 | Groupes AD et compte de service | Créer `GI-Direction`, `GI-Direction-Lecture` (consultation seule : compte « visionneuse » pour la personne qui suit le travail de la direction sans agir), `GI-Offres`, `GI-Ingenieurs`, `GI-Administratif`, `GI-Terrain`, `GI-Application`, `svc-application` ; comptes d'administration nominatifs | Groupes peuplés selon la liste validée par la direction ; `Administrateur` n'est plus utilisé au quotidien | fait le 08/10 : OU GIC, 7 groupes, svc-application ; ODICKO dans GI-Direction ; autres groupes vides pour l'instant |
+| P04 | Groupes AD et compte de service | Créer `GI-Direction`, `GI-Direction-Lecture` (consultation seule : compte « visionneuse » pour la personne qui suit le travail de la direction sans agir), `GI-Offres`, `GI-Ingenieurs`, `GI-Administratif`, `GI-Terrain`, `GI-Application`, `svc-application` ; comptes d'administration nominatifs | Groupes peuplés selon la liste validée par la direction ; `Administrateur` n'est plus utilisé au quotidien | fait le 08/10 : OU GIC, 7 groupes, svc-application ; ODICKO dans GI-Direction ; autres groupes vides pour l'instant (décision du 21/10 : AD inchangé pour le moment) |
 | P05 | Décisions du blueprint consignées | Racines de classement, convention de nommage des dossiers, membres de `GI-Direction`, heures prévues, rétention, note à l'équipe | Décisions écrites dans un ADR `docs/adr/00NN-decisions-suivi.md` (prochain numéro libre ; 0003 et 0004 sont pris par l'agent), signées par la direction | en cours — déjà décidé (08-09/10) : racines = partages existants (ETUDES, SUIVI-CONTROLE, OFFRES, AMI, ESPACE DE TRAVAIL) ; `GI-Direction` = ODICKO seul (décision du 09/10 : personne d'autre pour l'instant) ; consultation seule : personne ; rétention 24 mois ; 40 h prévues par défaut ; rien d'existant touché sur le serveur. Reste : convention de nommage, note D01 signée, ADR à rédiger |
-| P06 | Partage `GIC` et racines | Créer `D:\GIC` avec `MISSIONS_EN_COURS`, `AVIS\2026`, droits par groupes ; y **copier** les dossiers de projet existants selon la convention. **Décision du 08/10 : rien d'existant sur le serveur n'est déplacé, gelé, renommé ni supprimé (partages, droits, disques) ; la duplication est acceptée.** | Au moins 10 dossiers de projet rangés sous une racine avec un nom conforme | à faire |
+| P06 | Partage `GIC` et racines | Créer `D:\GIC` (`deploy\serveur\05-Partage-GIC.ps1`) avec ses dossiers et ses droits par groupes ; y **copier** les documents existants (`scripts\exploitation\Rangement-GIC.ps1`, table de `docs/phase0-rangement.md`). **Décision du 08/10 : rien d'existant sur le serveur n'est déplacé, gelé, renommé ni supprimé (partages, droits, disques). Décision du 21/10 : un contenu = un exemplaire dans `D:\GIC`.** | Au moins 10 dossiers de projet rangés sous une racine avec un nom conforme | **fait en partie les 21-22/10** : `D:\GIC` et le partage `\\AD-SERVEUR\GIC` créés (chiffré, énumération selon les droits, AD inchangé) ; rangement sans doublon : 3 180 fichiers (20,1 Go) copiés, 2 611 exemplaires en trop notés dans `REFERENCES\00_REGISTRE\doublons.csv`, contrôle indépendant : 0 contenu en double ; `ADMINISTRATIF\PIECES\<CODE>` créés (ADR 0010). Reste : codifier les 9 dossiers `MISSIONS_EN_COURS\A-CODER_*` (chantier 6) pour remplir le critère |
 | P07 | Mémoire du serveur | Devis et commande de 16 Go au minimum | Commande passée ; date d'installation connue | à faire |
 
 ## Phase 1 — Socle (semaines 2-3)
@@ -75,7 +76,7 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
 | D01 | Note à l'équipe et réunion | Rédiger avec la direction la note d'information (ce qui est collecté, ce qui ne l'est pas, à quoi ça sert, qui voit quoi, durée de conservation) ; réunion ; volontaires désignés | Note signée et diffusée avant tout déploiement d'agent | en cours (projet rédigé dans docs/pilote/) |
-| D02 | Installation pilote | **Reportée (décision du porteur 08/10) : pas de GPO pour le moment.** Installation manuelle, poste par poste, avec le kit `agent\preparer-kit.ps1` → `C:\dev\livraisons\agent\GiSuivi-agent-<version>-poste.zip` (`installer-poste.ps1`, `LISEZMOI-poste.md`). Configuration livrée : `agent/config-pilote.json` (`url_api` = `https://suivi-test.giconseils.local`, racines MISSIONS_EN_COURS et AVIS). Premier poste : Dicko. La GPO reste pour D07. | Agent installé et visible en vert dans « État des postes » sur chaque poste pilote | **poste de Dicko installé le 09/10** (kit 0.2.2 + gic-serveur.cer + zone Intranet) : agent vert, navigateur sans boîte de connexion. Postes suivants : même kit |
+| D02 | Installation pilote | **Reportée (décision du porteur 08/10) : pas de GPO pour le moment.** Installation manuelle, poste par poste, avec le kit `agent\preparer-kit.ps1` → `C:\dev\livraisons\agent\GiSuivi-agent-<version>-poste.zip` (`installer-poste.ps1`, `LISEZMOI-poste.md`). Configuration livrée : `agent/config-pilote.json` (`url_api` = `https://suivi-test.giconseils.local`, racines MISSIONS_EN_COURS et AVIS). Premier poste : Dicko. La GPO reste pour D07. | Agent installé et visible en vert dans « État des postes » sur chaque poste pilote | **fait** : poste de Dicko installé à la main le 09/10 (kit 0.2.2 + gic-serveur.cer + zone Intranet), puis les autres par la GPO (D07, décision du 13/10) ; au 21/10, 4 postes envoient en agent 0.2.4 (DESKTOP-4JGE15C, DESKTOP-TKBN34R, DFM-PC, DICKO-PC) |
 | D03 | Relevé manuel des volontaires | Modèle d'une page : heures et dossiers par jour, une semaine | Trois relevés remplis | en cours (projet rédigé dans docs/pilote/) |
 | D04 | Comparaison et corrections | Heures mesurées vs relevés ; écart par jour et par personne ; file à classer ; retours | Écart < 10 % ; < 10 % du temps à classer après une semaine ; aucune gêne signalée | à faire |
 | D05 | Rapport de pilote | Résultats, corrections faites, décision de généraliser ou non | Validé par la direction | à faire |
@@ -85,7 +86,24 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
 | D06 | Production | `installer.ps1 -Env prod`, site `suivi`, tâches planifiées, sauvegarde `pg_dump`, tag `v1.0.0` | Liste de contrôle de `docs/exploitation.md` § 5 cochée | à faire |
-| D07 | GPO sur tous les postes | GPO « GI-Suivi - Agent » (script de démarrage, sans MSI) filtrée sur le groupe d'ordinateurs `GI-Postes-Suivi` : `deploy/gpo/creer-gpo-agent.ps1 -Kit …`, procédure `docs/exploitation/gpo-agent.md`. Équiper un poste = l'ajouter au groupe et redémarrer | Tous les postes du groupe envoient depuis 5 jours ouvrés | scripts prêts le 11/10 ; à lancer sur le serveur |
+| D07 | GPO sur tous les postes | GPO « GI-Suivi - Agent » (script de démarrage, sans MSI) : `deploy/gpo/creer-gpo-agent.ps1 -Kit … -TousLesPostes`, procédure `docs/exploitation/gpo-agent.md`. Décision du 13/10 : appliquée à tous les ordinateurs du domaine, contrôleurs de domaine exclus (le groupe `GI-Postes-Suivi` n'est plus nécessaire) | Tous les postes envoient depuis 5 jours ouvrés | **en service depuis le 13/10** : kit 0.2.4 ; contrôle en lecture seule du 21/10 (`C:\GIC\outils\Verifier-GPO-GiSuivi.ps1`) sans écart ; 4 postes envoient. Reste : vérifier le critère des 5 jours ouvrés sur tous les postes ; numéro de version Windows dans l'exécutable (`agent/construire.ps1`, kit 0.2.5 avec l'ADR 0009) |
+
+## Collecte — chantiers de la phase 0 (préparent le module avis)
+
+Détail et critères de chaque chantier : `docs/phase0-collecte.md`. Tout se fait dans `D:\GIC`,
+par copie ; les anciens partages ne bougent pas.
+
+| Id | Chantier | État au 22/10/2026 |
+|---|---|---|
+| C1 | Le partage | **fait** (P06) : `D:\GIC` rempli sans doublon, 3 180 fichiers ; registres `copies.csv`, `doublons.csv`, `deplacements.csv` dans `REFERENCES\00_REGISTRE` ; `Rangement-GIC.ps1` se relance pour copier ce que l'équipe ajoute dans les anciens partages |
+| C2 | Liste maîtresse des missions | **en cours** : liste d'août 2026 proposée comme maîtresse (copiée dans `REFERENCES\01_SOURCES\2026-08_version-arrangee`, prioritaire au rangement) ; ADR 0008 « une référence = un contrat » proposé sur le poste de développement, détection des doublons écrite (27 tests) ; 31 missions à regrouper, 7 cas douteux (note du 19/10) |
+| C3 | Les justificatifs | à faire : `REFERENCES\02_JUSTIFICATIFS` vide |
+| C4 | Quantités et types d'ouvrages | à faire |
+| C5 | Les experts | **en partie** : 208 CV et diplômes dans `EXPERTS\_import` (les CV recopiés dans les avis y sont gardés une fois) ; reste un dossier par personne |
+| C6 | Les missions en cours | **en partie** : 9 dossiers `MISSIONS_EN_COURS\A-CODER_*` (926 fichiers), contrats signés à rattacher ; reste la codification ; le dossier ORM contient l'APD de Bargondaga (missions liées ?) |
+| C7 | Les avis et offres passés | **en partie** : 1 811 fichiers dans `AVIS\<pays>\<AAAA-MM>`, avis ADRS de juillet une seule fois dans `AVIS\MULTI-PAYS` ; reste le rapprochement de `AVIS\_offres-2026-a-rapprocher` avec les avis |
+| C8 | Les pièces administratives | **en cours** : ADR 0010 décidé ; `ADMINISTRATIF\PIECES\<CODE>` créés ; 10 pièces rangées (INPS, NIF, statuts, non-faillite, moyens) et 4 PDF regroupés dans `_a_trier` ; à obtenir : quitus fiscal, extrait RCCM, agrément, attestation OICM du bureau ; à rédiger : note sur les dénominations et NIF successifs |
+| C9 | Les sources de veille | à faire |
 
 ## Ensuite
 
