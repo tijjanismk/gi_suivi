@@ -43,7 +43,7 @@ administratives, Types de pièces ; Avis s'y ajoutera). Mêmes gabarits et compo
 
 | Modèle | Champs clés | Règles |
 |---|---|---|
-| `TypePiece` | `code` unique (`QUITUS-FISCAL`, `RCCM`…), `libelle`, `organisme`, `regle_validite` (`apres_emission` / `fin_annee` / `date_du_document` / `revue_periodique` / `permanente`), `duree_mois` null, `rappel_jours` (30 par défaut), `exigee_par_defaut` bool, `dossier` (relatif à `PARTAGE_GIC`), `responsable` FK `identite.Utilisateur` null, `ordre`, `actif` | Réglé par la direction. Responsable vide = la direction. |
+| `TypePiece` | `code` unique (`QUITUS-FISCAL`, `RCCM`…), `libelle`, `organisme`, `regle_validite` (`apres_emission` / `fin_annee` / `date_du_document` / `revue_periodique` / `permanente`), `duree_mois` null, `rappel_jours` (15 par défaut, décision du porteur du 22/10/2026), `exigee_par_defaut` bool, `dossier` (relatif à `PARTAGE_GIC`), `responsable` FK `identite.Utilisateur` null, `ordre`, `actif` | Réglé par la direction. Responsable vide = la direction. |
 | `PieceAdministrative` | `type` FK, `chemin` (relatif à `PARTAGE_GIC`), `empreinte` (SHA-256, **unique**), `taille`, `nb_pages`, `numero`, `date_emission`, `valide_jusqu_au` null (= permanente), `deposee_par`, `deposee_le`, `retiree` bool, `motif_retrait` | Une ligne par version. Jamais supprimée (`PROTECT`, pas de suppression dans l'admin). Version en cours = la plus récente par `date_emission` parmi les non retirées. |
 | `DemandeRenouvellement` | `type` FK, `demandee_le`, `aupres_de`, `par` FK, `relance_prevue_le` null, `note`, `close_le` null | Close automatiquement quand une version émise après la demande est enregistrée. |
 
@@ -79,7 +79,7 @@ règle que le rangement de `D:\GIC` (21/10/2026).
 - `date_de_fin(regle, date_emission, duree_mois, date_document)` : la date proposée. Trois mois
   après le 05/08 = le 05/11 ; après le 30/11, le 28 ou 29/02 (fin de mois quand le jour
   n'existe pas). `fin_annee` = 31/12 de l'année d'émission ; `date_du_document` = celle portée
-  par le document (situation fiscale, INPS, TVA, OICM) ; `permanente` = aucune.
+  par le document (situation fiscale, INPS, TVA) ; `permanente` = aucune.
 - `etat(version, date_reference, rappel_jours)` : `valide`, `a_renouveler` (échéance dans
   `rappel_jours` ou moins), `expiree`, `manquante`, `permanente`.
 - `controle(pieces_exigees, versions, date_limite)` : pour un avis, l'état de chaque pièce
@@ -97,7 +97,8 @@ manquantes.
 
 ### 7. Rappels sans nouvelle infrastructure
 
-Au premier lot : la carte « Pièces à renouveler » sur l'accueil, le registre, et une commande
+Une pièce passe « à renouveler » **15 jours avant son expiration** (décision du porteur du
+22/10/2026), réglable par type. Au premier lot : la carte « Pièces à renouveler » sur l'accueil, le registre, et une commande
 planifiée chaque matin `administratif_echeances` (journal ; code de sortie 1 s'il y a une pièce
 expirée exigée par défaut), sur le modèle de `suivi_postes_muets`. Le courriel viendra plus
 tard, avec son propre ADR (aucun serveur d'envoi n'est configuré).
@@ -115,26 +116,32 @@ comme les actions de la direction dans GI-SUIVI.
 Une migration de données crée les types ci-dessous. **Corrigés le 22/10/2026** après lecture des
 pièces réelles du bureau (dossiers de pièces joints aux avis Cameroun, Burkina et Niger) : la
 liste du chantier 8 supposait trois mois partout, or plusieurs pièces portent leur propre date
-limite, et la patente et l'attestation de TVA manquaient.
+limite, et la patente et l'attestation de TVA manquaient. **Complétés le même jour** avec les
+durées données par le porteur (OMH 1 mois, non-exclusion et non-endettement 1 an, OICM 1 an,
+non-faillite 3 mois, TVA 1 mois à redemander après la déclaration du 5, patente l'année) et le
+rappel à 15 jours de l'expiration pour toutes les pièces.
 
 | Code | Pièce | Délivrée par | Règle de validité | Rappel |
 |---|---|---|---|---|
-| `QUITUS-FISCAL` | Certificat de situation fiscale (« quitus fiscal ») | Centre des impôts (DGI) | `date_du_document` : « valable du … au … » (3 mois en pratique) | 30 j |
-| `TVA` | Attestation de déclaration mensuelle de TVA et taxes assimilées | Direction des impôts | `date_du_document` (un mois et demi environ) | 15 j |
-| `PATENTE` | Patente de l'année | Centre des impôts | `fin_annee` (31/12) | 30 j |
+| `QUITUS-FISCAL` | Certificat de situation fiscale (« quitus fiscal ») | Centre des impôts (DGI) | `date_du_document` : « valable du … au … » (3 mois en pratique) | 15 j |
+| `TVA` | Attestation de déclaration mensuelle de TVA et taxes assimilées | Direction des impôts | `date_du_document`, 1 mois ; à redemander après la déclaration du 5 du mois | 15 j |
+| `PATENTE` | Patente de l'année | Centre des impôts | `fin_annee` (31/12) | 15 j |
 | `INPS` | Attestation de paiement des cotisations | INPS | `date_du_document` : « date limite de validité » (six semaines environ) | 15 j |
-| `NON-FAILLITE` | Certificat de non-faillite | Greffe du tribunal de grande instance | `apres_emission`, 3 mois (à confirmer) | 30 j |
-| `EXTRAIT-RCCM` | Extrait récent du RCCM | Greffe du tribunal de commerce | `apres_emission`, 3 mois ; exigé si l'avis le demande | 30 j |
+| `NON-FAILLITE` | Certificat de non-faillite | Greffe du tribunal de grande instance | `apres_emission`, 3 mois | 15 j |
+| `OMH` | Attestation de l'Office malien de l'habitat | OMH | `apres_emission`, 1 mois | 15 j |
+| `NON-EXCLUSION` | Attestation de non-exclusion des marchés publics | Autorité des marchés publics | `apres_emission`, 12 mois | 15 j |
+| `NON-ENDETTEMENT` | Attestation de non-endettement | Trésor public | `apres_emission`, 12 mois | 15 j |
+| `EXTRAIT-RCCM` | Extrait récent du RCCM | Greffe du tribunal de commerce | `apres_emission`, 3 mois ; exigé si l'avis le demande | 15 j |
 | `RCCM` | Immatriculation au RCCM (déclaration de constitution) | Greffe | `permanente` | — |
-| `OICM` | Attestation d'affiliation à l'Ordre des ingénieurs-conseils | OICM | `date_du_document` : fin du tableau annuel de l'Ordre (« année 2026-2027 »), date à saisir | 30 j |
+| `OICM` | Attestation d'affiliation à l'Ordre des ingénieurs-conseils | OICM | `apres_emission`, 12 mois (tableau annuel de l'Ordre) | 15 j |
 | `AGREMENT` | Enregistrement API-Mali (tient lieu de certificat d'agrément) | API-Mali, guichet unique | `permanente` | — |
-| `MOYENS` | Liste des moyens matériels et logistiques | Interne | `revue_periodique`, 12 mois | 30 j |
+| `MOYENS` | Liste des moyens matériels et logistiques | Interne | `revue_periodique`, 12 mois | 15 j |
 | `NIF` | Carte d'identification fiscale | DGI | `permanente` | — |
 | `STATUTS` | Statuts à jour | Notaire | `permanente` (jusqu'à modification) | — |
 | `DENOMINATIONS` | Note sur les dénominations, adresses et NIF successifs | Interne, signée par la direction | `permanente` | — |
 
-Les règles « à confirmer » sont vérifiées auprès des organismes avant la mise en service ; tout
-se corrige ensuite dans l'écran Types de pièces. Les pièces lues le 22/10 portent six graphies
+L'organisme qui délivre l'attestation de non-exclusion est à confirmer ; tout se corrige ensuite
+dans l'écran Types de pièces. Les pièces lues le 22/10 portent six graphies
 de la dénomination et cinq adresses pour un seul NIF (025004950G) : la note `DENOMINATIONS` les
 recense.
 
@@ -145,7 +152,7 @@ recense.
 | Ranger les pièces dans l'application `avis` | Elles servent hors de tout avis, et avant que le module avis existe |
 | Téléverser le PDF par le navigateur, stocké en base ou écrit par l'application | Contraire à la règle 4 ; l'application n'a que la lecture sur le partage |
 | Contrôler les pièces à la date du jour | Laisse passer un quitus qui expire entre aujourd'hui et le dépôt |
-| Calculer la fin de validité sans confirmation | Situation fiscale, INPS, TVA, OICM : la date est sur le document |
+| Calculer la fin de validité sans confirmation | Situation fiscale, INPS, TVA : la date est sur le document |
 | Historique par `django-simple-history` | Nouvelle dépendance ; une ligne par version suffit |
 | Remplacer le fichier d'une version en place | On perdrait ce qui a été joint aux dossiers déjà déposés |
 

@@ -114,7 +114,7 @@ quand GI-SUIVI sera en pilote, à partir de `docs/design.md` et de
 | Id | Titre | Description | Critères d'acceptation | État |
 |---|---|---|---|---|
 | AD01 | Échéances des pièces administratives (ADR 0010) | `moteur/administratif/echeances.py` : date de fin proposée, état à une date, contrôle d'un avis à sa date limite | Tests sans base : fin de mois, permanente, à renouveler, périmée avant le dépôt | à faire (ADR décidé le 22/10) |
-| AD02 | Application `administratif` | `TypePiece`, `PieceAdministrative`, `DemandeRenouvellement` ; migrations `0001_pieces_administratives` et `0002_types_initiaux` (chantier 8) ; admin sans suppression | `migrate` sur une base vide crée les treize types (ADR 0010 § 9, corrigé le 22/10) | à faire |
+| AD02 | Application `administratif` | `TypePiece`, `PieceAdministrative`, `DemandeRenouvellement` ; migrations `0001_pieces_administratives` et `0002_types_initiaux` (chantier 8) ; admin sans suppression | `migrate` sur une base vide crée les seize types (ADR 0010 § 9, corrigé le 22/10), rappel 15 j | à faire |
 | AD03 | Registre et fiche | Écrans 1 et 2 des maquettes du 21/10 (Unfold bleu) : compteurs, filtres, historique, avis concernés | Validés par la direction sur `test` | à faire |
 | AD04 | Dépôt d'une version | Écran 3 : fichiers non enregistrés du dossier `PIECES\<CODE>\`, SHA-256, doublons refusés, dates proposées puis confirmées | Un doublon ne s'enregistre pas ; l'ancienne version passe dans l'historique | à faire |
 | AD05 | Types de pièces | Écran 5 : règle de validité, rappel, exigée par défaut, dossier | Une durée corrigée change les échéances proposées | à faire |

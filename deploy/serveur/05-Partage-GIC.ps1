@@ -34,8 +34,9 @@ $dossiers = @(
     "deploy\agent"
 )
 # Pièces administratives (ADR 0010) : un dossier par type, codes de la migration 0002_types_initiaux
-$dossiers += @("QUITUS-FISCAL", "TVA", "PATENTE", "INPS", "NON-FAILLITE", "EXTRAIT-RCCM", "RCCM", "OICM",
-    "AGREMENT", "MOYENS", "NIF", "STATUTS", "DENOMINATIONS", "_a_trier") | ForEach-Object { "ADMINISTRATIF\PIECES\$_" }
+$dossiers += @("QUITUS-FISCAL", "TVA", "PATENTE", "INPS", "NON-FAILLITE", "OMH", "NON-EXCLUSION", "NON-ENDETTEMENT",
+    "EXTRAIT-RCCM", "RCCM", "OICM", "AGREMENT", "MOYENS", "NIF", "STATUTS", "DENOMINATIONS", "_a_trier") |
+    ForEach-Object { "ADMINISTRATIF\PIECES\$_" }
 foreach ($d in $dossiers) {
     $p = Join-Path $Racine $d
     if (-not (Test-Path $p)) { if ($PSCmdlet.ShouldProcess($p, "Créer")) { New-Item -ItemType Directory -Path $p -Force | Out-Null } }

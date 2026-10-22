@@ -255,18 +255,22 @@ son code de mission.
 Le rapport SOMAPEP les montre toutes manquantes au coffre. Elles se
 collectent une fois et se renouvellent à date fixe.
 
-Validités corrigées le 22/10/2026 d'après les pièces réelles (ADR 0010 § 9) :
+Validités corrigées le 22/10/2026 d'après les pièces réelles et les durées données par le
+porteur (ADR 0010 § 9). Rappel : 15 jours avant l'expiration.
 
 | Pièce | Validité | Où l'obtenir |
 |---|---|---|
 | Certificat de situation fiscale (« quitus fiscal ») | date portée sur le document (3 mois en pratique) | Centre des impôts |
-| Attestation de déclaration mensuelle de TVA | date portée sur le document (un mois et demi environ) | Direction des impôts |
+| Attestation de déclaration mensuelle de TVA | 1 mois, à redemander après la déclaration du 5 | Direction des impôts |
 | Patente | année civile | Centre des impôts |
 | Attestation INPS | date limite portée sur le document (six semaines environ) | INPS |
-| Certificat de non-faillite | 3 mois (à confirmer) | Greffe du tribunal de grande instance |
+| Certificat de non-faillite | 3 mois | Greffe du tribunal de grande instance |
+| Attestation OMH | 1 mois | Office malien de l'habitat |
+| Attestation de non-exclusion des marchés publics | 1 an | Autorité des marchés publics (à confirmer) |
+| Attestation de non-endettement | 1 an | Trésor public |
 | Extrait RCCM récent | 3 mois, quand l'avis le demande | Greffe du tribunal de commerce |
 | Immatriculation au RCCM | permanente | Greffe |
-| Attestation d'affiliation OICM | tableau annuel de l'Ordre | OICM |
+| Attestation d'affiliation OICM | 1 an (tableau annuel de l'Ordre) | OICM |
 | Agrément (enregistrement API-Mali) | permanent | API-Mali, guichet unique |
 | NIF (carte d'identification fiscale) | permanent | DGI |
 | Statuts à jour | permanent, jusqu'à modification | Notaire / archives |
