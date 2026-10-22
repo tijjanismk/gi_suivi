@@ -255,20 +255,27 @@ son code de mission.
 Le rapport SOMAPEP les montre toutes manquantes au coffre. Elles se
 collectent une fois et se renouvellent à date fixe.
 
+Validités corrigées le 22/10/2026 d'après les pièces réelles (ADR 0010 § 9) :
+
 | Pièce | Validité | Où l'obtenir |
 |---|---|---|
-| RCCM (extrait récent) | 3 mois en général | Greffe du tribunal de commerce |
-| NIF | permanent | DGI |
+| Certificat de situation fiscale (« quitus fiscal ») | date portée sur le document (3 mois en pratique) | Centre des impôts |
+| Attestation de déclaration mensuelle de TVA | date portée sur le document (un mois et demi environ) | Direction des impôts |
+| Patente | année civile | Centre des impôts |
+| Attestation INPS | date limite portée sur le document (six semaines environ) | INPS |
+| Certificat de non-faillite | 3 mois (à confirmer) | Greffe du tribunal de grande instance |
+| Extrait RCCM récent | 3 mois, quand l'avis le demande | Greffe du tribunal de commerce |
+| Immatriculation au RCCM | permanente | Greffe |
+| Attestation d'affiliation OICM | tableau annuel de l'Ordre | OICM |
+| Agrément (enregistrement API-Mali) | permanent | API-Mali, guichet unique |
+| NIF (carte d'identification fiscale) | permanent | DGI |
 | Statuts à jour | permanent, jusqu'à modification | Notaire / archives |
-| Agrément technique | selon l'arrêté | Ministère de tutelle |
-| Quitus fiscal | 3 mois | DGI |
-| Attestation INPS | 3 mois | INPS |
-| Attestation OICM (Ordre des ingénieurs) | annuelle | OICM |
-| Liste des moyens matériels et logistiques | à tenir à jour | interne |
+| Liste des moyens matériels et logistiques | à revoir tous les 12 mois | interne |
 | Note explicative sur les dénominations et NIF successifs du bureau | permanent | interne, à rédiger |
 
 La dernière ligne répond à un problème vu sur les justificatifs : le bureau
-y apparaît sous quatre noms, deux NIF et deux adresses. Une page signée par
+y apparaît sous quatre noms, deux NIF et deux adresses (les pièces administratives
+lues le 22/10 : six graphies du nom, cinq adresses, un seul NIF 025004950G). Une page signée par
 la direction qui retrace ces changements évite une question gênante d'un
 évaluateur.
 

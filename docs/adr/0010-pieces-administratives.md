@@ -79,7 +79,7 @@ règle que le rangement de `D:\GIC` (21/10/2026).
 - `date_de_fin(regle, date_emission, duree_mois, date_document)` : la date proposée. Trois mois
   après le 05/08 = le 05/11 ; après le 30/11, le 28 ou 29/02 (fin de mois quand le jour
   n'existe pas). `fin_annee` = 31/12 de l'année d'émission ; `date_du_document` = celle portée
-  par le document (agrément) ; `permanente` = aucune.
+  par le document (situation fiscale, INPS, TVA, OICM) ; `permanente` = aucune.
 - `etat(version, date_reference, rappel_jours)` : `valide`, `a_renouveler` (échéance dans
   `rappel_jours` ou moins), `expiree`, `manquante`, `permanente`.
 - `controle(pieces_exigees, versions, date_limite)` : pour un avis, l'état de chaque pièce
@@ -112,12 +112,31 @@ comme les actions de la direction dans GI-SUIVI.
 
 ### 9. Types de départ
 
-Une migration de données crée les types du chantier 8 : quitus fiscal (3 mois), extrait RCCM
-(3 mois), attestation INPS (3 mois), attestation de non-faillite (3 mois, à confirmer),
-attestation OICM (fin d'année), agrément technique (date de l'arrêté, rappel 60 jours), liste
-des moyens matériels (revue tous les 12 mois), NIF, statuts, note sur les dénominations et NIF
-successifs (permanents). Les durées marquées « à confirmer » sont vérifiées auprès des
-organismes avant la mise en service ; elles se corrigent ensuite dans l'écran Types de pièces.
+Une migration de données crée les types ci-dessous. **Corrigés le 22/10/2026** après lecture des
+pièces réelles du bureau (dossiers de pièces joints aux avis Cameroun, Burkina et Niger) : la
+liste du chantier 8 supposait trois mois partout, or plusieurs pièces portent leur propre date
+limite, et la patente et l'attestation de TVA manquaient.
+
+| Code | Pièce | Délivrée par | Règle de validité | Rappel |
+|---|---|---|---|---|
+| `QUITUS-FISCAL` | Certificat de situation fiscale (« quitus fiscal ») | Centre des impôts (DGI) | `date_du_document` : « valable du … au … » (3 mois en pratique) | 30 j |
+| `TVA` | Attestation de déclaration mensuelle de TVA et taxes assimilées | Direction des impôts | `date_du_document` (un mois et demi environ) | 15 j |
+| `PATENTE` | Patente de l'année | Centre des impôts | `fin_annee` (31/12) | 30 j |
+| `INPS` | Attestation de paiement des cotisations | INPS | `date_du_document` : « date limite de validité » (six semaines environ) | 15 j |
+| `NON-FAILLITE` | Certificat de non-faillite | Greffe du tribunal de grande instance | `apres_emission`, 3 mois (à confirmer) | 30 j |
+| `EXTRAIT-RCCM` | Extrait récent du RCCM | Greffe du tribunal de commerce | `apres_emission`, 3 mois ; exigé si l'avis le demande | 30 j |
+| `RCCM` | Immatriculation au RCCM (déclaration de constitution) | Greffe | `permanente` | — |
+| `OICM` | Attestation d'affiliation à l'Ordre des ingénieurs-conseils | OICM | `date_du_document` : fin du tableau annuel de l'Ordre (« année 2026-2027 »), date à saisir | 30 j |
+| `AGREMENT` | Enregistrement API-Mali (tient lieu de certificat d'agrément) | API-Mali, guichet unique | `permanente` | — |
+| `MOYENS` | Liste des moyens matériels et logistiques | Interne | `revue_periodique`, 12 mois | 30 j |
+| `NIF` | Carte d'identification fiscale | DGI | `permanente` | — |
+| `STATUTS` | Statuts à jour | Notaire | `permanente` (jusqu'à modification) | — |
+| `DENOMINATIONS` | Note sur les dénominations, adresses et NIF successifs | Interne, signée par la direction | `permanente` | — |
+
+Les règles « à confirmer » sont vérifiées auprès des organismes avant la mise en service ; tout
+se corrige ensuite dans l'écran Types de pièces. Les pièces lues le 22/10 portent six graphies
+de la dénomination et cinq adresses pour un seul NIF (025004950G) : la note `DENOMINATIONS` les
+recense.
 
 ## Options écartées
 
@@ -126,7 +145,7 @@ organismes avant la mise en service ; elles se corrigent ensuite dans l'écran T
 | Ranger les pièces dans l'application `avis` | Elles servent hors de tout avis, et avant que le module avis existe |
 | Téléverser le PDF par le navigateur, stocké en base ou écrit par l'application | Contraire à la règle 4 ; l'application n'a que la lecture sur le partage |
 | Contrôler les pièces à la date du jour | Laisse passer un quitus qui expire entre aujourd'hui et le dépôt |
-| Calculer la fin de validité sans confirmation | Agrément, attestations : la date est sur le document |
+| Calculer la fin de validité sans confirmation | Situation fiscale, INPS, TVA, OICM : la date est sur le document |
 | Historique par `django-simple-history` | Nouvelle dépendance ; une ligne par version suffit |
 | Remplacer le fichier d'une version en place | On perdrait ce qui a été joint aux dossiers déjà déposés |
 
