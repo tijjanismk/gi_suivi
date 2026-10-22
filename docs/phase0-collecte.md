@@ -208,6 +208,13 @@ Onglet `Experts` : `nom`, `prenoms`, `statut` (interne / externe / ancien),
 `diplomes_scannes` (oui / partiel / non). Onglet `Affectations` : `expert`,
 `code_mission`, `poste`, `du`, `au`.
 
+**Fait le 22/10/2026** : les dossiers par personne existent (`EXPERTS\<NOM Prénom>`, 78
+personnes), avec deux registres dans `EXPERTS\_registre` : `experts.csv` (catégorie, spécialité,
+nombre de CV et de diplômes, points à vérifier) et `fichiers-experts.csv` (une ligne par pièce).
+Chacun porte une colonne **Actif** (oui / non) : « non » sur une personne = plus mobilisable
+(dans l'application : `statut` = ancien, `disponible` = faux) ; « non » sur un fichier = ancienne
+version d'un CV, gardée mais plus jointe aux offres. Restent les affectations.
+
 **Livrable** : dossiers experts et affectations. **Critère** : 100 % du
 personnel technique actuel avec CV et affectations des 5 dernières années ;
 les 7 profils clés les plus souvent demandés (chef de mission hydraulicien,
