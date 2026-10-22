@@ -128,9 +128,9 @@ rappel à 15 jours de l'expiration pour toutes les pièces.
 | `PATENTE` | Patente de l'année | Centre des impôts | `fin_annee` (31/12) | 15 j |
 | `INPS` | Attestation de paiement des cotisations | INPS | `date_du_document` : « date limite de validité » (six semaines environ) | 15 j |
 | `NON-FAILLITE` | Certificat de non-faillite | Greffe du tribunal de grande instance | `apres_emission`, 3 mois | 15 j |
-| `OMH` | Attestation de l'Office malien de l'habitat | OMH | `apres_emission`, 1 mois | 15 j |
-| `NON-EXCLUSION` | Attestation de non-exclusion des marchés publics | Autorité des marchés publics | `apres_emission`, 12 mois | 15 j |
-| `NON-ENDETTEMENT` | Attestation de non-endettement | Trésor public | `apres_emission`, 12 mois | 15 j |
+| `OMH` | Attestation de l'Office malien de l'habitat (taxe-logement du mois) | OMH | `date_du_document` : « valable du … au … » (un mois environ) | 15 j |
+| `NON-EXCLUSION` | Certificat de non-exclusion aux marchés publics | ARMDS (Autorité de régulation des marchés publics et des délégations de service public) | `apres_emission`, 12 mois | 15 j |
+| `NON-ENDETTEMENT` | Attestation de non-engagement (« n'est redevable d'aucune somme envers le Trésor ») | Trésorerie régionale | `apres_emission`, 12 mois | 15 j |
 | `EXTRAIT-RCCM` | Extrait récent du RCCM | Greffe du tribunal de commerce | `apres_emission`, 3 mois ; exigé si l'avis le demande | 15 j |
 | `RCCM` | Immatriculation au RCCM (déclaration de constitution) | Greffe | `permanente` | — |
 | `OICM` | Attestation d'affiliation à l'Ordre des ingénieurs-conseils | OICM | `apres_emission`, 12 mois (tableau annuel de l'Ordre) | 15 j |
@@ -140,8 +140,8 @@ rappel à 15 jours de l'expiration pour toutes les pièces.
 | `STATUTS` | Statuts à jour | Notaire | `permanente` (jusqu'à modification) | — |
 | `DENOMINATIONS` | Note sur les dénominations, adresses et NIF successifs | Interne, signée par la direction | `permanente` | — |
 
-L'organisme qui délivre l'attestation de non-exclusion est à confirmer ; tout se corrige ensuite
-dans l'écran Types de pièces. Les pièces lues le 22/10 portent six graphies
+Organismes et libellés vérifiés sur les pièces fournies le 22/10/2026 (OMH, ARMDS, Trésorerie de
+Gao, OICM) ; tout se corrige ensuite dans l'écran Types de pièces. Les pièces lues le 22/10 portent six graphies
 de la dénomination et cinq adresses pour un seul NIF (025004950G) : la note `DENOMINATIONS` les
 recense.
 

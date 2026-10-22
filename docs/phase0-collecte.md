@@ -265,9 +265,9 @@ porteur (ADR 0010 § 9). Rappel : 15 jours avant l'expiration.
 | Patente | année civile | Centre des impôts |
 | Attestation INPS | date limite portée sur le document (six semaines environ) | INPS |
 | Certificat de non-faillite | 3 mois | Greffe du tribunal de grande instance |
-| Attestation OMH | 1 mois | Office malien de l'habitat |
-| Attestation de non-exclusion des marchés publics | 1 an | Autorité des marchés publics (à confirmer) |
-| Attestation de non-endettement | 1 an | Trésor public |
+| Attestation OMH (taxe-logement du mois) | date portée sur l'attestation (un mois environ) | Office malien de l'habitat |
+| Certificat de non-exclusion aux marchés publics | 1 an | ARMDS |
+| Attestation de non-engagement envers le Trésor | 1 an | Trésorerie régionale |
 | Extrait RCCM récent | 3 mois, quand l'avis le demande | Greffe du tribunal de commerce |
 | Immatriculation au RCCM | permanente | Greffe |
 | Attestation d'affiliation OICM | 1 an (tableau annuel de l'Ordre) | OICM |
