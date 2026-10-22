@@ -1,0 +1,42 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'references:liste' %}">Références du bureau</a><span aria-hidden="true">›</span><span class="text-important">Nouvelle référence</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Pour un contrat signé qui n'a pas encore de code, par exemple une mission en cours. Le code est le numéro suivant de la série domaine-nature ; il est attribué une fois et ne changera plus. Vérifiez d'abord dans la liste que le contrat n'a pas déjà une référence.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" %}
+  <form method="get" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3" id="form-serie">
+    <label class="gic:text-xs text-subtle">Domaine principal
+      <select id="nouvelle-domaine" name="domaine" required class="gic:mt-1 gic:block gic:w-64 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">—</option>
+        {% for d in domaines %}<option value="{{ d.code }}" {% if domaine and d.pk == domaine.pk %}selected{% endif %}>{{ d }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="gic:text-xs text-subtle">Nature
+      <select id="nouvelle-nature" name="nature" required class="gic:mt-1 gic:block gic:w-52 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">—</option>
+        {% for v, l in natures %}<option value="{{ v }}" {% if v == nature %}selected{% endif %}>{{ v }} — {{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Voir le code proposé</button>
+  </form>
+{% endcomponent %}
+
+{% if propose %}
+{% component "unfold/components/card.html" %}
+  <form method="post" class="gic:flex gic:flex-col gic:gap-3 gic:max-w-3xl" id="form-nouvelle">
+    {% csrf_token %}
+    <input type="hidden" name="domaine" value="{{ domaine.code }}">
+    <input type="hidden" name="nature" value="{{ nature }}">
+    <p class="gic:text-sm text-important">Code proposé : <strong class="gic:font-mono" id="code-propose">{{ propose }}</strong></p>
+    <label class="gic:text-xs text-subtle" for="nouvelle-intitule">Intitulé du contrat</label>
+    <textarea id="nouvelle-intitule" name="intitule" rows="3" required class="gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">{{ intitule }}</textarea>
+    <div><button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Attribuer ce code</button></div>
+  </form>
+{% endcomponent %}
+{% endif %}
+{% endblock %}

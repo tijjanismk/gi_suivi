@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block actions %}
+  {% if peut_agir %}<a href="{% url 'references:nouvelle' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Nouvelle référence</a>{% endif %}
   <a href="{% url 'references:doublons' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Doublons à arbitrer</a>
 {% endblock %}
 

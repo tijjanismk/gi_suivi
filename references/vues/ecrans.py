@@ -69,6 +69,7 @@ def liste(request):
             "avec_absorbees": avec_absorbees,
             "requete": filtres.urlencode(),
             "nb_absorbees": Mission.objects.exclude(absorbee_par=None).count(),
+            "peut_agir": request.user.direction,
         },
     )
 
@@ -95,6 +96,7 @@ def fiche(request, code: str):
             "secondaires": m.domaines_secondaires.all(),
             "absorbees": m.absorbees.order_by("code"),
             "decisions": decisions,
+            "peut_agir": request.user.direction,
         },
     )
 

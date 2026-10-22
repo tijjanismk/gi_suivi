@@ -7,6 +7,10 @@
   {% component "unfold/components/text.html" %}{{ m.libelle }}{% endcomponent %}
 {% endblock %}
 
+{% block actions %}
+  {% if peut_agir %}<a href="{% url 'references:modifier' m.code %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Revoir la fiche</a>{% endif %}
+{% endblock %}
+
 {% block ecran %}
 {% if m.absorbee_par %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900" id="absorbee">Même contrat qu'une autre référence : c'est <a class="gic:underline" href="{% url 'references:fiche' m.absorbee_par.code %}">{{ m.absorbee_par.code }}</a> qui compte. Cette fiche est gardée pour la trace.</div>{% endif %}
 
