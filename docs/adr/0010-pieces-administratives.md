@@ -1,6 +1,6 @@
 # ADR 0010 — Pièces administratives du bureau : registre à échéances, contrôle à la date de dépôt
 
-- **Statut** : proposé le 22/10/2026, à valider par le porteur
+- **Statut** : décidé par le porteur le 22/10/2026
 - **Date** : 2026-10-22
 - **Complète** : `docs/phase0-collecte.md` (chantier 8), `docs/schema-donnees.md`,
   `docs/phase0-rangement.md` (un contenu = un exemplaire, décision du 21/10/2026)

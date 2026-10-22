@@ -179,7 +179,7 @@ navigateur sans boîte de connexion, agent vert, lots du tampon repris (G04 vali
 `D:\GIC` créé par `05-Partage-GIC.ps1` (AD inchangé, groupes GI-Offres, GI-Ingenieurs,
 GI-Administratif, GI-Terrain encore vides) puis rempli par `Rangement-GIC.ps1` **sans doublon** :
 3 174 fichiers (20,1 Go) copiés, 2 613 exemplaires en trop notés dans
-`REFERENCES\00_REGISTRE\doublons.csv`. **ADR 0010 proposé** : pièces administratives à
+`REFERENCES\00_REGISTRE\doublons.csv`. **ADR 0010 décidé (22/10)** : pièces administratives à
 échéances, contrôlées à la date de dépôt (application `administratif`, tâches AD01-AD07),
 maquettes Unfold bleu publiées.
 **Prochaine étape :** vérifier « État des postes » et « Journée » depuis le poste de Dicko ; test

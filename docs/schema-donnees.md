@@ -89,7 +89,7 @@ Règles d'interprétation :
 
 ## administratif
 
-Pièces administratives du bureau (ADR 0010, proposé). Les fichiers restent sur `PARTAGE_GIC`,
+Pièces administratives du bureau (ADR 0010, décidé le 22/10/2026). Les fichiers restent sur `PARTAGE_GIC`,
 sous `ADMINISTRATIF\PIECES\<CODE>\` ; l'application les lit.
 
 | Table | Champs clés | Notes |
