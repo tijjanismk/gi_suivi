@@ -45,7 +45,7 @@ Exemples :
 feat(moteur): retirer le temps inactif au-delà du seuil depuis la dernière action
 fix(agent): relancer l'envoi après un 401 Kerberos expiré
 test(moteur): couvrir la fusion Document1 → Courrier.docx
-docs(adr): 0003 pont MCP local et identité
+docs(adr): 0013 pont MCP local et identité
 ```
 
 Un commit = un changement cohérent qui passe les tests. Le corps du message

@@ -75,8 +75,8 @@ Les deux listes se comparent avant de choisir :
 
 Décision attendue : la version d'août 2026 est maîtresse (c'est la plus
 récente et elle a servi aux dernières offres), la version de mai sert de
-contrôle. La décision est notée dans `docs/adr/0003-decisions-suivi.md`,
-section « Références ». Les fiches Word de la liste maîtresse sont ensuite
+contrôle. La décision est notée dans le prochain ADR libre (décisions de la
+direction, P05), section « Références ». Les fiches Word de la liste maîtresse sont ensuite
 **codées** : chaque fiche reçoit son code GIC dans son nom
 (`GIC-HYD-ETU-004_APD-micro-barrage-Seme.docx`), selon le CSV existant quand
 la mission y figure, selon la série suivante sinon.

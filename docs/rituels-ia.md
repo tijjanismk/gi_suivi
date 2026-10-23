@@ -11,13 +11,14 @@ forcent l'écriture des décisions.
 Une session = une tâche du plan, dans une conversation neuve. Fournir, dans
 cet ordre :
 
-1. `CONTEXT.md` (toujours)
-2. Le ticket visé, copié depuis `docs/plan/taches.md`
-3. Les fichiers directement concernés (le module à modifier, son test)
-4. Pour une tâche de `moteur/` : la section correspondante de
+1. `CONTEXT.md` (toujours ; avec Claude Code, `CLAUDE.md` est lu tout seul)
+2. `docs/plan/en-cours.md`, la note de passation de la session précédente
+3. Le ticket visé, copié depuis `docs/plan/taches.md`
+4. Les fichiers directement concernés (le module à modifier, son test)
+5. Pour une tâche de `moteur/` : la section correspondante de
    `docs/suivi-transposition-python.md` ; pour un écran : la capture de la
    maquette ; pour le déploiement : `docs/exploitation.md`
-5. L'ADR le plus récent s'il touche la tâche
+6. L'ADR le plus récent s'il touche la tâche
 
 Puis le message d'ouverture :
 
@@ -29,10 +30,17 @@ quels fichiers tu vas toucher. N'écris pas de code avant mon accord.
 aucun modèle, aucune application nouvelle sans le signaler explicitement.
 ```
 
-Fin de session : mettre à jour la section « État du projet » de
-`CONTEXT.md` (en cours, dernière session, prochaine étape) et l'état du
-ticket dans `taches.md`. Deux minutes qui évitent vingt minutes de
-réorientation la fois suivante.
+Fin de session : dire « on arrête ». L'assistant lance les vérifications,
+réécrit `docs/plan/en-cours.md` (fait, reste, bloqué, à ne pas refaire,
+décisions à prendre), met à jour l'état du ticket dans `taches.md`, rédige
+l'ADR s'il y a eu une décision, et propose le message de commit (consigne
+dans `CLAUDE.md`). On relit la note avant de fermer : c'est tout ce que la
+session suivante saura. On ne compte pas sur `/compact`, qui résume avec
+perte ; on repart d'une conversation neuve qui relit les fichiers.
+Ce qui vaut d'être retenu durablement va à sa place : un piège qui
+reviendra dans `CONTEXT.md` § Pièges durables, une décision dans un ADR,
+le récit daté en bas de `docs/plan/journal.md`. `CONTEXT.md` reste sous
+150 lignes.
 
 ## 2. Quand ouvrir une nouvelle conversation pour une revue critique
 
@@ -144,8 +152,13 @@ conséquences positives et négatives, contre-argument conservé, conditions de
 reconsidération. Un ADR ne se modifie pas après acceptation ; on en écrit
 un nouveau qui le remplace et on met à jour le statut de l'ancien.
 
-Numéros réservés : `0003` décisions de la direction pour GI-SUIVI (P05),
-`0004` pont MCP local et identité, `0005` aucune IA côté serveur au MVP.
+Numérotation : on prend le **numéro suivant libre** au moment d'écrire,
+on n'en réserve pas d'avance (les réservations du début, 0003 à 0005,
+ont été prises par d'autres décisions). Seule exception en cours : `0009`,
+gardé pour le renommage `gic.giconseils.local`. Prochain libre : `0013`.
+Sujets encore sans ADR : décisions de la direction pour GI-SUIVI (P05),
+pont MCP local et identité, aucune IA côté serveur au MVP (règle 5 de
+`CONTEXT.md`).
 
 ## 6. Ce que l'IA ne décide pas
 

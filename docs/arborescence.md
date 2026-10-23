@@ -161,12 +161,10 @@ gic/
 │   ├── git.md                   # (partie 2)
 │   ├── rituels-ia.md            # (partie 3)
 │   ├── plan/
-│   │   └── taches.md            # (partie 3) tickets ordonnés et leur état
-│   └── adr/
-│       ├── 0001-choix-du-stack.md
-│       ├── 0002-code-de-reference-immuable.md      # (à écrire, tâche 02)
-│       ├── 0003-pont-mcp-local-et-identite.md      # (à écrire, tâche 03)
-│       └── 0004-aucune-ia-cote-serveur-au-mvp.md   # (à écrire, tâche 02)
+│   │   ├── taches.md            # (partie 3) tickets ordonnés et leur état
+│   │   ├── en-cours.md          # note de passation, réécrite à chaque fin de session
+│   │   └── journal.md           # récit daté des sessions (sorti de CONTEXT.md)
+│   └── adr/                     # 0001 à 0012 ; numéro suivant libre (rituels-ia.md § 5)
 │
 └── tests/
     ├── conftest.py              # fixtures : base de test, missions d'exemple, client MCP
