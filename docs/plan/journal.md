@@ -103,3 +103,16 @@ de restauration (P01) ; CONTROLE n° 6 ; note D01 signée ; relevés D03 ; WiX ;
 base de dev après chaque nouvelle migration (la base de test, elle, est recréée). Après un
 changement de gabarit ou de classes : `scripts\dev\construire_css.ps1` (classes préfixées
 `gic:`, ADR 0005) puis redémarrer le serveur de dev (cache des gabarits, `--noreload`).
+
+## 23/10/2026 — experts relus sur leurs CV et diplômes ; redémarrage du serveur
+
+Chantier 5 : les experts « à vérifier » ont été tranchés sur la date de naissance écrite sur leurs
+diplômes (`D:\AMI\Diplôme-CV` et dossiers `EXPERTS`). Trois doublons fusionnés (DIAKITE Adama né en
+1993, COULIBALY Seydou, ASSALIHA), cinq dossiers renommés au nom du diplôme, catégories revues ;
+75 personnes. Le registre `experts.csv` prend la colonne `Dossier` lue par `experts_importer`, et les
+colonnes `Niveau`, `Naissance`, `Diplome_principal`, `Decision`. Les 11 points à trancher (dont un CV
+de DIAKITE qui contredit ses diplômes) sont dans la fiche « Revue des experts — 23/10/2026 ».
+**Incident :** après le redémarrage du serveur, GIC-Test était arrêté (événement 7038, « mot de passe
+incorrect » pour `svc-application`). Le compte était sain : le serveur est contrôleur de domaine et le
+service démarrait une seconde après Netlogon. Corrigé par un démarrage automatique différé et trois
+relances du gestionnaire de services, sur le service et dans `deploy/service.ps1`.
