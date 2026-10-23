@@ -55,7 +55,7 @@ def pdf(texte: str, pages: int = 1) -> bytes:
 
 def _poser(racine: Path, type_piece: TypePiece, nom: str, contenu: bytes) -> Path:
     dossier = racine.joinpath(*[m for m in type_piece.dossier.replace("/", "\\").split("\\") if m])
-    chemin = dossier / nom
+    chemin = dossier.joinpath(*[m for m in nom.replace("/", "\\").split("\\") if m])
     chemin.parent.mkdir(parents=True, exist_ok=True)
     chemin.write_bytes(contenu)
     return chemin
