@@ -116,3 +116,9 @@ de DIAKITE qui contredit ses diplômes) sont dans la fiche « Revue des experts 
 incorrect » pour `svc-application`). Le compte était sain : le serveur est contrôleur de domaine et le
 service démarrait une seconde après Netlogon. Corrigé par un démarrage automatique différé et trois
 relances du gestionnaire de services, sur le service et dans `deploy/service.ps1`.
+**CI :** huit runs en échec depuis le #122 (22/10) : `administratif/demo.py` posait
+`_perimees\Quitus mai.pdf` comme un seul nom de fichier sous Linux ; corrigé (`6e5d822`,
+run #130 vert). **`test` mis à jour** sur `main` par `installer.ps1 -Env test -Ref main` (9 migrations,
+version précédente `ba7efd8` gardée). Import à blanc des experts : 75 créés, 0 erreur. La liste
+d'août ne s'importe pas encore : l'onglet `Missions` de la liste maîtresse reste à construire (C2).
+Les écrans ne se testent pas depuis le serveur : Kerberos exigé, le contrôleur de domaine passe en NTLM.
