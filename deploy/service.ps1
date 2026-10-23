@@ -59,7 +59,12 @@ if (-not (Get-Service $service -ErrorAction SilentlyContinue)) {
 & $nssm set $service AppDirectory "$base\app" | Out-Null
 & $nssm set $service DisplayName "GIC - Application ($Env)" | Out-Null
 & $nssm set $service Description "GI-CONSEILS - suivi d'activité et avis - environnement $Env - port $port" | Out-Null
-& $nssm set $service Start SERVICE_AUTO_START | Out-Null
+# Démarrage différé : sur le contrôleur de domaine, juste après un redémarrage, l'annuaire refusait
+# encore le compte de service (« mot de passe incorrect », 23/10/2026). Relance par le gestionnaire
+# de services si le démarrage échoue malgré tout.
+& $nssm set $service Start SERVICE_DELAYED_AUTO_START | Out-Null
+& sc.exe failure $service reset= 86400 actions= restart/60000/restart/60000/restart/120000 | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "sc.exe failure : échec ($LASTEXITCODE)." }
 $pgService = (Get-Service | Where-Object Name -like "postgresql-x64-*" | Sort-Object Name -Descending | Select-Object -First 1).Name
 if ($pgService) { & $nssm set $service DependOnService $pgService | Out-Null } else { Write-Warning "Aucun service postgresql-x64-* : dépendance non posée (serveur\07-PostgreSQL.ps1)." }
 & $nssm set $service ObjectName $compte $mdp | Out-Null          # NSSM accorde le droit « ouvrir une session en tant que service »
