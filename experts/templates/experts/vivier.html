@@ -1,0 +1,65 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><span class="text-important">Experts du bureau</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Le vivier : personnel actuel, anciens, externes habituels. Les CV se construiront à partir des affectations réelles aux références du bureau, chacune avec sa preuve.{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if peut_agir %}<a href="{% url 'experts:nouveau' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Nouvel expert</a>{% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" %}
+  <form method="get" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3" id="filtres-experts">
+    <label class="gic:text-xs text-subtle">Recherche
+      <input type="search" id="expert-q" name="q" value="{{ q }}" placeholder="nom, spécialité, fonction" class="gic:mt-1 gic:block gic:w-64 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:text-xs text-subtle">Statut
+      <select id="expert-statut" name="statut" class="gic:mt-1 gic:block gic:w-48 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"><option value="">Tous</option>{% for v, l in statuts %}<option value="{{ v }}" {% if v == statut %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    </label>
+    <label class="gic:text-xs text-subtle">Catégorie
+      <select id="expert-categorie" name="categorie" class="gic:mt-1 gic:block gic:w-48 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"><option value="">Toutes</option>{% for v, l in categories %}<option value="{{ v }}" {% if v == categorie %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    </label>
+    <label class="gic:text-xs text-subtle">Domaine
+      <select id="expert-domaine" name="domaine" class="gic:mt-1 gic:block gic:w-52 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"><option value="">Tous</option>{% for d in domaines %}<option value="{{ d.code }}" {% if d.code == domaine %}selected{% endif %}>{{ d }}</option>{% endfor %}</select>
+    </label>
+    <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important gic:pb-1.5" for="expert-mobilisables"><input type="checkbox" id="expert-mobilisables" name="mobilisables" value="1" {% if mobilisables %}checked{% endif %}> Mobilisables seulement</label>
+    <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Filtrer</button>
+  </form>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Vivier" %}
+  <p class="gic:mb-3 gic:text-sm text-subtle" id="experts-total">{{ experts|length }} expert{{ experts|length|pluralize }}</p>
+  {% if experts %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-experts">
+      <thead><tr class="gic:border-b border-base-200 dark:border-base-800">
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Nom</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Spécialité</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Catégorie</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Expérience</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Affectations</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Statut</th>
+      </tr></thead>
+      <tbody>
+        {% for e in experts %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-expert="{{ e.nom }}">
+          <td class="gic:py-2 gic:pr-3"><a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'experts:fiche' e.pk %}">{{ e }}</a></td>
+          <td class="gic:py-2 gic:pr-3">{{ e.specialite|default:"—" }}{% for d in e.domaines.all %} <span class="text-subtle">{{ d.code }}</span>{% endfor %}</td>
+          <td class="gic:py-2 gic:pr-3">{{ e.get_categorie_display|default:"—" }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{% if e.annees is not None %}{{ e.annees }} an{{ e.annees|pluralize }}{% else %}—{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ e.nb_affectations }}</td>
+          <td class="gic:py-2">{{ e.get_statut_display }}{% if not e.mobilisable %} <span class="text-subtle">· non mobilisable</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucun expert. Le registre du chantier 5 s'importe avec <span class="gic:font-mono gic:text-xs">manage.py experts_importer experts.csv</span>.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+{% endblock %}

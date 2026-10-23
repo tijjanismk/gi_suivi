@@ -33,9 +33,9 @@ le schéma mais non exploités au MVP.
 
 | Table | Champs clés | Notes |
 |---|---|---|
-| `Expert` | `matricule` unique null, `nom`, `prenoms`, `civilite`, `fonction`, `specialite`, `domaines` M:N, `statut` (interne / externe / ancien), `nationalite`, `debut_carriere` (année), `langues`, `disponible` bool, `cv_signe_chemin`, `cv_signe_le`, `notes` | Le vivier : internes et externes mobilisables. `annees_experience` est calculée depuis `debut_carriere`. |
+| `Expert` | `matricule` unique null, `nom`, `prenoms`, `civilite`, `fonction`, `specialite`, `domaines` M:N, `statut` (interne / externe / ancien), `nationalite`, `debut_carriere` (année), `langues`, `disponible` bool, `cv_signe_chemin`, `cv_signe_le`, `notes` | Le vivier : internes et externes mobilisables. `annees_experience` est calculée depuis `debut_carriere`. **ADR 0012** : `categorie` (ingénieur, technicien supérieur, technicien), `dossier` (`EXPERTS\NOM Prénom`), `accord_le` (accord écrit d'un externe) ; matricule et CV signé viendront avec les CV. |
 | `Diplome` | `expert` FK, `intitule`, `etablissement`, `pays`, `annee`, `niveau` (bac+2 … bac+8), `justificatif_chemin` | Les TDR exigent des niveaux (BAC+5, BAC+3). |
-| `Affectation` | `expert` FK, `mission` FK, `poste`, `du`, `au`, `temps_hj` Decimal null | Les références *de l'expert* sont ses affectations. Génère les CV plus tard. |
+| `Affectation` | `expert` FK, `mission` FK, `poste`, `du`, `au`, `temps_hj` Decimal null ; **ADR 0012** : `plein_temps`, `preuve` (obligatoire) | Les références *de l'expert* sont ses affectations. Génère les CV plus tard. Une affectation cite toujours une référence existante ; deux temps pleins qui se chevauchent sont signalés. |
 | `ExperienceExterne` | `expert` FK, `employeur`, `poste`, `lieu`, `du`, `au`, `description`, `types_ouvrage` M:N | Expérience hors du bureau, pour les CV et le comptage des références par expert. |
 
 ## avis

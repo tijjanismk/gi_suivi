@@ -1,0 +1,38 @@
+{% comment %} Formulaire d'affectation, sur la fiche d'un expert (expert fixé) ou d'une référence (mission fixée). Paramètres : expert ou experts, mission ou missions, retour. {% endcomment %}
+<details class="gic:mt-3" id="affecter">
+  <summary class="gic:cursor-pointer gic:text-sm text-primary-600">Affecter {% if expert %}à une référence{% else %}un expert{% endif %}</summary>
+  <form method="post" action="{% url 'experts:affecter' %}" class="gic:mt-3 gic:grid gic:gap-3 gic:sm:grid-cols-2 gic:max-w-4xl">
+    {% csrf_token %}
+    {% if retour %}<input type="hidden" name="retour" value="{{ retour }}">{% endif %}
+    {% if expert %}<input type="hidden" name="expert" value="{{ expert.pk }}">
+    {% else %}
+    <label class="gic:text-xs text-subtle">Expert
+      <select id="affecter-expert" name="expert" required class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">—</option>{% for x in experts %}<option value="{{ x.pk }}">{{ x }}{% if x.specialite %} · {{ x.specialite }}{% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    {% endif %}
+    {% if mission %}<input type="hidden" name="mission" value="{{ mission.pk }}">
+    {% else %}
+    <label class="gic:text-xs text-subtle">Référence
+      <select id="affecter-mission" name="mission" required class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">—</option>{% for x in missions %}<option value="{{ x.pk }}">{{ x.code }} · {{ x.libelle|truncatechars:70 }}</option>{% endfor %}
+      </select>
+    </label>
+    {% endif %}
+    <label class="gic:text-xs text-subtle">Poste
+      <input id="affecter-poste" name="poste" required maxlength="150" placeholder="chef de mission, hydrogéologue…" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:text-xs text-subtle">Preuve
+      <input id="affecter-preuve" name="preuve" required maxlength="250" placeholder="contrat annexe 2, rapport de démarrage p. 3…" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:text-xs text-subtle">Du
+      <input type="date" id="affecter-du" name="du" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:text-xs text-subtle">Au (vide : en cours)
+      <input type="date" id="affecter-au" name="au" class="gic:mt-1 gic:block gic:w-full gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important" for="affecter-plein-temps"><input type="checkbox" id="affecter-plein-temps" name="plein_temps" value="1" checked> À temps plein</label>
+    <div><button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Affecter</button></div>
+  </form>
+</details>

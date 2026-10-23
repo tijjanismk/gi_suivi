@@ -1,0 +1,33 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'experts:vivier' %}">Experts du bureau</a><span aria-hidden="true">›</span><span class="text-important">{% if e %}{{ e }}{% else %}Nouvel expert{% endif %}</span>{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" %}
+  <form method="post" class="gic:grid gic:gap-4 gic:sm:grid-cols-2 gic:max-w-4xl" novalidate id="form-expert">
+    {% csrf_token %}
+    {% for e2 in formulaire.non_field_errors %}<div class="gic:sm:col-span-2 gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-red-100 gic:text-red-900">{{ e2 }}</div>{% endfor %}
+    {% for champ in formulaire %}
+      <div class="{% if champ.name == 'domaines' or champ.name == 'notes' %}gic:sm:col-span-2{% endif %}">
+        {% if champ.name == 'domaines' %}
+          <fieldset><legend class="gic:text-xs text-subtle">{{ champ.label|capfirst }}</legend>
+            <div class="gic:mt-1 gic:grid gic:gap-1 gic:sm:grid-cols-3 gic:lg:grid-cols-4 gic:text-sm text-important">{% for case in champ %}<label class="gic:flex gic:items-center gic:gap-2" for="{{ case.id_for_label }}">{{ case.tag }} {{ case.choice_label }}</label>{% endfor %}</div>
+          </fieldset>
+        {% elif champ.widget_type == 'checkbox' %}
+          <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important" for="{{ champ.id_for_label }}">{{ champ }} {{ champ.label|capfirst }}</label>
+        {% else %}
+          <label class="gic:text-xs text-subtle" for="{{ champ.id_for_label }}">{{ champ.label|capfirst }}</label>
+          {{ champ }}
+        {% endif %}
+        {% if champ.help_text %}<p class="gic:mt-1 gic:text-xs text-subtle">{{ champ.help_text }}</p>{% endif %}
+        {% for x in champ.errors %}<p class="gic:mt-1 gic:text-xs gic:text-red-700">{{ x }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="gic:sm:col-span-2 gic:flex gic:gap-2">
+      <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer</button>
+      <a href="{% if e %}{% url 'experts:fiche' e.pk %}{% else %}{% url 'experts:vivier' %}{% endif %}" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-subtle gic:hover:bg-gray-50">Annuler</a>
+    </div>
+  </form>
+{% endcomponent %}
+{% endblock %}

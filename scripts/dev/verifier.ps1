@@ -21,7 +21,7 @@ Etape 'deploy/requirements.txt à jour (serveur sans outil de développement)' {
     & $py scripts\dev\exporter_dependances.py --verifier
 }
 Etape 'Tests moteur et Django' {
-    & $py -m pytest --cov=moteur --cov=suivi --cov=identite --cov=administratif --cov=referentiel --cov=references --cov-report=term-missing -m "not e2e and not windows" -q
+    & $py -m pytest --cov=moteur --cov=suivi --cov=identite --cov=administratif --cov=referentiel --cov=references --cov=experts --cov-report=term-missing -m "not e2e and not windows" -q
 }
 Etape 'Parcours de bout en bout' {
     & $py -m pytest -m e2e -q

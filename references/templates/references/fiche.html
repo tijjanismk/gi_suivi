@@ -49,6 +49,13 @@
   {% if peut_agir %}<a class="gic:mt-3 gic:inline-block gic:text-sm text-primary-600 gic:hover:underline" href="{% url 'references:ouvrages' m.code %}">Renseigner les ouvrages et quantités</a>{% endif %}
 {% endcomponent %}
 
+{% component "unfold/components/card.html" with title="Experts affectés" %}
+  <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="experts-affectes">
+    {% for a in affectations %}<li><a class="text-primary-600 gic:hover:underline" href="{% url 'experts:fiche' a.expert.pk %}">{{ a.expert }}</a> · {{ a.poste }} · <span class="text-subtle">{{ a.du|date:"m/Y"|default:"?" }} – {{ a.au|date:"m/Y"|default:"en cours" }} · {{ a.preuve }}</span></li>{% empty %}<li class="text-subtle">Aucun expert affecté.</li>{% endfor %}
+  </ul>
+  {% if peut_agir and not m.absorbee_par %}{% include "experts/_affecter.html" with mission=m experts=experts retour=request.path %}{% endif %}
+{% endcomponent %}
+
 {% if absorbees %}
 {% component "unfold/components/card.html" with title="Fiches absorbées par cette référence" %}
   <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="absorbees">

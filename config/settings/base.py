@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "administratif",  # pièces administratives du bureau (ADR 0010)
     "referentiel",  # domaines, catégories, clients, bailleurs
     "references",  # références du bureau : une mission = un contrat (ADR 0008)
+    "experts",  # vivier des experts et affectations (ADR 0012)
 ]
 
 MIDDLEWARE = [
@@ -230,6 +231,11 @@ UNFOLD = {
                         "title": "Références",
                         "icon": "library_books",
                         "link": _lien("references:liste"),
+                    },
+                    {
+                        "title": "Experts",
+                        "icon": "engineering",
+                        "link": _lien("experts:vivier"),
                     },
                     {
                         "title": "Doublons à arbitrer",

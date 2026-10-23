@@ -19,3 +19,4 @@
 @source "../../administratif/templates/**/*.html";
 @source "../../administratif/vues/**/*.py";
 @source "../../references/templates/**/*.html";
+@source "../../experts/templates/**/*.html";

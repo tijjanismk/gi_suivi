@@ -113,8 +113,18 @@ def fiche(request, code: str):
             "ouvrages": m.types_ouvrage.all(),
             "livrables": m.livrables.all(),
             "quantites": m.quantites.select_related("type"),
+            "affectations": m.affectations.select_related("expert"),
+            "experts": _experts_mobilisables(),
             "peut_agir": request.user.direction,
         },
+    )
+
+
+def _experts_mobilisables():
+    from experts.models import Expert  # experts dépend de references : import à l'appel
+
+    return (
+        Expert.objects.filter(disponible=True).exclude(statut="ancien").order_by("nom", "prenoms")
     )
 
 

@@ -1,0 +1,107 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'experts:vivier' %}">Experts du bureau</a><span aria-hidden="true">›</span><span class="text-important">{{ e }}</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}{{ e.fonction|default:e.specialite|default:"Fonction non précisée" }} · {{ e.get_statut_display }}{% if annees is not None %} · {{ annees }} an{{ annees|pluralize }} d'expérience{% endif %}{% if not e.mobilisable %} · non mobilisable{% endif %}{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if peut_agir %}<a href="{% url 'experts:modifier' e.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Modifier</a>{% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% if alertes %}
+<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900" id="alertes">
+  <p class="gic:font-semibold">À vérifier avant de présenter ce CV :</p>
+  <ul class="gic:list-disc gic:pl-5">{% for a in alertes %}<li>{{ a.message }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+{% if e.statut == 'externe' and not e.accord_le %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">Expert externe sans accord écrit enregistré : son CV ne peut pas être présenté.</div>{% endif %}
+
+{% component "unfold/components/card.html" with title="L'expert" %}
+  <dl class="gic:grid gic:grid-cols-[minmax(10rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="fiche-expert">
+    <dt class="text-subtle">Spécialité</dt><dd class="text-important">{{ e.specialite|default:"—" }}</dd>
+    <dt class="text-subtle">Catégorie</dt><dd class="text-important">{{ e.get_categorie_display|default:"—" }}</dd>
+    <dt class="text-subtle">Domaines</dt><dd class="text-important">{% for d in e.domaines.all %}{{ d }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</dd>
+    <dt class="text-subtle">Début de carrière</dt><dd class="text-important">{{ e.debut_carriere|default:"—" }}</dd>
+    <dt class="text-subtle">Nationalité, langues</dt><dd class="text-important">{{ e.nationalite|default:"—" }} · {{ e.langues|default:"—" }}</dd>
+    <dt class="text-subtle">Dossier</dt><dd class="text-important gic:font-mono gic:text-xs">{{ e.dossier|default:"—" }}</dd>
+    {% if e.accord_le %}<dt class="text-subtle">Accord écrit</dt><dd class="text-important">le {{ e.accord_le|date:"d/m/Y" }}</dd>{% endif %}
+    {% if e.notes %}<dt class="text-subtle">Notes</dt><dd class="text-important">{{ e.notes|linebreaksbr }}</dd>{% endif %}
+  </dl>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Affectations aux références du bureau" %}
+  {% if affectations %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-affectations">
+      <thead><tr class="gic:border-b border-base-200 dark:border-base-800">
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Référence</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Poste</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Période</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Preuve</th>
+        {% if peut_agir %}<th scope="col" class="gic:py-2"><span class="gic:sr-only">Action</span></th>{% endif %}
+      </tr></thead>
+      <tbody>
+        {% for a in affectations %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-mission="{{ a.mission.code }}">
+          <td class="gic:py-2 gic:pr-3"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' a.mission.code %}">{{ a.mission.code }}</a><div class="gic:text-xs text-subtle">{{ a.mission.libelle|truncatechars:80 }}</div></td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ a.poste }}{% if not a.plein_temps %} <span class="text-subtle">(temps partiel)</span>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums gic:whitespace-nowrap">{{ a.du|date:"m/Y"|default:"?" }} – {{ a.au|date:"m/Y"|default:"en cours" }}</td>
+          <td class="gic:py-2 gic:pr-3">{{ a.preuve }}</td>
+          {% if peut_agir %}<td class="gic:py-2"><form method="post" action="{% url 'experts:retirer_affectation' a.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Retirer</button></form></td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucune affectation enregistrée.{% endcomponent %}
+  {% endif %}
+  {% if peut_agir %}{% include "experts/_affecter.html" with expert=e missions=missions %}{% endif %}
+{% endcomponent %}
+
+<div class="gic:grid gic:gap-6 gic:lg:grid-cols-2 gic:items-start">
+  {% component "unfold/components/card.html" with title="Diplômes" %}
+    <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="diplomes">
+      {% for d in diplomes %}<li class="gic:flex gic:flex-wrap gic:items-center gic:gap-2"><span class="text-important">{{ d.intitule }}</span><span class="text-subtle">{{ d.niveau }}{% if d.etablissement %} · {{ d.etablissement }}{% endif %}{% if d.annee %} · {{ d.annee }}{% endif %}</span>{% if peut_agir %}<form method="post" action="{% url 'experts:retirer' 'diplome' d.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Retirer</button></form>{% endif %}</li>{% empty %}<li class="text-subtle">Aucun diplôme enregistré.</li>{% endfor %}
+    </ul>
+    {% if peut_agir %}
+    <details class="gic:mt-3"><summary class="gic:cursor-pointer gic:text-sm text-primary-600">Ajouter un diplôme</summary>
+      <form method="post" action="{% url 'experts:diplome' e.pk %}" class="gic:mt-2 gic:grid gic:gap-2 gic:sm:grid-cols-2">
+        {% csrf_token %}
+        <input name="intitule" required placeholder="Intitulé" aria-label="Intitulé" class="gic:sm:col-span-2 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <input name="etablissement" placeholder="Établissement" aria-label="Établissement" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <input name="pays" placeholder="Pays" aria-label="Pays" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <input name="annee" inputmode="numeric" placeholder="Année" aria-label="Année" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <select name="niveau" aria-label="Niveau" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"><option value="">Niveau</option>{% for v, l in niveaux %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+        <div><button type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Ajouter</button></div>
+      </form>
+    </details>
+    {% endif %}
+  {% endcomponent %}
+
+  {% component "unfold/components/card.html" with title="Expériences hors du bureau" %}
+    <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="experiences">
+      {% for x in experiences %}<li class="gic:flex gic:flex-wrap gic:items-center gic:gap-2"><span class="text-important">{{ x.poste }} · {{ x.employeur }}</span><span class="text-subtle">{{ x.du|date:"m/Y"|default:"?" }} – {{ x.au|date:"m/Y"|default:"?" }}{% if x.lieu %} · {{ x.lieu }}{% endif %}</span>{% if peut_agir %}<form method="post" action="{% url 'experts:retirer' 'experience' x.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Retirer</button></form>{% endif %}</li>{% empty %}<li class="text-subtle">Aucune expérience enregistrée.</li>{% endfor %}
+    </ul>
+    {% if peut_agir %}
+    <details class="gic:mt-3"><summary class="gic:cursor-pointer gic:text-sm text-primary-600">Ajouter une expérience</summary>
+      <form method="post" action="{% url 'experts:experience' e.pk %}" class="gic:mt-2 gic:grid gic:gap-2 gic:sm:grid-cols-2">
+        {% csrf_token %}
+        <input name="employeur" required placeholder="Employeur" aria-label="Employeur" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <input name="poste" required placeholder="Poste" aria-label="Poste" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <input name="lieu" placeholder="Lieu" aria-label="Lieu" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <span></span>
+        <input type="date" name="du" aria-label="Du" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <input type="date" name="au" aria-label="Au" class="gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <textarea name="description" rows="2" placeholder="Description" aria-label="Description" class="gic:sm:col-span-2 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"></textarea>
+        <div><button type="submit" class="gic:rounded-md gic:px-3 gic:py-1 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Ajouter</button></div>
+      </form>
+    </details>
+    {% endif %}
+  {% endcomponent %}
+</div>
+{% endblock %}
