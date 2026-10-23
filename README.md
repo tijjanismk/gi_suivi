@@ -89,7 +89,10 @@ pytest -m e2e                            # parcours de bout en bout (nécessite 
 
 ## Documentation
 
+- `CLAUDE.md` — consignes permanentes pour l'assistant (lu automatiquement par Claude Code)
 - `CONTEXT.md` — à fournir à l'IA au début de chaque session de travail
+- `docs/plan/en-cours.md` — note de passation, réécrite à chaque fin de session
+- `docs/rituels-ia.md` — rituels de travail avec l'IA, prompts de revue et de critique
 - `docs/design.md` — conception : objectif, architecture, flux, alternatives écartées
 - `docs/schema-donnees.md` — modèle de données commenté
 - `docs/outils-mcp.md` — contrat des outils exposés à Claude Desktop
