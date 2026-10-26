@@ -122,3 +122,22 @@ run #130 vert). **`test` mis à jour** sur `main` par `installer.ps1 -Env test -
 version précédente `ba7efd8` gardée). Import à blanc des experts : 75 créés, 0 erreur. La liste
 d'août ne s'importe pas encore : l'onglet `Missions` de la liste maîtresse reste à construire (C2).
 Les écrans ne se testent pas depuis le serveur : Kerberos exigé, le contrôleur de domaine passe en NTLM.
+
+## 23 au 26/10/2026 — codes des missions, justificatifs, experts sur `test`
+
+**C2 :** aucun code n'existait ; le porteur décide une numérotation définitive par série
+(domaine-nature), dans l'ordre chronologique de signature. `Construire-Missions.ps1` produit
+`REFERENCES\00_REGISTRE\missions.csv` (268 missions), importé sur `test` (ADR 0008 § 6).
+**C3 :** `Reperer-Justificatifs.ps1` lit `D:\` à l'OCR de Windows (sans rien installer) ; les fiches
+« Nom de la mission » des compilations, les scans des clés d'Alassane et ses attestations isolées
+donnent 702 pièces, vues sur des planches une par mission. Relus en entier le 26/10, les 931 PDF de
+`D:\AMI` et `D:\OFFRES` n'apportent rien : les AMI joignent les mêmes compilations « FINI ».
+`Decouper-PDF.ps1` met les images en PDF, redresse les scans couchés (OCR à 90° et 270°) et recadre
+sur l'A4 ; les pièces vont dans `02_JUSTIFICATIFS` (journal `decoupages.csv`) et se rattachent par
+`references_rattacher` (ADR 0011 § 5) : 217 références à 3 pièces, 28 partielles, 23 sans pièce.
+Constats : GIC-BAT-ETC-003 additionne deux contrats ; plusieurs « doublons » du classeur ont des
+montants différents (sans doute deux contrats). Fiche Word « Références incomplètes » pour chercher
+dans les archives. **C5 :** 57 experts complets importés sur `test`.
+**CI :** `test_etat_postes` échouait tous les lundis (poste muet depuis 3 jours = 24 h ouvrées
+pile le lundi) ; le jeu de test passe à 5 jours (`201573c`, run #133 vert). La CI se lit depuis le
+navigateur intégré de l'application, connecté à GitHub par le porteur.
