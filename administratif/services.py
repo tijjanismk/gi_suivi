@@ -6,10 +6,12 @@ le partage (règle 4 : l'application ne renomme, ne déplace ni ne supprime aucu
 
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from django.conf import settings
@@ -451,3 +453,92 @@ def noter_demande(
         note=note.strip()[:300],
         par=utilisateur if getattr(utilisateur, "pk", None) else None,
     )
+
+
+# -- premier remplissage du registre (chantier 8) ---------------------------------------------
+@dataclass
+class RapportImport:
+    enregistrees: list[str] = field(default_factory=list)
+    deja: list[str] = field(default_factory=list)
+    erreurs: list[str] = field(default_factory=list)
+
+    @property
+    def resume(self) -> str:
+        return (
+            f"{len(self.enregistrees)} pièce(s) enregistrée(s), {len(self.deja)} déjà en base, "
+            f"{len(self.erreurs)} erreur(s)"
+        )
+
+
+def lire_date_texte(texte: str) -> date | None:
+    """« 23/09/2026 » ou « 2026-09-23 » ; None si vide ; ValueError si illisible."""
+    t = (texte or "").strip()
+    if not t:
+        return None
+    for format_ in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(t, format_).date()
+        except ValueError:
+            pass
+    raise ValueError(f"date illisible : {texte}")
+
+
+def lire_csv(contenu: str) -> list[dict[str, str]]:
+    """Le registre à importer, séparé par « ; » ou « , » : colonnes `type`, `fichier` (nom du
+    fichier dans le dossier du type), `emise_le`, `valide_jusqu_au`, `numero`, `rescan`."""
+    contenu = contenu.lstrip("﻿")
+    premiere = contenu.splitlines()[0] if contenu.strip() else ""
+    if not premiere:
+        raise ValueError("fichier vide")
+    separateur = ";" if premiere.count(";") >= premiere.count(",") else ","
+    lecteur = csv.DictReader(io.StringIO(contenu), delimiter=separateur)
+    lecteur.fieldnames = [n.strip().lower() for n in lecteur.fieldnames or []]
+    manquantes = {"type", "fichier", "emise_le"} - set(lecteur.fieldnames)
+    if manquantes:
+        raise ValueError("colonnes manquantes : " + ", ".join(sorted(manquantes)))
+    return [{k: (v or "").strip() for k, v in ligne.items() if k} for ligne in lecteur]
+
+
+@transaction.atomic
+def importer(
+    lignes: list[dict[str, str]], simuler: bool = False, utilisateur=None
+) -> RapportImport:
+    """Enregistre en une fois les pièces déjà posées dans les dossiers des types, dans l'ordre
+    des lignes, par les mêmes fonctions que l'écran de dépôt. Une ligne `rescan` (oui) est un
+    meilleur scan du même document que la version en cours : il la remplace, dates et numéro
+    repris. Un fichier déjà en base est sauté ; une ligne fautive n'arrête pas les autres. Fin de
+    validité vide : calculée par la règle du type. En simulation, rien n'est gardé."""
+    rapport = RapportImport()
+    types = {t.code: t for t in TypePiece.objects.all()}
+    for n, ligne in enumerate(lignes, start=2):
+        quoi = f"ligne {n} ({ligne.get('type', '')} : {ligne.get('fichier', '')})"
+        try:
+            type_piece = types.get(ligne.get("type", "").upper())
+            if type_piece is None:
+                raise ValueError("type de pièce inconnu")
+            poses = {f.nom: f for f in fichiers_du_dossier(type_piece)}
+            fichier = poses.get(ligne.get("fichier", ""))
+            if fichier is None:
+                raise ValueError(f"fichier absent de {type_piece.dossier}")
+            if fichier.statut == "enregistre":
+                rapport.deja.append(quoi)
+                continue
+            if ligne.get("rescan", "").lower() in ("oui", "o", "1"):
+                enregistrer_nouveau_scan(type_piece, fichier, utilisateur)
+            else:
+                emise = lire_date_texte(ligne.get("emise_le", ""))
+                if emise is None:
+                    raise ValueError("date d'émission manquante")
+                valide = lire_date_texte(ligne.get("valide_jusqu_au", ""))
+                if valide is None:
+                    valide = type_piece.date_de_fin(emise)
+                enregistrer_version(
+                    type_piece, fichier, emise, valide, ligne.get("numero", ""), utilisateur
+                )
+        except (ValueError, PartageIndisponibleError) as e:
+            rapport.erreurs.append(f"{quoi} : {e}")
+            continue
+        rapport.enregistrees.append(quoi)
+    if simuler:
+        transaction.set_rollback(True)
+    return rapport

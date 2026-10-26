@@ -23,11 +23,16 @@ def fichier(code: str, nom: str) -> services.FichierDuDossier:
     return next(f for f in services.fichiers_du_dossier(type_(code)) if f.nom == nom)
 
 
-def test_seize_types_de_depart():
+def test_types_de_depart():
     types = list(TypePiece.objects.all())
-    assert len(types) == 16
+    assert len(types) == 18  # 16 au départ, présentation et carte OICM le 26/10
     assert all(t.rappel_jours == 15 for t in types)
-    assert all(t.dossier == f"ADMINISTRATIF\\PIECES\\{t.code}" for t in types)
+    assert all(
+        t.dossier == f"ADMINISTRATIF\\PIECES\\{t.code}" for t in types if t.code != "PRESENTATION"
+    )
+    assert type_("PRESENTATION").dossier == "ADMINISTRATIF\\PRESENTATION"
+    assert type_("PRESENTATION").regle_texte == "revue tous les 12 mois"
+    assert type_("CARTE-PRO-OICM").regle_texte == "permanente"
     exigees = {t.code for t in types if t.exigee_par_defaut}
     assert exigees == {
         "QUITUS-FISCAL",
