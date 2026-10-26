@@ -162,7 +162,8 @@ def jeu_de_segments(employes, postes, dossiers):
     Segment.objects.bulk_create(segments)
     pc1.dernier_envoi = timezone.now()
     pc1.save()
-    pc2.dernier_envoi = timezone.now() - timedelta(days=3)
+    # 5 jours : au moins 72 h ouvrées quel que soit le jour (3 jours un lundi n'en font que 24)
+    pc2.dernier_envoi = timezone.now() - timedelta(days=5)
     pc2.demarrages_semaine = 14
     pc2.save()
     return segments
