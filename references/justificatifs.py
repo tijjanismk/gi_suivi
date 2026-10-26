@@ -153,12 +153,15 @@ def _empechement(f: Fichier) -> str:
 
 
 @transaction.atomic
-def rattacher_dossiers(simuler: bool = False, utilisateur=None) -> RapportRattachement:
+def rattacher_dossiers(
+    simuler: bool = False, utilisateur=None, partielles: bool = False
+) -> RapportRattachement:
     """Rattache en une fois GARDE.pdf, SIGNATURE.pdf et ATTESTATION.pdf des dossiers
     REFERENCES/02_JUSTIFICATIFS/<code>, pour les seules références dont les trois pièces sont là
-    (posées ou déjà rattachées) ; les autres attendent. Rien n'est audité : l'audit reste un
-    regard à l'écran. Une référence absorbée ne reçoit rien (un doublon ne se rattache pas).
-    En simulation, rien n'est gardé."""
+    (posées ou déjà rattachées) ; les autres attendent, sauf avec `partielles` : leurs pièces
+    présentes sont rattachées aussi, les manquantes restent à réclamer. Rien n'est audité :
+    l'audit reste un regard à l'écran. Une référence absorbée ne reçoit rien (un doublon ne se
+    rattache pas). En simulation, rien n'est gardé."""
     racine = chemin_absolu(DOSSIER)
     if not racine.is_dir():
         raise PartageIndisponibleError(f"dossier introuvable sur le partage : {DOSSIER}")
@@ -191,7 +194,8 @@ def rattacher_dossiers(simuler: bool = False, utilisateur=None) -> RapportRattac
                 a_faire.append((f, type_))
         if manquent:
             rapport.incompletes.append(f"{code} : manque {', '.join(manquent)}")
-            continue
+            if not partielles:
+                continue
         try:
             with transaction.atomic():  # une référence entière ou rien
                 for f, type_ in a_faire:

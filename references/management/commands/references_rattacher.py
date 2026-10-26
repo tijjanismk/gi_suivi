@@ -4,10 +4,12 @@ ADR 0011).
     manage.py references_rattacher --simuler   # montre, ne garde rien
     manage.py references_rattacher
     manage.py references_rattacher --detail    # liste aussi les références incomplètes
+    manage.py references_rattacher --partielles
 
 Seules les références dont GARDE.pdf, SIGNATURE.pdf et ATTESTATION.pdf sont tous trois là sont
-rattachées ; les pièces restent à auditer à l'écran. Code de sortie 1 s'il y a des erreurs (les
-références sans erreur sont rattachées quand même, sauf en simulation).
+rattachées ; avec --partielles, les pièces présentes des références incomplètes le sont aussi
+(les manquantes restent à réclamer). Les pièces restent à auditer à l'écran. Code de sortie 1
+s'il y a des erreurs (les références sans erreur sont rattachées quand même, sauf en simulation).
 """
 
 from __future__ import annotations
@@ -26,10 +28,22 @@ class Command(BaseCommand):
         parser.add_argument(
             "--detail", action="store_true", help="lister aussi les références incomplètes"
         )
+        parser.add_argument(
+            "--partielles",
+            action="store_true",
+            help="rattacher aussi les pièces présentes des références incomplètes",
+        )
 
-    def handle(self, *args, simuler: bool = False, detail: bool = False, **options) -> None:
+    def handle(
+        self,
+        *args,
+        simuler: bool = False,
+        detail: bool = False,
+        partielles: bool = False,
+        **options,
+    ) -> None:
         try:
-            rapport = js.rattacher_dossiers(simuler=simuler)
+            rapport = js.rattacher_dossiers(simuler=simuler, partielles=partielles)
         except (PartageIndisponibleError, OSError) as e:
             raise CommandError(str(e)) from e
         for erreur in rapport.erreurs:

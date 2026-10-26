@@ -153,6 +153,27 @@ def test_rattacher_dossiers_complets_seulement(dossier):
     assert not m("GIC-AEP-CTR-003").pieces.exists()
 
 
+def test_rattacher_dossiers_partielles(dossier):
+    racine = dossier.parent
+    (racine / "GIC-ENV-ETU-020").mkdir()
+    (racine / "GIC-ENV-ETU-020" / "GARDE.pdf").write_bytes(pdf("garde Kayes"))
+    (racine / "GIC-AEP-CTR-003").mkdir()  # vide : rien à rattacher
+    r = js.rattacher_dossiers(partielles=True)
+    assert r.incompletes == [
+        "GIC-AEP-CTR-003 : manque garde, signature, attestation",
+        "GIC-ENV-ETU-020 : manque signature, attestation",
+    ]
+    assert r.rattachees == [
+        "GIC-ENV-ETU-020 : garde",
+        f"{CODE} : garde",
+        f"{CODE} : signature",
+        f"{CODE} : attestation",
+    ]
+    assert not r.erreurs and not m("GIC-AEP-CTR-003").pieces.exists()
+    etat = js.etat_justificatifs(m("GIC-ENV-ETU-020"))
+    assert [e.etat for e in etat.emplacements] == ["a_auditer", "manquante", "manquante"]
+
+
 def test_commande_rattacher(dossier, settings):
     sortie = StringIO()
     call_command("references_rattacher", "--simuler", stdout=sortie)
@@ -163,6 +184,10 @@ def test_commande_rattacher(dossier, settings):
     call_command("references_rattacher", "--detail", stdout=sortie)
     assert "INCOMPLÈTE GIC-ENV-ETU-020 : manque garde, signature, attestation" in sortie.getvalue()
     assert PieceJustificative.objects.count() == 3
+    (dossier.parent / "GIC-ENV-ETU-020" / "GARDE.pdf").write_bytes(pdf("garde Kayes"))
+    sortie = StringIO()
+    call_command("references_rattacher", "--partielles", stdout=sortie)
+    assert "1 pièce(s) rattachée(s), 3 déjà rattachée(s)" in sortie.getvalue()
     (dossier.parent / "GIC-INCONNU").mkdir()
     sortie = StringIO()
     with pytest.raises(SystemExit):
