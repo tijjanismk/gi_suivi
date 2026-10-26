@@ -80,13 +80,15 @@ def test_fichiers_rattacher_auditer_complet(dossier):
     assert fichier("GARDE.pdf").statut == "rattache"
     etat = js.etat_justificatifs(m())
     assert [e.etat for e in etat.emplacements] == ["a_auditer"] * 3 and not etat.complete
+    assert etat.nb_rattachees == 3 and etat.nb_a_auditer == 3 and etat.nb_bonnes == 0
     for p in m().pieces.all():
         js.auditer(
             p, {"lisible": "oui", "coherente": "oui", "nature_exacte": "bonne_execution"}, None
         )
     etat = js.etat_justificatifs(m())
-    assert etat.complete and etat.nb_bonnes == 3
-    assert js.avec_nb_bonnes(Mission.objects.filter(code=CODE)).get().nb_bonnes == 3
+    assert etat.complete and etat.nb_bonnes == 3 and etat.nb_a_auditer == 0
+    compte = js.avec_compteurs(Mission.objects.filter(code=CODE)).get()
+    assert (compte.nb_bonnes, compte.nb_rattachees, compte.nb_a_auditer) == (3, 3, 0)
     p = m().pieces.get(type="attestation")
     js.auditer(
         p, {"lisible": "moyen", "coherente": "doute", "date_document": date(2017, 1, 5)}, None
@@ -254,6 +256,7 @@ def test_ecran_justificatifs(client, dossier):
         url + "/rattacher", {"empreinte": empreinte, "type": "garde"}, follow=True, **DIR
     )
     assert "rattaché comme page de garde" in html(r)
+    assert "0 pièces bonnes sur 3 ; 1 rattachée, dont 1 à auditer." in html(r)
     r = client.post(
         url + "/rattacher", {"empreinte": "0" * 64, "type": "garde"}, follow=True, **DIR
     )
@@ -335,8 +338,16 @@ def test_ecran_ouvrages_fiche_et_liste(client, dossier):
     assert client.get(url, **VUE).status_code == 403
     page = html(client.get("/references/", {"ouvrage": "seuil-epandage"}, **DIR))
     assert "1 référence" in page and CODE in page
-    for f in ("GARDE.pdf", "SIGNATURE.pdf", "ATTESTATION.pdf"):
-        p = js.rattacher(m(), fichier(f), js.type_propose(f), None)
+    pieces = [
+        js.rattacher(m(), fichier(f), js.type_propose(f), None)
+        for f in ("GARDE.pdf", "SIGNATURE.pdf", "ATTESTATION.pdf")
+    ]
+    # rattachées mais pas encore lues : 3 / 3, avec ce qui reste à auditer
+    page = html(client.get("/references/", {"pieces": "a_auditer"}, **DIR))
+    assert "1 référence" in page and "3 / 3 <span" in page and "· 3 à auditer" in page
+    assert "3 références" in html(client.get("/references/", {"pieces": "manquantes"}, **DIR))
+    assert "0 références" in html(client.get("/references/", {"pieces": "completes"}, **DIR))
+    for p in pieces:
         js.auditer(p, {"lisible": "oui", "coherente": "oui"}, None)
     page = html(client.get("/references/", {"pieces": "completes"}, **DIR))
     assert "1 référence" in page and "3 / 3" in page

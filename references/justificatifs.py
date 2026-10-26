@@ -275,6 +275,14 @@ class EtatJustificatifs:
     def nb_bonnes(self) -> int:
         return sum(1 for e in self.emplacements if e.etat == "bonne")
 
+    @property
+    def nb_rattachees(self) -> int:
+        return sum(1 for e in self.emplacements if e.piece is not None)
+
+    @property
+    def nb_a_auditer(self) -> int:
+        return sum(1 for e in self.emplacements if e.etat == "a_auditer")
+
 
 def etat_justificatifs(mission: Mission) -> EtatJustificatifs:
     pieces = list(mission.pieces.select_related("auditee_par").order_by("type", "pk"))
@@ -293,12 +301,18 @@ def etat_justificatifs(mission: Mission) -> EtatJustificatifs:
     return EtatJustificatifs(emplacements, [p for p in pieces if p.type not in TYPES_ESSENTIELS])
 
 
-def avec_nb_bonnes(qs: QuerySet[Mission]) -> QuerySet[Mission]:
-    """Annote chaque référence du nombre de ses pièces essentielles bonnes (0 à 3)."""
+def avec_compteurs(qs: QuerySet[Mission]) -> QuerySet[Mission]:
+    """Annote chaque référence du nombre de ses pièces essentielles (0 à 3) : rattachées,
+    à auditer (lisibilité ou cohérence pas encore dites) et bonnes."""
+    essentielles = Q(pieces__type__in=TYPES_ESSENTIELS)
     return qs.annotate(
-        nb_bonnes=Count(
-            "pieces", filter=BONNE & Q(pieces__type__in=TYPES_ESSENTIELS), distinct=True
-        )
+        nb_bonnes=Count("pieces", filter=BONNE & essentielles, distinct=True),
+        nb_rattachees=Count("pieces", filter=essentielles, distinct=True),
+        nb_a_auditer=Count(
+            "pieces",
+            filter=essentielles & (Q(pieces__lisible="") | Q(pieces__coherente="")),
+            distinct=True,
+        ),
     )
 
 

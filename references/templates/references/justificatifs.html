@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block ecran %}
-<p class="gic:text-sm text-important" id="justificatifs-bilan">{% if etat.complete %}<strong>Référence complète</strong> : les trois pièces sont bonnes.{% else %}{{ etat.nb_bonnes }} pièce{{ etat.nb_bonnes|pluralize }} bonne{{ etat.nb_bonnes|pluralize }} sur 3.{% endif %}</p>
+<p class="gic:text-sm text-important" id="justificatifs-bilan">{% if etat.complete %}<strong>Référence complète</strong> : les trois pièces sont bonnes.{% else %}{{ etat.nb_bonnes }} pièce{{ etat.nb_bonnes|pluralize }} bonne{{ etat.nb_bonnes|pluralize }} sur 3 ; {{ etat.nb_rattachees }} rattachée{{ etat.nb_rattachees|pluralize }}{% if etat.nb_a_auditer %}, dont {{ etat.nb_a_auditer }} à auditer{% endif %}.{% endif %}</p>
 
 <div class="gic:grid gic:gap-4 gic:lg:grid-cols-3">
   {% for e in etat.emplacements %}

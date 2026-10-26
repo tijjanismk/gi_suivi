@@ -39,8 +39,10 @@
     <label class="gic:text-xs text-subtle">Justificatifs
       <select id="ref-pieces" name="pieces" class="gic:w-40 gic:mt-1 gic:block gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
         <option value="">Tous</option>
-        <option value="completes" {% if pieces == 'completes' %}selected{% endif %}>complets</option>
+        <option value="completes" {% if pieces == 'completes' %}selected{% endif %}>complets (3 bonnes)</option>
         <option value="incompletes" {% if pieces == 'incompletes' %}selected{% endif %}>incomplets</option>
+        <option value="a_auditer" {% if pieces == 'a_auditer' %}selected{% endif %}>à auditer</option>
+        <option value="manquantes" {% if pieces == 'manquantes' %}selected{% endif %}>pièce manquante</option>
       </select>
     </label>
     <label class="gic:text-xs text-subtle">Type d'ouvrage
@@ -80,7 +82,7 @@
           <td class="gic:py-2 gic:pr-3">{{ m.client|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ m.annee|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap">{{ m.domaine.code }}{% for d in m.domaines_secondaires.all %} <span class="text-subtle">+ {{ d.code }}</span>{% endfor %}</td>
-          <td class="gic:py-2 gic:pr-3 gic:tabular-nums gic:whitespace-nowrap" title="pièces bonnes : garde, signature, attestation">{{ m.nb_bonnes }} / 3</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums gic:whitespace-nowrap" title="pièces rattachées : garde, signature, attestation ; « à auditer » : rattachées mais pas encore lues à l'écran">{{ m.nb_rattachees }} / 3{% if m.nb_a_auditer %} <span class="text-subtle">· {{ m.nb_a_auditer }} à auditer</span>{% endif %}</td>
           <td class="gic:py-2">{{ m.get_statut_verification_display }}</td>
         </tr>
         {% endfor %}

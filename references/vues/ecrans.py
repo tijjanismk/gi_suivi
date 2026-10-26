@@ -46,12 +46,16 @@ def liste(request):
     verification = request.GET.get("verification", "")
     if verification in Mission.Verification.values:
         qs = qs.filter(statut_verification=verification)
-    qs = js.avec_nb_bonnes(qs)
+    qs = js.avec_compteurs(qs)
     pieces = request.GET.get("pieces", "")
     if pieces == "completes":
         qs = qs.filter(nb_bonnes=3)
     elif pieces == "incompletes":
         qs = qs.filter(nb_bonnes__lt=3)
+    elif pieces == "a_auditer":
+        qs = qs.filter(nb_a_auditer__gt=0)
+    elif pieces == "manquantes":
+        qs = qs.filter(nb_rattachees__lt=3)
     ouvrage = request.GET.get("ouvrage", "")
     if ouvrage:
         qs = qs.filter(types_ouvrage__cle=ouvrage)
