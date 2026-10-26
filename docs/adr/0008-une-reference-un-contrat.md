@@ -66,6 +66,17 @@ absorbé), `absorbe_par`, `intitule_court`, `client`, `annee`, `nature`, `catego
 jamais un code existant et marque chaque mission « importée » (`statut_verification`) : la
 vérification reste humaine (règle 3). `--simuler` affiche ce qui serait fait.
 
+### 6. Codification initiale (décision du porteur, 23/10/2026)
+
+Aucun code n'existait dans le classeur d'août 2026 (un onglet par domaine, sans code). Les codes
+sont attribués une fois pour toutes par `scripts\exploitation\Construire-Missions.ps1` : une
+série par domaine et nature, numérotée dans l'ordre chronologique de signature (le plus ancien a
+le plus petit numéro ; date exacte, puis année seule, puis sans date, l'ordre du classeur
+départageant). Les doublons gardent chacun leur code et s'arbitrent ensuite dans l'application
+(§ 4). Résultat : `REFERENCES\00_REGISTRE\missions.csv`, 268 missions, importées sur test le
+23/10 (`statut_code` nouveau). Le script ne sert plus qu'à reconstruire ce fichier si le classeur
+est corrigé avant la mise en production : après, un code ne change plus.
+
 ## Options écartées
 
 | Option | Pourquoi non |

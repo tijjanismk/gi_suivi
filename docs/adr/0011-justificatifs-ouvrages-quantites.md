@@ -62,10 +62,25 @@ Sur la fiche d'une référence (direction) : « Justificatifs » (fichiers du do
 proposé d'après le nom, audit, détachement, réclamation des pièces manquantes) et « Ouvrages et
 quantités ». La liste filtre par justificatifs complets ou non, et par type d'ouvrage.
 
+### 5. Premier remplissage (26/10/2026)
+
+Les pièces ont été retrouvées par lecture OCR de `D:\` (compilations « FINI », scans des clés,
+attestations isolées, dossiers d'AMI et d'offres), vérifiées à l'œil sur des planches, puis
+découpées par `Decouper-PDF.ps1` en `GARDE.pdf`, `SIGNATURE.pdf`, `ATTESTATION.pdf` : images
+mises en PDF, scans couchés redressés, marges recadrées. Chaque pièce posée est notée dans
+`REFERENCES\00_REGISTRE\decoupages.csv` (source, page, empreinte). Un doublon du classeur ne
+reçoit pas de pièces : elles vont sur un seul de ses codes.
+
+Le rattachement se fait en masse par `manage.py references_rattacher` (`--simuler` d'abord) :
+par défaut les seules références dont les trois pièces sont là, avec `--partielles` aussi les
+pièces des références incomplètes. Une pièce rattachée par la commande reste « à auditer » :
+la commande ne remplit ni la lisibilité ni la cohérence, qui restent un regard à l'écran.
+
 ## Options écartées
 
 | Option | Pourquoi non |
 |---|---|
+| Audit rempli par la commande d'après la vérification des planches | L'audit engage une personne (`auditee_par`) ; une planche ne remplace pas la lecture de la pièce |
 | Téléverser les PDF dans l'application | Règle 4 ; l'application n'écrit pas sur le partage |
 | Un booléen « vérifiée » par pièce | Le chantier 3 distingue lisibilité, cohérence et nature : une commission juge les trois |
 | Quantités en colonnes de `Mission` | Chaque nouveau type demanderait une migration (design § 4) |
