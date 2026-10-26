@@ -5,8 +5,11 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 from html import unescape
+from io import StringIO
 
 import pytest
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import override_settings
 
 from administratif.demo import pdf
@@ -112,6 +115,65 @@ def test_rattacher_refus(dossier, tmp_path):
     assert f.statut == "ailleurs" and f.piece.mission.code == CODE
     with pytest.raises(js.PartageIndisponibleError, match="introuvable"):
         js.fichiers(m("GIC-AEP-CTR-003"))
+
+
+def test_rattacher_dossiers_complets_seulement(dossier):
+    racine = dossier.parent
+    (racine / "GIC-ENV-ETU-020").mkdir()
+    (racine / "GIC-ENV-ETU-020" / "GARDE.pdf").write_bytes(pdf("garde Kayes"))
+    (racine / "GIC-HYD-ETU-032").mkdir()  # absorbée par GIC-HYD-ETU-033
+    (racine / "GIC-INCONNU").mkdir()
+    (racine / "lisez-moi.txt").write_bytes(b"x")  # pas un dossier : ignoré
+    r = js.rattacher_dossiers(simuler=True)
+    assert r.rattachees == [f"{CODE} : garde", f"{CODE} : signature", f"{CODE} : attestation"]
+    assert r.incompletes == ["GIC-ENV-ETU-020 : manque signature, attestation"]
+    assert r.erreurs == [
+        "GIC-HYD-ETU-032 : absorbée par GIC-HYD-ETU-033, ses pièces vont dans son dossier",
+        "GIC-INCONNU : référence inconnue",
+    ]
+    assert not PieceJustificative.objects.exists()  # simulation : rien n'est gardé
+    r = js.rattacher_dossiers()
+    assert len(r.rattachees) == 3 and m().pieces.count() == 3
+    assert [e.etat for e in js.etat_justificatifs(m()).emplacements] == ["a_auditer"] * 3
+    assert m().pieces.get(type="garde").nom_fichier == "GARDE.pdf"  # pas « copie GARDE.pdf »
+    assert not m("GIC-ENV-ETU-020").pieces.exists()
+    # relancée : rien de neuf
+    r = js.rattacher_dossiers()
+    assert not r.rattachees
+    assert r.deja == [f"{CODE} : {t}" for t in ("garde", "signature", "attestation")]
+    # trois fichiers posés, mais la garde est celle d'une autre référence : rien n'est rattaché
+    autre = racine / "GIC-AEP-CTR-003"
+    autre.mkdir()
+    (autre / "GARDE.pdf").write_bytes(pdf("garde Samé"))
+    (autre / "SIGNATURE.pdf").write_bytes(pdf("signature Kayes"))
+    (autre / "ATTESTATION.pdf").write_bytes(pdf("attestation SOMAGEP"))
+    r = js.rattacher_dossiers()
+    assert f"GIC-AEP-CTR-003 : « GARDE.pdf » déjà rattaché à {CODE}" in r.erreurs
+    assert "GIC-AEP-CTR-003 : manque garde" in r.incompletes
+    assert not m("GIC-AEP-CTR-003").pieces.exists()
+
+
+def test_commande_rattacher(dossier, settings):
+    sortie = StringIO()
+    call_command("references_rattacher", "--simuler", stdout=sortie)
+    assert "Simulation, rien n'est gardé : 3 pièce(s) rattachée(s)" in sortie.getvalue()
+    assert not PieceJustificative.objects.exists()
+    (dossier.parent / "GIC-ENV-ETU-020").mkdir()
+    sortie = StringIO()
+    call_command("references_rattacher", "--detail", stdout=sortie)
+    assert "INCOMPLÈTE GIC-ENV-ETU-020 : manque garde, signature, attestation" in sortie.getvalue()
+    assert PieceJustificative.objects.count() == 3
+    (dossier.parent / "GIC-INCONNU").mkdir()
+    sortie = StringIO()
+    with pytest.raises(SystemExit):
+        call_command("references_rattacher", stdout=sortie)
+    assert "ERREUR GIC-INCONNU : référence inconnue" in sortie.getvalue()
+    settings.PARTAGE_GIC = str(dossier / "absent")
+    with pytest.raises(CommandError, match="introuvable"):
+        call_command("references_rattacher")
+    settings.PARTAGE_GIC = ""
+    with pytest.raises(CommandError, match="pas configuré"):
+        call_command("references_rattacher")
 
 
 def test_audit_et_reclamation_refus(dossier):

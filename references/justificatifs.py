@@ -125,6 +125,87 @@ def rattacher(mission: Mission, fichier: Fichier, type_: str, utilisateur) -> Pi
     )
 
 
+ESSENTIELS = {"GARDE.PDF": "garde", "SIGNATURE.PDF": "signature", "ATTESTATION.PDF": "attestation"}
+
+
+@dataclass
+class RapportRattachement:
+    rattachees: list[str] = field(default_factory=list)
+    deja: list[str] = field(default_factory=list)
+    incompletes: list[str] = field(default_factory=list)
+    erreurs: list[str] = field(default_factory=list)
+
+    @property
+    def resume(self) -> str:
+        return (
+            f"{len(self.rattachees)} pièce(s) rattachée(s), {len(self.deja)} déjà rattachée(s), "
+            f"{len(self.incompletes)} référence(s) incomplète(s) laissée(s), "
+            f"{len(self.erreurs)} erreur(s)"
+        )
+
+
+def _empechement(f: Fichier) -> str:
+    if f.statut == "ailleurs":
+        return f"déjà rattaché à {f.piece.mission.code}"
+    if f.statut == "rattache":
+        return f"déjà rattaché comme {f.piece.get_type_display()}"
+    return "identique à un autre fichier du dossier"
+
+
+@transaction.atomic
+def rattacher_dossiers(simuler: bool = False, utilisateur=None) -> RapportRattachement:
+    """Rattache en une fois GARDE.pdf, SIGNATURE.pdf et ATTESTATION.pdf des dossiers
+    REFERENCES/02_JUSTIFICATIFS/<code>, pour les seules références dont les trois pièces sont là
+    (posées ou déjà rattachées) ; les autres attendent. Rien n'est audité : l'audit reste un
+    regard à l'écran. Une référence absorbée ne reçoit rien (un doublon ne se rattache pas).
+    En simulation, rien n'est gardé."""
+    racine = chemin_absolu(DOSSIER)
+    if not racine.is_dir():
+        raise PartageIndisponibleError(f"dossier introuvable sur le partage : {DOSSIER}")
+    rapport = RapportRattachement()
+    missions = Mission.objects.select_related("absorbee_par").in_bulk(field_name="code")
+    for dossier in sorted(p for p in racine.iterdir() if p.is_dir()):
+        code = dossier.name
+        m = missions.get(code)
+        if m is None:
+            rapport.erreurs.append(f"{code} : référence inconnue")
+            continue
+        if m.absorbee_par_id:
+            rapport.erreurs.append(
+                f"{code} : absorbée par {m.absorbee_par.code}, ses pièces vont dans son dossier"
+            )
+            continue
+        poses = {f.nom.upper(): f for f in fichiers(m) if f.nom.upper() in ESSENTIELS}
+        deja = set(m.pieces.filter(type__in=TYPES_ESSENTIELS).values_list("type", flat=True))
+        a_faire, manquent = [], []
+        for nom, type_ in ESSENTIELS.items():
+            if type_ in deja:
+                continue
+            f = poses.get(nom)
+            if f is not None and f.statut != "nouveau":
+                rapport.erreurs.append(f"{code} : « {f.nom} » {_empechement(f)}")
+                f = None
+            if f is None:
+                manquent.append(type_)
+            else:
+                a_faire.append((f, type_))
+        if manquent:
+            rapport.incompletes.append(f"{code} : manque {', '.join(manquent)}")
+            continue
+        try:
+            with transaction.atomic():  # une référence entière ou rien
+                for f, type_ in a_faire:
+                    rattacher(m, f, type_, utilisateur)
+        except ValueError as e:
+            rapport.erreurs.append(f"{code} : {e}")
+            continue
+        rapport.deja += [f"{code} : {t}" for t in TYPES_ESSENTIELS if t in deja]
+        rapport.rattachees += [f"{code} : {t}" for _, t in a_faire]
+    if simuler:
+        transaction.set_rollback(True)
+    return rapport
+
+
 def auditer(piece: PieceJustificative, donnees: dict, utilisateur) -> PieceJustificative:
     """Les quatre questions du chantier 3 : présente (rattachée), lisible, de la bonne nature,
     cohérente avec les deux autres."""
