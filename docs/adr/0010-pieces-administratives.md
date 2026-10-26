@@ -156,6 +156,27 @@ nouveau scan du même document ». Rien n'est effacé, l'historique distingue un
 renouvellement, et les demandes de renouvellement restent ouvertes. Le rescan de la séance du
 22/10 se fait avant tout enregistrement : seuls les scans propres entrent dans la base.
 
+### 11. Premier remplissage du registre (26/10/2026, décisions prises en l'absence du porteur)
+
+Les pièces déjà rangées sous `ADMINISTRATIF\PIECES\<CODE>` entrent dans la base par
+`manage.py administratif_importer <registre.csv>` (`--simuler` d'abord), qui passe par les mêmes
+fonctions que l'écran de dépôt ; le tableau reprend le registre provisoire
+`ADMINISTRATIF\registre-pieces-administratives.csv`. Décisions :
+
+- deux types ajoutés (migration 0003), non exigés par défaut : **PRESENTATION** (présentation du
+  bureau, dossier `ADMINISTRATIF\PRESENTATION`, revue tous les 12 mois) et **CARTE-PRO-OICM**
+  (carte professionnelle n° 219, permanente tant que l'Ordre n'indique pas d'échéance), la carte
+  déplacée du dossier OICM vers le sien ;
+- quand deux scans du même document existent, le moins bon est enregistré d'abord, le meilleur
+  ensuite comme « nouveau scan » (§ 10) : copie certifiée pour l'INPS et la non-faillite,
+  original pour l'attestation OICM ;
+- attestation OICM datée du 01/07/2026 (le registre dit « 07/2026 », jour à lire sur le tampon) ;
+- les sources Word (carte NIF, liste des moyens) vont dans un sous-dossier `_source`, que
+  l'écran ne propose pas ;
+- la présentation (9 pages, 324 Mo) est compactée par `scripts\exploitation\Compacter-PDF.ps1`
+  (pages réencodées en JPEG, 150 ppp) et la page 8, qui répétait la 6, retirée : 8 pages, 2,5 Mo ;
+  l'original reste dans `ADMINISTRATIF\PRESENTATION\_original` (journal `decoupages.csv`).
+
 ## Options écartées
 
 | Option | Pourquoi non |

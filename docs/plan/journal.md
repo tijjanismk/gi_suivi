@@ -141,3 +141,12 @@ dans les archives. **C5 :** 57 experts complets importés sur `test`.
 **CI :** `test_etat_postes` échouait tous les lundis (poste muet depuis 3 jours = 24 h ouvrées
 pile le lundi) ; le jeu de test passe à 5 jours (`201573c`, run #133 vert). La CI se lit depuis le
 navigateur intégré de l'application, connecté à GitHub par le porteur.
+## 26/10/2026 au soir — pièces administratives sur `test`
+
+Le porteur part en confiant le chantier 8 : `administratif_importer` enregistre les 19 pièces
+rangées sous `ADMINISTRATIF\PIECES` et la présentation, par les fonctions de l'écran de dépôt
+(ADR 0010 § 11). Deux types ajoutés (PRESENTATION, CARTE-PRO-OICM, migration 0003), non exigés
+par défaut pour ne pas changer le contrôle avant dépôt. La présentation pesait 324 Mo pour
+9 pages (images démesurées) : `Compacter-PDF.ps1` la réencode en JPEG, 2,5 Mo, et retire la
+page 8, copie exacte de la 6. Registre au 26/10 : TVA et non-faillite expirées, le reste valide
+ou permanent.
