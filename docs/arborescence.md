@@ -71,11 +71,10 @@ gic/
 │
 ├── moteur/                      # ★ Python pur, aucun import Django
 │   ├── __init__.py
-│   ├── types.py                 # dataclasses : MissionDTO, CritereDTO, ResultatCritere…
-│   ├── filtres.py               # interprète Critere.filtre sur des MissionDTO
-│   ├── selection.py             # sélectionne et classe les missions par critère
-│   ├── notation.py              # applique les modes de calcul, note totale, verdict
-│   ├── completude.py            # état des pièces, points perdus, classement
+│   ├── avis/                    # barème d'un avis (ADR 0013)
+│   │   ├── filtres.py           # Reference, Piece ; lit Critere.filtre, preuve d'une référence
+│   │   ├── selection.py         # références éligibles par critère, classées, choix humains
+│   │   └── notation.py          # quatre modes, note sûre et possible, verdict, pièces en jeu
 │   ├── normalisation.py         # dates, durées, montants, pays/lieu depuis texte libre
 │   └── tests/                   # tests unitaires rapides, centaines de cas
 │

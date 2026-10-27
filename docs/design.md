@@ -147,12 +147,14 @@ Les trois décisions structurantes du modèle :
    traduit le texte du bailleur en filtre (catégories, types d'ouvrages,
    quantités minimales, période, zone, nature). Claude Desktop peut proposer
    cette traduction via l'outil `proposer_filtre_critere` ; l'humain valide.
-3. `moteur.selection.selectionner(avis, missions)` rend, par critère, les
-   missions éligibles classées, les points obtenus, le plafond atteint ou non,
-   et pour chaque mission retenue l'état de ses pièces et les points perdus si
-   une pièce manque.
-4. `moteur.notation.noter(avis, selection)` rend la note simulée et la compare
-   au seuil d'éligibilité.
+3. `moteur.avis.selection.selectionner(filtre, missions)` rend, pour un
+   critère, les missions éligibles classées et l'état de leur preuve (prouvée,
+   à auditer, manquante) ; les choix d'une personne (exclure, forcer) passent
+   par-dessus (ADR 0013).
+4. `moteur.avis.notation.noter(criteres, missions, annee, seuil)` rend, par
+   critère, les points obtenus, le plafond atteint ou non et les points en jeu
+   si une pièce manque ; puis la note sûre, la note possible et le verdict au
+   seuil d'éligibilité (éligible, incertain, non éligible).
 5. L'écran et l'outil MCP `simuler_avis` affichent le même résultat.
 6. La liste des pièces manquantes est triée par points en jeu décroissants.
 
