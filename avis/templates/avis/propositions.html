@@ -1,0 +1,49 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:liste' %}">Avis de marchés</a><span aria-hidden="true">›</span><span class="text-important">Propositions</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Ce qu'une veille, un dépôt de TDR ou Claude Desktop a extrait d'un avis. Rien n'entre dans la base sans validation : on confirme champ par champ, puis on accepte (l'avis est créé) ou on rejette avec un motif (règle 3).{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="À valider" %}
+  {% if a_valider %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="propositions-a-valider">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Proposition</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Référence</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Objet</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Origine</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Reçue le</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in a_valider %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top">
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:proposition' p.pk %}">n° {{ p.pk }}</a></td>
+          <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs">{{ p.champs_extraits.reference|default:"—" }}</td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ p.champs_extraits.objet|default:"—"|truncatechars:140 }}</td>
+          <td class="gic:py-2 gic:pr-3">{{ p.get_origine_display }}{% if p.proposee_par %} <span class="text-subtle">· {{ p.proposee_par }}</span>{% endif %}</td>
+          <td class="gic:py-2 gic:tabular-nums gic:whitespace-nowrap">{{ p.proposee_le|date:"d/m/Y H:i" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucune proposition à valider.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
+{% if decidees %}
+{% component "unfold/components/card.html" with title="Décidées" %}
+  <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="propositions-decidees">
+    {% for p in decidees %}<li><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:proposition' p.pk %}">n° {{ p.pk }}</a> · {{ p.champs_extraits.reference|default:"sans référence" }} · {{ p.get_statut_display }} le {{ p.decide_le|date:"d/m/Y" }}{% if p.avis_cree %} → <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:fiche' p.avis_cree.pk %}">{{ p.avis_cree.reference }}</a>{% elif p.motif_rejet %} <span class="text-subtle">: {{ p.motif_rejet }}</span>{% endif %}</li>{% endfor %}
+  </ul>
+{% endcomponent %}
+{% endif %}
+{% endblock %}

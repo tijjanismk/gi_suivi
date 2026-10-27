@@ -235,6 +235,13 @@ UNFOLD = {
                         "link": _lien("avis:liste"),
                     },
                     {
+                        "title": "Propositions d'avis",
+                        "icon": "inbox",
+                        "link": _lien("avis:propositions"),
+                        "badge": "avis.vues.ecrans.pastille_propositions",
+                        "badge_variant": "info",
+                    },
+                    {
                         "title": "Références",
                         "icon": "library_books",
                         "link": _lien("references:liste"),

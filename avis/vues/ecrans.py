@@ -18,7 +18,7 @@ from administratif.models import TypePiece
 from administratif.services import PartageIndisponibleError, chemin_absolu
 from avis import services
 from avis.formulaires import FormulaireAvis, FormulaireBesoin, FormulaireCritere
-from avis.models import Avis, BesoinExpert, Critere
+from avis.models import Avis, BesoinExpert, Critere, Proposition
 from experts.models import Expert
 from identite.decorateurs import groupe_requis
 from moteur.avis.filtres import FiltreInvalideError
@@ -394,3 +394,71 @@ def retirer_besoin(request, avis_id: int, besoin_id: int):
     b.delete()
     messages.success(request, f"Poste « {b.poste} » retiré.")
     return redirect("avis:fiche", avis_id=avis_id)
+
+
+# -- propositions à valider (AV08) ---------------------------------------------------------------
+def pastille_propositions(request) -> int | None:
+    """Pastille du menu : propositions d'avis à valider (direction, offres, consultation)."""
+    u = getattr(request, "user", None)
+    if not (u and getattr(u, "is_authenticated", False) and u.dans_groupe(*CONSULTATION)):
+        return None
+    return services.a_valider() or None
+
+
+@groupe_requis(*CONSULTATION)
+def propositions(request):
+    journaliser(request, "consulter:propositions_avis")
+    a_valider = Proposition.objects.filter(statut=Proposition.Statut.A_VALIDER)
+    decidees = Proposition.objects.exclude(statut=Proposition.Statut.A_VALIDER)
+    return render(
+        request,
+        "avis/propositions.html",
+        {
+            **admin.site.each_context(request),
+            "titre": "Propositions d'avis",
+            "a_valider": a_valider.order_by("-proposee_le"),
+            "decidees": decidees.select_related("avis_cree").order_by("-decide_le")[:30],
+        },
+    )
+
+
+@groupe_requis(*CONSULTATION)
+def proposition(request, proposition_id: int):
+    """Les champs extraits à gauche, le formulaire de l'avis prérempli à droite : on corrige,
+    puis on accepte (l'avis est créé) ou on rejette avec un motif (règle 3)."""
+    p = get_object_or_404(Proposition.objects.select_related("avis_cree"), pk=proposition_id)
+    ouverte = p.statut == Proposition.Statut.A_VALIDER
+    formulaire = FormulaireAvis(initial=services.initiaux(p)) if ouverte else None
+    if request.method == "POST":
+        if not _peut_saisir(request):
+            return render(request, "identite/refus.html", {"groupes": SAISIE}, status=403)
+        action = request.POST.get("action", "")
+        try:
+            if action == "rejeter":
+                services.rejeter(p, request.POST.get("motif", ""), request.user)
+                journaliser(request, "avis:rejeter_proposition", str(p.pk))
+                messages.success(request, f"Proposition {p.pk} rejetée.")
+                return redirect("avis:propositions")
+            formulaire = FormulaireAvis(request.POST)
+            if formulaire.is_valid():
+                a = services.accepter(p, formulaire, request.user)
+                journaliser(request, "avis:accepter_proposition", f"{p.pk} -> {a.pk}")
+                messages.success(request, f"{a} créé depuis la proposition {p.pk}.")
+                return redirect("avis:fiche", avis_id=a.pk)
+        except ValueError as e:
+            messages.error(request, f"{str(e)[:1].upper()}{str(e)[1:]}.")
+            return redirect("avis:proposition", proposition_id=p.pk)
+    return render(
+        request,
+        "avis/proposition.html",
+        {
+            **admin.site.each_context(request),
+            "titre": f"Proposition {p.pk}",
+            "p": p,
+            "ouverte": ouverte,
+            "extraits": sorted((p.champs_extraits or {}).items()),
+            "formulaire": formulaire,
+            "larges": LARGES,
+            "peut_saisir": _peut_saisir(request),
+        },
+    )

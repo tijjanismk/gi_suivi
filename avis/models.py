@@ -314,3 +314,52 @@ class BesoinExpert(models.Model):
             lire_filtre(self.filtre_references)
         except FiltreInvalideError as e:
             raise ValidationError({"filtre_references": str(e)}) from None
+
+
+class Proposition(models.Model):
+    """Un avis candidat, pas encore validé (règle 3 de `CONTEXT.md`) : ce qu'une veille, un dépôt
+    de TDR ou Claude a extrait. Une personne confirme champ par champ, puis accepte (l'avis est
+    créé) ou rejette (avec un motif). La proposition reste pour la trace."""
+
+    class Origine(models.TextChoices):
+        VEILLE = "veille", "veille"
+        DEPOT_TDR = "depot_tdr", "dépôt de TDR"
+        CLAUDE = "claude", "Claude Desktop"
+        SAISIE = "saisie", "saisie"
+
+    class Statut(models.TextChoices):
+        A_VALIDER = "a_valider", "à valider"
+        ACCEPTEE = "acceptee", "acceptée"
+        REJETEE = "rejetee", "rejetée"
+
+    origine = models.CharField(max_length=10, choices=Origine.choices)
+    statut = models.CharField(max_length=10, choices=Statut.choices, default=Statut.A_VALIDER)
+    source_url = models.URLField("adresse de la source", max_length=500, blank=True)
+    fichier_chemin = models.CharField(
+        "fichier source", max_length=500, blank=True, help_text="Relatif au partage GIC"
+    )
+    champs_extraits = models.JSONField(default=dict, blank=True)
+    champs_confirmes = models.JSONField(default=dict, blank=True)
+    avis_cree = models.ForeignKey(
+        Avis, null=True, blank=True, on_delete=models.SET_NULL, related_name="propositions"
+    )
+    proposee_par = models.CharField("proposée par", max_length=150, blank=True)
+    proposee_le = models.DateTimeField(auto_now_add=True)
+    decide_par = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="+",
+    )
+    decide_le = models.DateTimeField(null=True, blank=True)
+    motif_rejet = models.CharField(max_length=500, blank=True)
+
+    class Meta:
+        verbose_name = "proposition d'avis"
+        verbose_name_plural = "propositions d'avis"
+        ordering = ["statut", "-proposee_le"]
+
+    def __str__(self) -> str:
+        reference = (self.champs_extraits or {}).get("reference", "")
+        return f"Proposition {self.pk} ({self.get_origine_display()}) {reference}".strip()

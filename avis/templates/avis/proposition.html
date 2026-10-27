@@ -1,0 +1,51 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:liste' %}">Avis de marchés</a><span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:propositions' %}">Propositions</a><span aria-hidden="true">›</span><span class="text-important">n° {{ p.pk }}</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}{{ p.get_origine_display|capfirst }}{% if p.proposee_par %}, par {{ p.proposee_par }}{% endif %}, le {{ p.proposee_le|date:"d/m/Y H:i" }} · {{ p.get_statut_display }}{% if p.source_url %} · <a class="text-primary-600 gic:hover:underline" href="{{ p.source_url }}" rel="noopener noreferrer">source</a>{% endif %}{% if p.fichier_chemin %} · <span class="gic:font-mono gic:text-xs">{{ p.fichier_chemin }}</span>{% endif %}{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="Ce qui a été extrait" %}
+  <dl class="gic:grid gic:grid-cols-[minmax(10rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="extraits">
+    {% for cle, valeur in extraits %}<dt class="text-subtle gic:font-mono gic:text-xs">{{ cle }}</dt><dd class="text-important">{{ valeur }}</dd>{% empty %}<dt class="text-subtle">—</dt><dd class="text-subtle">rien d'extrait</dd>{% endfor %}
+  </dl>
+{% endcomponent %}
+
+{% if ouverte and peut_saisir %}
+{% component "unfold/components/card.html" with title="L'avis à créer : corrigez, puis acceptez" %}
+  <form method="post" class="gic:grid gic:gap-4 gic:sm:grid-cols-2 gic:max-w-5xl" novalidate id="form-proposition">
+    {% csrf_token %}
+    {% for e in formulaire.non_field_errors %}<p class="gic:sm:col-span-2 gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-red-100 gic:text-red-900">{{ e }}</p>{% endfor %}
+    {% for champ in formulaire %}
+      <div class="{% if champ.name in larges %}gic:sm:col-span-2{% endif %}">
+        {% if champ.name == 'groupement' %}
+          <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important gic:mt-3" for="{{ champ.id_for_label }}">{{ champ }} {{ champ.label|capfirst }}</label>
+        {% else %}
+          <label class="gic:text-xs text-subtle" for="{{ champ.id_for_label }}">{{ champ.label|capfirst }}</label>
+          {{ champ }}
+        {% endif %}
+        {% for e in champ.errors %}<p class="gic:mt-1 gic:text-xs gic:text-red-700">{{ e }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="gic:sm:col-span-2"><button type="submit" name="action" value="accepter" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Accepter : créer l'avis</button></div>
+  </form>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Ou rejeter" %}
+  <form method="post" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3" id="form-rejet">
+    {% csrf_token %}
+    <label class="gic:text-xs text-subtle">Motif
+      <input type="text" name="motif" maxlength="500" required class="gic:mt-1 gic:block gic:w-72 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <button type="submit" name="action" value="rejeter" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Rejeter</button>
+  </form>
+{% endcomponent %}
+{% elif not ouverte %}
+{% component "unfold/components/card.html" with title="Décision" %}
+  <p class="gic:text-sm text-important" id="decision">{{ p.get_statut_display|capfirst }} le {{ p.decide_le|date:"d/m/Y H:i" }}{% if p.decide_par %} par {{ p.decide_par.nom_affiche|default:p.decide_par.login_windows }}{% endif %}{% if p.avis_cree %} : <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:fiche' p.avis_cree.pk %}">{{ p.avis_cree }}</a>{% endif %}{% if p.motif_rejet %} : {{ p.motif_rejet }}{% endif %}</p>
+{% endcomponent %}
+{% endif %}
+{% endblock %}

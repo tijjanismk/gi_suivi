@@ -7,21 +7,24 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
+from datetime import date, datetime
 from decimal import Decimal
 from urllib.parse import urlencode
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from administratif.models import TypePiece
 from administratif.services import LigneControle, controle_a_la_date
-from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Selection
+from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Proposition, Selection
 from experts.models import Expert
 from moteur.avis import experts as experts_moteur
 from moteur.avis import notation
 from moteur.avis.filtres import PIECES_PAR_DEFAUT, Piece, Preuve, Reference, lire_filtre
 from moteur.avis.selection import selectionner
 from references.models import Mission
+from referentiel.models import Bailleur, Client
 
 CODES_EN_APERCU = 10
 EXPERTS_PROPOSES = 15  # dans la liste où l'on choisit l'expert retenu
@@ -331,3 +334,115 @@ def experts_pour(avis: Avis, references: list[Reference] | None = None) -> list[
             }
         )
     return lignes
+
+
+# -- propositions à valider (AV08) ---------------------------------------------------------------
+TYPES_AVIS = {"AMI", "DP", "AO"}
+
+
+def _date_proposee(texte) -> date | None:
+    """« 28/10/2026 » ou « 2026-10-28 » ; rien sinon (la personne la saisit)."""
+    for format_ in ("%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(str(texte or "").strip(), format_).date()
+        except ValueError:
+            continue
+    return None
+
+
+def _organisme(modele, nom: str):
+    nom = (nom or "").strip()
+    if not nom:
+        return None
+    return modele.objects.filter(Q(nom__iexact=nom) | Q(sigle__iexact=nom)).first()
+
+
+def creer_proposition(
+    origine: str, champs: dict, source_url: str = "", fichier_chemin: str = "", par: str = ""
+) -> Proposition:
+    """Une proposition à valider ; jamais un avis (règle 3). `champs` : reference, objet, type,
+    date_limite, maitre_ouvrage, bailleur, pays… tels qu'extraits."""
+    if origine not in Proposition.Origine.values:
+        raise ValueError(f"origine inconnue : {origine}")
+    if not isinstance(champs, dict):
+        raise ValueError("les champs extraits sont un objet (nom → valeur)")
+    return Proposition.objects.create(
+        origine=origine,
+        champs_extraits={str(k): v for k, v in champs.items()},
+        source_url=(source_url or "")[:500],
+        fichier_chemin=(fichier_chemin or "")[:500],
+        proposee_par=(par or "")[:150],
+    )
+
+
+def initiaux(p: Proposition) -> dict:
+    """Les champs extraits, prêts pour le formulaire de l'avis. Un maître d'ouvrage ou un
+    bailleur absent du référentiel est noté dans les observations, pour être choisi à la main."""
+    e = p.champs_extraits or {}
+    simples = (
+        "reference",
+        "objet",
+        "pays",
+        "lieu_depot",
+        "courriel_depot",
+        "methode_selection",
+        "fichier_avis_chemin",
+        "fichier_tdr_chemin",
+        "observations",
+    )
+    initial = {k: str(e[k]) for k in simples if e.get(k)}
+    type_ = str(e.get("type", "")).strip().upper()
+    initial["type"] = type_ if type_ in TYPES_AVIS else Avis.Type.AUTRE
+    for cle in ("date_limite", "date_publication"):
+        if _date_proposee(e.get(cle)):
+            initial[cle] = _date_proposee(e.get(cle))
+    if p.fichier_chemin and "fichier_avis_chemin" not in initial:
+        initial["fichier_avis_chemin"] = p.fichier_chemin
+    notes = [initial.get("observations", "")]
+    for cle, modele, libelle in (
+        ("maitre_ouvrage", Client, "Maître d'ouvrage"),
+        ("bailleur", Bailleur, "Bailleur"),
+    ):
+        trouve = _organisme(modele, str(e.get(cle, "")))
+        if trouve:
+            initial[cle] = trouve.pk
+        elif e.get(cle):
+            notes.append(f"{libelle} proposé : {e[cle]} (absent du référentiel)")
+    initial["observations"] = "\n".join(n for n in notes if n)
+    return initial
+
+
+@transaction.atomic
+def accepter(p: Proposition, formulaire, par) -> Avis:
+    """L'avis confirmé est créé, une seule fois ; la proposition garde ce qui a été confirmé."""
+    p = Proposition.objects.select_for_update().get(pk=p.pk)
+    if p.statut != Proposition.Statut.A_VALIDER:
+        raise ValueError(f"proposition déjà {p.get_statut_display()}")
+    a = formulaire.save(commit=False)
+    a.cree_par = par
+    a.save()
+    p.statut = Proposition.Statut.ACCEPTEE
+    p.avis_cree = a
+    p.champs_confirmes = {
+        k: str(v) for k, v in formulaire.cleaned_data.items() if v not in (None, "", False)
+    }
+    p.decide_par = par
+    p.decide_le = timezone.now()
+    p.save()
+    return a
+
+
+def rejeter(p: Proposition, motif: str, par) -> None:
+    if p.statut != Proposition.Statut.A_VALIDER:
+        raise ValueError(f"proposition déjà {p.get_statut_display()}")
+    if not (motif or "").strip():
+        raise ValueError("indiquez le motif du rejet")
+    p.statut = Proposition.Statut.REJETEE
+    p.motif_rejet = motif.strip()[:500]
+    p.decide_par = par
+    p.decide_le = timezone.now()
+    p.save()
+
+
+def a_valider() -> int:
+    return Proposition.objects.filter(statut=Proposition.Statut.A_VALIDER).count()
