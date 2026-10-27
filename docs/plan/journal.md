@@ -150,3 +150,12 @@ par défaut pour ne pas changer le contrôle avant dépôt. La présentation pes
 9 pages (images démesurées) : `Compacter-PDF.ps1` la réencode en JPEG, 2,5 Mo, et retire la
 page 8, copie exacte de la 6. Registre au 26/10 : TVA et non-faillite expirées, le reste valide
 ou permanent.
+## 27/10/2026 — justificatifs des experts
+
+La fiche d'un expert liste maintenant les fichiers de son dossier `EXPERTS\<NOM Prénom>` et les
+ouvre (lecture seule). Les 61 scans de diplômes des 57 experts au vivier ont été lus à l'œil sur
+des planches (l'OCR lit les en-têtes, mal les spécialités et les sessions), y compris les images
+des diplômes en Word (une en EMF). 58 diplômes importés sur `test` par `experts_diplomes`, chacun
+avec son scan. Écartés : deux copies en double, et les deux DUT de SIDIBE Nasser Hassane, même
+numéro GC20/592 mais sessions 2016 et 2020. La CI #140 avait refusé un fichier sans retour à la
+ligne final (écrit par PowerShell) : vérifier ce point avant de pousser un fichier complété ainsi.

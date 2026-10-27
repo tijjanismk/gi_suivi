@@ -46,7 +46,20 @@ disponibles) ; la fiche d'un expert (diplômes, affectations, expériences hors 
 alertes) avec ses formulaires ; « Experts affectés » sur la fiche d'une référence. Import du
 registre : `manage.py experts_importer experts.csv --simuler`.
 
-### 4. Hors de cet ADR
+### 4. Justificatifs et diplômes (27/10/2026)
+
+La fiche d'un expert liste les fichiers de son dossier `EXPERTS\<NOM Prénom>` (sous-dossiers
+compris), rangés d'après le nom en CV, diplôme, attestation ou autre, et les ouvre ; le partage
+est lu, jamais écrit (règle 4, mêmes fonctions que l'ADR 0010). Un diplôme enregistré a pour
+justificatif le chemin de son scan. Les diplômes s'importent par `manage.py experts_diplomes`
+(`--simuler` d'abord) depuis un tableau établi à la main : les 61 scans des experts au vivier ont
+été lus à l'œil (l'OCR seul lit mal spécialités et sessions). Retenu : un diplôme par document ;
+une copie en double n'est pas reprise (la copie certifiée l'emporte) ; un brevet de technicien
+(BT2) n'a pas de niveau « bac+ » ; une attestation de réussite sans diplôme le dit dans
+l'intitulé. Les deux DUT de SIDIBE Nasser Hassane (même numéro, sessions 2016 et 2020) ne sont
+pas importés : à vérifier sur l'original.
+
+### 5. Hors de cet ADR
 
 La production des CV au format d'un bailleur (format de fichier, bibliothèque, signature) fera
 l'objet d'un ADR à part, après le choix des formats par la direction.
