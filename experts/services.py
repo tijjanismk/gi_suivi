@@ -10,7 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 from django.utils.text import slugify
 
-from experts.models import Expert
+from experts.models import Diplome, Expert
 from moteur.experts import controles
 
 CATEGORIES = {
@@ -113,6 +113,62 @@ def importer(lignes: list[dict[str, str]], simuler: bool = False) -> Rapport:
                     setattr(expert, cle, valeur)
             expert.save()
             rapport.mis_a_jour.append(str(expert))
+    if simuler:
+        transaction.set_rollback(True)
+    return rapport
+
+
+@dataclass
+class RapportDiplomes:
+    crees: list[str] = field(default_factory=list)
+    deja: list[str] = field(default_factory=list)
+    erreurs: list[str] = field(default_factory=list)
+
+    @property
+    def resume(self) -> str:
+        return (
+            f"{len(self.crees)} diplôme(s) créé(s), {len(self.deja)} déjà enregistré(s), "
+            f"{len(self.erreurs)} erreur(s)"
+        )
+
+
+@transaction.atomic
+def importer_diplomes(lignes: list[dict[str, str]], simuler: bool = False) -> RapportDiplomes:
+    """Diplômes lus sur les scans des dossiers (chantier 5) : colonnes `dossier` (« NOM Prénom »),
+    `fichier` (le scan dans ce dossier, qui devient le justificatif), `intitule`, `etablissement`,
+    `pays`, `annee`, `niveau`. L'expert doit déjà être au vivier. Un diplôme déjà enregistré avec
+    le même justificatif (ou, sans fichier, le même intitulé et la même année) est sauté. En
+    simulation, rien n'est gardé."""
+    rapport = RapportDiplomes()
+    for n, ligne in enumerate(lignes, start=2):
+        dossier, fichier = ligne.get("dossier", ""), ligne.get("fichier", "")
+        intitule, annee = ligne.get("intitule", "")[:250], ligne.get("annee", "")
+        niveau = ligne.get("niveau", "")
+        expert = Expert.objects.filter(dossier__iexact=f"EXPERTS\\{dossier}").first()
+        if expert is None:
+            rapport.erreurs.append(f"ligne {n} : expert inconnu au vivier ({dossier})")
+            continue
+        if not intitule or (annee and not annee.isdigit()) or niveau not in ("", *Diplome.Niveau):
+            rapport.erreurs.append(f"ligne {n} ({dossier}) : intitulé, année ou niveau illisible")
+            continue
+        justificatif = f"EXPERTS\\{dossier}\\{fichier}"[:500] if fichier else ""
+        if justificatif:
+            memes = expert.diplomes.filter(justificatif=justificatif)
+        else:
+            memes = expert.diplomes.filter(intitule=intitule, annee=int(annee) if annee else None)
+        if memes.exists():
+            rapport.deja.append(f"{dossier} : {intitule}")
+            continue
+        Diplome.objects.create(
+            expert=expert,
+            intitule=intitule,
+            etablissement=ligne.get("etablissement", "")[:200],
+            pays=ligne.get("pays", "")[:80],
+            annee=int(annee) if annee else None,
+            niveau=niveau,
+            justificatif=justificatif,
+        )
+        rapport.crees.append(f"{dossier} : {intitule}")
     if simuler:
         transaction.set_rollback(True)
     return rapport

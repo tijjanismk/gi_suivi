@@ -1,18 +1,23 @@
 """Écrans du vivier (ADR 0012) : liste, fiche, création et modification d'un expert, diplômes,
-affectations aux références (avec leur preuve) et expériences hors du bureau. Consultation :
-direction et consultation seule ; toute écriture : direction, journalisée."""
+justificatifs du dossier (CV, diplômes, attestations, à ouvrir), affectations aux références
+(avec leur preuve) et expériences hors du bureau. Consultation : direction et consultation
+seule ; toute écriture : direction, journalisée."""
 
 from __future__ import annotations
+
+import mimetypes
 
 from django import forms
 from django.conf import settings
 from django.contrib import admin, messages
 from django.db.models import Count, Q
+from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from administratif.services import PartageIndisponibleError
 from administratif.vues.registre import lire_date
-from experts import services
+from experts import justificatifs, services
 from experts.models import Affectation, Diplome, ExperienceExterne, Expert
 from identite.decorateurs import consultation_requise, groupe_requis
 from references.models import Mission
@@ -113,6 +118,16 @@ def _missions():
 def fiche(request, expert_id: int):
     e = get_object_or_404(Expert.objects.prefetch_related("domaines"), pk=expert_id)
     journaliser(request, "consulter:expert", str(e.pk))
+    erreur, fichiers = "", []
+    try:
+        fichiers = justificatifs.fichiers(e)
+    except (PartageIndisponibleError, OSError) as x:
+        erreur = str(x)
+    diplomes = list(e.diplomes.all())
+    prefixe = f"{e.dossier}\\".lower()
+    for d in diplomes:  # le justificatif s'ouvre s'il est dans le dossier de l'expert
+        dans = d.justificatif[len(prefixe) :] if d.justificatif.lower().startswith(prefixe) else ""
+        d.dans_dossier = dans if e.dossier else ""
     return render(
         request,
         "experts/fiche.html",
@@ -123,13 +138,28 @@ def fiche(request, expert_id: int):
             "annees": services.annees(e),
             "alertes": services.alertes(e),
             "affectations": e.affectations.select_related("mission", "mission__client"),
-            "diplomes": e.diplomes.all(),
+            "diplomes": diplomes,
+            "fichiers": fichiers,
+            "erreur_partage": erreur,
             "experiences": e.experiences.prefetch_related("types_ouvrage"),
             "missions": _missions(),
             "niveaux": Diplome.Niveau.choices,
             "peut_agir": request.user.direction,
         },
     )
+
+
+@consultation_requise
+def fichier(request, expert_id: int):
+    """Ouvre un fichier du dossier de l'expert : `?f=` chemin relatif au dossier."""
+    e = get_object_or_404(Expert, pk=expert_id)
+    try:
+        chemin = justificatifs.chemin_du_fichier(e, request.GET.get("f", ""))
+    except (PartageIndisponibleError, ValueError) as x:
+        raise Http404(str(x)) from x
+    journaliser(request, "consulter:fichier_expert", f"{e.pk} {chemin.name}")
+    type_mime = mimetypes.guess_type(chemin.name)[0] or "application/octet-stream"
+    return FileResponse(chemin.open("rb"), content_type=type_mime, filename=chemin.name)
 
 
 @groupe_requis(settings.GROUPE_DIRECTION)

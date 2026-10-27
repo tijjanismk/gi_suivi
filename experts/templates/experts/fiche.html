@@ -33,6 +33,36 @@
   </dl>
 {% endcomponent %}
 
+{% component "unfold/components/card.html" with title="Justificatifs du dossier" %}
+  {% if erreur_partage %}
+    <p class="gic:text-sm gic:text-amber-900" id="justificatifs-erreur">{{ erreur_partage }}</p>
+  {% elif fichiers %}
+  <p class="gic:mb-2 gic:text-xs text-subtle">Fichiers du dossier <span class="gic:font-mono">{{ e.dossier }}</span> sur le partage, lus sans être modifiés.</p>
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-justificatifs-expert">
+      <thead><tr class="gic:border-b border-base-200 dark:border-base-800">
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Pièce</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Fichier</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Taille</th>
+        <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Diplôme enregistré</th>
+      </tr></thead>
+      <tbody>
+        {% for f in fichiers %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-type="{{ f.type }}">
+          <td class="gic:py-2 gic:pr-3 text-important gic:whitespace-nowrap">{{ f.libelle_type }}</td>
+          <td class="gic:py-2 gic:pr-3"><a class="text-primary-600 gic:hover:underline" href="{% url 'experts:fichier' e.pk %}?f={{ f.dans_dossier|urlencode }}" target="_blank" rel="noopener">{{ f.nom }}</a>{% if f.sous_dossier %}<div class="gic:text-xs text-subtle">{{ f.sous_dossier }}</div>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums gic:whitespace-nowrap">{{ f.taille|filesizeformat }}</td>
+          <td class="gic:py-2">{% if f.diplome %}{{ f.diplome.intitule }}{% if f.diplome.annee %} ({{ f.diplome.annee }}){% endif %}{% elif f.type == 'diplome' %}<span class="text-subtle">pas encore enregistré</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}{% if e.dossier %}Le dossier ne contient aucun fichier.{% else %}Pas de dossier sur le partage pour cet expert.{% endif %}{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
 {% component "unfold/components/card.html" with title="Affectations aux références du bureau" %}
   {% if affectations %}
   <div class="gic:overflow-x-auto">
@@ -66,7 +96,7 @@
 <div class="gic:grid gic:gap-6 gic:lg:grid-cols-2 gic:items-start">
   {% component "unfold/components/card.html" with title="Diplômes" %}
     <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="diplomes">
-      {% for d in diplomes %}<li class="gic:flex gic:flex-wrap gic:items-center gic:gap-2"><span class="text-important">{{ d.intitule }}</span><span class="text-subtle">{{ d.niveau }}{% if d.etablissement %} · {{ d.etablissement }}{% endif %}{% if d.annee %} · {{ d.annee }}{% endif %}</span>{% if peut_agir %}<form method="post" action="{% url 'experts:retirer' 'diplome' d.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Retirer</button></form>{% endif %}</li>{% empty %}<li class="text-subtle">Aucun diplôme enregistré.</li>{% endfor %}
+      {% for d in diplomes %}<li class="gic:flex gic:flex-wrap gic:items-center gic:gap-2"><span class="text-important">{{ d.intitule }}</span><span class="text-subtle">{{ d.niveau }}{% if d.etablissement %} · {{ d.etablissement }}{% endif %}{% if d.annee %} · {{ d.annee }}{% endif %}</span>{% if d.dans_dossier %}<a class="gic:text-xs text-primary-600 gic:hover:underline" href="{% url 'experts:fichier' e.pk %}?f={{ d.dans_dossier|urlencode }}" target="_blank" rel="noopener">voir le diplôme</a>{% endif %}{% if peut_agir %}<form method="post" action="{% url 'experts:retirer' 'diplome' d.pk %}">{% csrf_token %}<button type="submit" class="gic:text-xs text-primary-600 gic:hover:underline">Retirer</button></form>{% endif %}</li>{% empty %}<li class="text-subtle">Aucun diplôme enregistré.</li>{% endfor %}
     </ul>
     {% if peut_agir %}
     <details class="gic:mt-3"><summary class="gic:cursor-pointer gic:text-sm text-primary-600">Ajouter un diplôme</summary>
