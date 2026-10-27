@@ -8,7 +8,7 @@ from decimal import Decimal
 
 from django import forms
 
-from avis.models import Avis, Critere
+from avis.models import Avis, BesoinExpert, Critere
 from moteur.avis.filtres import FiltreInvalideError, lire_filtre
 from references.models import Mission
 from referentiel.models import Domaine, TypeOuvrage, TypeQuantite
@@ -313,3 +313,67 @@ class FormulaireCritere(forms.ModelForm):
         else:
             self.instance.filtre = filtre
         return donnees
+
+
+class FormulaireBesoin(forms.ModelForm):
+    """Un poste demandé par les TDR ; les références comptées se filtrent comme un critère
+    (natures, domaines, années, mots-clés), sans exigence de pièces."""
+
+    natures = forms.MultipleChoiceField(
+        label="références comptées : natures",
+        required=False,
+        choices=Mission.Nature.choices,
+        widget=forms.CheckboxSelectMultiple,
+    )
+    domaines = forms.MultipleChoiceField(
+        label="domaines", required=False, widget=forms.CheckboxSelectMultiple
+    )
+    annee_min = forms.IntegerField(
+        label="depuis l'année", required=False, min_value=1900, max_value=2100
+    )
+    mots_cles = forms.CharField(
+        label="mots-clés de l'intitulé", required=False, help_text="Séparés par des virgules"
+    )
+
+    class Meta:
+        model = BesoinExpert
+        fields = [
+            "poste",
+            "ordre",
+            "niveau_min",
+            "annees_experience_min",
+            "nb_references_min",
+            "specialites",
+            "observations",
+        ]
+        widgets = {"observations": forms.Textarea(attrs={"rows": 2})}
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["domaines"].choices = [
+            (d.code, f"{d.code} — {d.libelle}") for d in Domaine.objects.all()
+        ]
+        f = dict(self.instance.filtre_references or {})
+        if not self.is_bound:
+            for cle in ("natures", "domaines", "annee_min"):
+                if cle in f:
+                    self.initial[cle] = f[cle]
+            if f.get("mots_cles"):
+                self.initial["mots_cles"] = ", ".join(f["mots_cles"])
+        _habiller(self, "besoin")
+
+    def clean(self) -> dict:
+        d = super().clean()
+        filtre = {cle: list(d[cle]) for cle in ("natures", "domaines") if d.get(cle)}
+        if d.get("annee_min") is not None:
+            filtre["annee_min"] = d["annee_min"]
+        mots_cles = [v.strip() for v in (d.get("mots_cles") or "").split(",") if v.strip()]
+        if mots_cles:
+            filtre["mots_cles"] = mots_cles
+        try:
+            lire_filtre(filtre)
+        except FiltreInvalideError as e:
+            self.add_error(None, f"Filtre : {e}")
+        else:
+            self.instance.filtre_references = filtre
+        return d

@@ -95,6 +95,44 @@
   {% endif %}
 {% endcomponent %}
 
+{% component "unfold/components/card.html" with title="Experts demandés" %}
+  {% if besoins %}
+  <div class="gic:flex gic:flex-col gic:gap-4" id="besoins">
+    {% for l in besoins %}{% with b=l.b %}
+    <div class="gic:flex gic:flex-col gic:gap-1 gic:border-b border-base-200 dark:border-base-800 gic:pb-1.5" data-poste="{{ b.poste }}">
+      <p class="gic:text-sm text-important"><strong>{{ b.poste }}</strong> <span class="text-subtle">— {% if b.niveau_min %}{{ b.niveau_min }}, {% endif %}{{ b.annees_experience_min }} an{{ b.annees_experience_min|pluralize }} au moins{% if b.nb_references_min %}, {{ b.nb_references_min }} référence{{ b.nb_references_min|pluralize }}{% endif %}{% if b.specialites %} · {{ b.specialites }}{% endif %}</span></p>
+      {% if l.retenu %}
+        <p class="gic:text-sm">Retenu : <a class="text-primary-600 gic:hover:underline" href="{% url 'experts:fiche' l.retenu.profil.ident %}">{{ l.retenu.profil.nom }}</a>
+          {% if l.retenu.complet %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-green-100 gic:text-green-900">répond au profil</span>{% else %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-amber-100 gic:text-amber-900">{{ l.retenu.ecarts|join:" ; " }}</span>{% endif %}
+          {% if l.retenu.profil.a_verifier %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-amber-100 gic:text-amber-900">points à vérifier sur sa fiche</span>{% endif %}</p>
+      {% elif b.expert_retenu %}
+        <p class="gic:text-sm gic:text-red-700">Retenu : {{ b.expert_retenu }}, qui n'est plus mobilisable.</p>
+      {% else %}
+        <p class="gic:text-sm gic:text-red-700">Aucun expert retenu pour ce poste.</p>
+      {% endif %}
+      <p class="gic:text-xs text-subtle">{{ l.complets }} expert{{ l.complets|pluralize }} du vivier répond{{ l.complets|pluralize:"ent" }} à tout{% if l.classement %} ; les plus proches : {% for x in l.classement|slice:":3" %}{{ x.profil.nom }}{% if x.ecarts %} ({{ x.ecarts|join:" ; " }}){% endif %}{% if not forloop.last %} · {% endif %}{% endfor %}{% endif %}</p>
+      {% if peut_saisir %}
+      <div class="gic:flex gic:flex-wrap gic:items-end gic:gap-3">
+        <form method="post" action="{% url 'avis:retenir' a.pk b.pk %}" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3">{% csrf_token %}
+          <select name="expert" aria-label="Expert retenu pour {{ b.poste }}" class="gic:block gic:w-72 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+            <option value="">— aucun —</option>
+            {% for x in l.choix %}<option value="{{ x.profil.ident }}" {% if b.expert_retenu_id == x.profil.ident %}selected{% endif %}>{{ x.profil.nom }}{% if x.complet %} · répond à tout{% else %} · {{ x.ecarts|length }} écart{{ x.ecarts|length|pluralize }}{% endif %}</option>{% endfor %}
+          </select>
+          <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Retenir</button>
+        </form>
+        <a class="gic:pb-1.5 gic:text-sm text-primary-600 gic:hover:underline" href="{% url 'avis:besoin' a.pk b.pk %}">Modifier le poste</a>
+        <form method="post" action="{% url 'avis:retirer_besoin' a.pk b.pk %}" onsubmit="return confirm('Retirer le poste {{ b.poste|escapejs }} ?');">{% csrf_token %}<button type="submit" class="gic:pb-1.5 gic:text-sm gic:text-red-700 gic:hover:underline">Retirer</button></form>
+      </div>
+      {% endif %}
+    </div>
+    {% endwith %}{% endfor %}
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucun poste saisi.{% endcomponent %}
+  {% endif %}
+  {% if peut_saisir %}<a class="gic:mt-3 gic:inline-block gic:text-sm text-primary-600 gic:hover:underline" href="{% url 'avis:besoin_nouveau' a.pk %}">Ajouter un poste demandé par les TDR</a>{% endif %}
+{% endcomponent %}
+
 {% component "unfold/components/card.html" with title="Pièces administratives exigées" %}
   {% if controle %}
   <p class="gic:mb-3 gic:text-sm text-subtle">État de chaque pièce au {{ a.date_limite|date:"d/m/Y" }}, date limite de dépôt, pas aujourd'hui (ADR 0010). <a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:controle' %}?{{ lien_controle }}">Ouvrir le contrôle avant un dépôt</a></p>

@@ -15,13 +15,16 @@ from django.utils import timezone
 
 from administratif.models import TypePiece
 from administratif.services import LigneControle, controle_a_la_date
-from avis.models import Avis, Critere, PieceExigee, Selection
+from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Selection
+from experts.models import Expert
+from moteur.avis import experts as experts_moteur
 from moteur.avis import notation
 from moteur.avis.filtres import PIECES_PAR_DEFAUT, Piece, Preuve, Reference, lire_filtre
 from moteur.avis.selection import selectionner
 from references.models import Mission
 
 CODES_EN_APERCU = 10
+EXPERTS_PROPOSES = 15  # dans la liste où l'on choisit l'expert retenu
 NATURES = {"ETU": "études", "CTR": "contrôle", "ETC": "études et contrôle"}
 ROLES = {"seul": "seul", "chef_de_file": "chef de file", "membre": "membre d'un groupement"}
 
@@ -261,3 +264,70 @@ def lien_controle(avis: Avis) -> str:
     parametres = [("date", avis.date_limite.isoformat()), ("avis", avis.reference)]
     parametres += [("avec", code) for code in en_plus.values_list("type__code", flat=True)]
     return urlencode(parametres)
+
+
+# -- experts demandés (AV06) ----------------------------------------------------------------------
+def profils_du_vivier(references: list[Reference]) -> list[experts_moteur.Profil]:
+    """Les experts mobilisables (pas les anciens), avec leur plus haut diplôme et les missions de
+    leurs affectations, telles que le moteur les voit."""
+    par_pk = {r.ident: r for r in references}
+    vivier = Expert.objects.exclude(statut=Expert.Statut.ANCIEN)
+    profils = []
+    for e in vivier.prefetch_related("diplomes", "affectations"):
+        diplomes = list(e.diplomes.all())
+        niveau = max((d.niveau for d in diplomes), key=experts_moteur.rang_niveau, default="")
+        profils.append(
+            experts_moteur.Profil(
+                ident=e.pk,
+                nom=f"{e.nom} {e.prenoms}".strip(),
+                textes=" ".join([e.specialite, e.fonction, *(d.intitule for d in diplomes)]),
+                niveau=niveau,
+                debut_carriere=e.debut_carriere,
+                disponible=e.disponible,
+                a_verifier=bool(e.a_verifier.strip()),
+                references=tuple(
+                    par_pk[a.mission_id] for a in e.affectations.all() if a.mission_id in par_pk
+                ),
+            )
+        )
+    return profils
+
+
+def besoin_moteur(b: BesoinExpert) -> experts_moteur.Besoin:
+    return experts_moteur.Besoin(
+        poste=b.poste,
+        niveau_min=b.niveau_min,
+        annees_min=b.annees_experience_min,
+        nb_references_min=b.nb_references_min,
+        specialites=tuple(s.strip() for s in b.specialites.split(",") if s.strip()),
+        filtre=lire_filtre(b.filtre_references),
+    )
+
+
+def experts_pour(avis: Avis, references: list[Reference] | None = None) -> list[dict]:
+    """Pour chaque poste demandé : les experts du vivier classés et l'expert retenu, comparés au
+    profil l'année de la date limite."""
+    besoins = list(avis.besoins.select_related("expert_retenu"))
+    if not besoins:
+        return []
+    if references is None:
+        references = references_du_bureau()
+    profils = profils_du_vivier(references)
+    annee = avis.date_limite.year
+    lignes = []
+    for b in besoins:
+        classement = experts_moteur.classer(besoin_moteur(b), profils, annee)
+        retenu = next((x for x in classement if x.profil.ident == b.expert_retenu_id), None)
+        choix = classement[:EXPERTS_PROPOSES]
+        if retenu is not None and retenu not in choix:
+            choix.append(retenu)
+        lignes.append(
+            {
+                "b": b,
+                "classement": classement,
+                "choix": choix,
+                "retenu": retenu,
+                "complets": sum(1 for x in classement if x.complet),
+            }
+        )
+    return lignes

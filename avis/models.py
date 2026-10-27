@@ -13,6 +13,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 from administratif.models import TypePiece
+from experts.models import Diplome, Expert
 from moteur.avis.filtres import FiltreInvalideError, lire_filtre
 
 
@@ -269,3 +270,47 @@ class PieceExigee(models.Model):
 
     def __str__(self) -> str:
         return f"{self.avis} — {self.type}"
+
+
+class BesoinExpert(models.Model):
+    """Un expert clé que l'avis demande (TDR) : le profil exigé, et l'expert retenu pour le poste
+    (ADR 0012, AV06). Un poste sans expert retenu est signalé sur la fiche de l'avis."""
+
+    avis = models.ForeignKey(Avis, on_delete=models.CASCADE, related_name="besoins")
+    poste = models.CharField(max_length=150, help_text="Ex. chef de mission, spécialiste QHSE")
+    ordre = models.PositiveSmallIntegerField(default=0)
+    niveau_min = models.CharField(
+        "diplôme au moins", max_length=6, choices=Diplome.Niveau.choices, blank=True
+    )
+    annees_experience_min = models.PositiveSmallIntegerField("années d'expérience", default=0)
+    nb_references_min = models.PositiveSmallIntegerField("références au moins", default=0)
+    specialites = models.CharField(
+        "spécialités acceptées",
+        max_length=300,
+        blank=True,
+        help_text="Mots de la spécialité ou du diplôme, séparés par des virgules ; un seul suffit",
+    )
+    filtre_references = models.JSONField(
+        "références comptées",
+        default=dict,
+        blank=True,
+        help_text="Filtre des missions de l'expert, au format des critères",
+    )
+    expert_retenu = models.ForeignKey(
+        Expert, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    observations = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "expert demandé"
+        verbose_name_plural = "experts demandés"
+        ordering = ["avis", "ordre", "pk"]
+
+    def __str__(self) -> str:
+        return f"{self.avis} — {self.poste}"
+
+    def clean(self) -> None:
+        try:
+            lire_filtre(self.filtre_references)
+        except FiltreInvalideError as e:
+            raise ValidationError({"filtre_references": str(e)}) from None

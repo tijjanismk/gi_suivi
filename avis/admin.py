@@ -4,7 +4,7 @@ pièces exigées. Aucune suppression d'un avis : il passe « sans suite »."""
 from django.contrib import admin
 from unfold.admin import ModelAdmin, StackedInline, TabularInline
 
-from avis.models import Avis, Critere, PieceExigee, Selection
+from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Selection
 
 
 class SansSuppression:
@@ -60,3 +60,10 @@ class SelectionAdmin(SansSuppression, ModelAdmin):
 
     def has_add_permission(self, request) -> bool:
         return False  # la sélection vient de la simulation (AV04)
+
+
+@admin.register(BesoinExpert)
+class BesoinExpertAdmin(ModelAdmin):
+    list_display = ["avis", "poste", "niveau_min", "annees_experience_min", "expert_retenu"]
+    search_fields = ["poste", "avis__reference"]
+    list_select_related = ["avis", "expert_retenu"]

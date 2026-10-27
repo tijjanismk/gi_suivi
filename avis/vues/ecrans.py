@@ -17,8 +17,9 @@ from django.views.decorators.http import require_POST
 from administratif.models import TypePiece
 from administratif.services import PartageIndisponibleError, chemin_absolu
 from avis import services
-from avis.formulaires import FormulaireAvis, FormulaireCritere
-from avis.models import Avis, Critere
+from avis.formulaires import FormulaireAvis, FormulaireBesoin, FormulaireCritere
+from avis.models import Avis, BesoinExpert, Critere
+from experts.models import Expert
 from identite.decorateurs import groupe_requis
 from moteur.avis.filtres import FiltreInvalideError
 from references.models import Mission
@@ -99,7 +100,8 @@ def fiche(request, avis_id: int):
     journaliser(request, "consulter:avis", str(a.pk))
     criteres = list(a.criteres.all())
     calcules = [c for c in criteres if c.mode != Critere.Mode.MANUEL]
-    references = services.references_du_bureau() if calcules else []
+    besoins = a.besoins.exists()
+    references = services.references_du_bureau() if calcules or besoins else []
     lignes = []
     for c in criteres:
         apercu, erreur = None, ""
@@ -129,6 +131,7 @@ def fiche(request, avis_id: int):
             "criteres": lignes,
             "pieces": [(t, exigees.get(t.pk)) for t in types],
             "controle": services.controle_pieces(a),
+            "besoins": services.experts_pour(a, references) if besoins else [],
             "lien_controle": services.lien_controle(a),
             "fichiers": [_fichier(a, quoi) for quoi in FICHIERS],
             "peut_saisir": _peut_saisir(request),
@@ -342,3 +345,52 @@ def choix(request, avis_id: int):
             fait = {"forcer": "forcée", "exclure": "exclue", "annuler": "rendue au calcul"}
             messages.success(request, f"{m.code} {fait[decision]} pour le critère {c.code}.")
     return redirect("avis:simulation", avis_id=a.pk)
+
+
+# -- experts demandés (AV06) ----------------------------------------------------------------------
+@groupe_requis(*SAISIE)
+def besoin(request, avis_id: int, besoin_id: int | None = None):
+    a = get_object_or_404(Avis, pk=avis_id)
+    if besoin_id:
+        b = get_object_or_404(BesoinExpert, pk=besoin_id, avis=a)
+    else:
+        b = BesoinExpert(avis=a, ordre=a.besoins.count() + 1)
+    formulaire = FormulaireBesoin(request.POST or None, instance=b)
+    if request.method == "POST" and formulaire.is_valid():
+        b = formulaire.save()
+        journaliser(request, "avis:besoin", f"{a.pk} {b.poste}"[:300])
+        messages.success(request, f"Poste « {b.poste} » enregistré.")
+        return redirect("avis:fiche", avis_id=a.pk)
+    return render(
+        request,
+        "avis/besoin.html",
+        {
+            **admin.site.each_context(request),
+            "titre": b.poste if b.pk else "Nouveau poste demandé",
+            "a": a,
+            "b": b,
+            "formulaire": formulaire,
+        },
+    )
+
+
+@require_POST
+@groupe_requis(*SAISIE)
+def retenir(request, avis_id: int, besoin_id: int):
+    b = get_object_or_404(BesoinExpert, pk=besoin_id, avis_id=avis_id)
+    ident = request.POST.get("expert", "")
+    b.expert_retenu = Expert.objects.filter(pk=int(ident)).first() if ident.isdigit() else None
+    b.save(update_fields=["expert_retenu"])
+    journaliser(request, "avis:retenir_expert", f"{avis_id} {b.poste} {ident}"[:300])
+    messages.success(request, f"{b.poste} : {b.expert_retenu or 'aucun expert retenu'}.")
+    return redirect("avis:fiche", avis_id=avis_id)
+
+
+@require_POST
+@groupe_requis(*SAISIE)
+def retirer_besoin(request, avis_id: int, besoin_id: int):
+    b = get_object_or_404(BesoinExpert, pk=besoin_id, avis_id=avis_id)
+    journaliser(request, "avis:retirer_besoin", f"{avis_id} {b.poste}"[:300])
+    b.delete()
+    messages.success(request, f"Poste « {b.poste} » retiré.")
+    return redirect("avis:fiche", avis_id=avis_id)

@@ -17,6 +17,14 @@ urlpatterns = [
         name="enregistrer_simulation",
     ),
     path("<int:avis_id>/simulation/choix", ecrans.choix, name="choix"),
+    path("<int:avis_id>/besoin", ecrans.besoin, name="besoin_nouveau"),
+    path("<int:avis_id>/besoin/<int:besoin_id>", ecrans.besoin, name="besoin"),
+    path("<int:avis_id>/besoin/<int:besoin_id>/retenir", ecrans.retenir, name="retenir"),
+    path(
+        "<int:avis_id>/besoin/<int:besoin_id>/retirer",
+        ecrans.retirer_besoin,
+        name="retirer_besoin",
+    ),
     path("<int:avis_id>/critere", ecrans.critere, name="critere_nouveau"),
     path("<int:avis_id>/critere/<int:critere_id>", ecrans.critere, name="critere"),
     path(
