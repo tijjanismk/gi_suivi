@@ -3,8 +3,9 @@
 Pour un poste des TDR (diplôme au moins, années d'expérience, nombre de références comparables,
 spécialités acceptées), chaque expert du vivier est comparé au profil : ce qui manque est dit en
 clair (« 8 ans pour 10 demandés »), et les experts qui répondent à tout viennent d'abord. Les
-années se comptent depuis le début de carrière (ADR 0012 § 2), jamais saisies ; les références de
-l'expert sont les missions de ses affectations, comptées avec le filtre du poste.
+années se comptent depuis le début de carrière (ADR 0012 § 2), jamais saisies ; faute de début de
+carrière, depuis le premier diplôme : c'est un plafond (« 8 ans au plus »), signalé comme tel.
+Les références de l'expert sont les missions de ses affectations, comptées avec le filtre du poste.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ class Profil:
     textes: str = ""  # spécialité, fonction et intitulés des diplômes, où chercher les mots
     niveau: str = ""  # le plus haut de ses diplômes
     debut_carriere: int | None = None
+    annee_diplome: int | None = None  # le plus ancien de ses diplômes, si la carrière manque
     disponible: bool = True
     a_verifier: bool = False  # points en suspens sur sa fiche (ADR 0012 § 4)
     references: tuple[Reference, ...] = ()
@@ -55,6 +57,7 @@ class Adequation:
     annees: int | None
     references: int  # références de l'expert qui passent le filtre du poste
     ecarts: tuple[str, ...]  # ce qui manque au profil, vide s'il répond à tout
+    annees_estimees: bool = False  # comptées depuis le diplôme : début de carrière à saisir
 
     @property
     def complet(self) -> bool:
@@ -66,11 +69,16 @@ def evaluer(besoin: Besoin, profil: Profil, annee_reference: int) -> Adequation:
     if besoin.niveau_min and rang_niveau(profil.niveau) < rang_niveau(besoin.niveau_min):
         a = profil.niveau or "aucun diplôme enregistré"
         ecarts.append(f"diplôme {a}, {besoin.niveau_min} demandé")
-    annees = None
+    annees, estimees = None, False
     if profil.debut_carriere and profil.debut_carriere <= annee_reference:
         annees = annee_reference - profil.debut_carriere
+    elif profil.annee_diplome and profil.annee_diplome <= annee_reference:
+        annees, estimees = annee_reference - profil.annee_diplome, True
     if besoin.annees_min and (annees or 0) < besoin.annees_min:
-        a = f"{annees} an(s)" if annees is not None else "début de carrière inconnu"
+        if annees is None:
+            a = "début de carrière inconnu"
+        else:
+            a = f"{annees} an(s){' au plus, depuis le diplôme' if estimees else ''}"
         ecarts.append(f"{a} pour {besoin.annees_min} demandé(s)")
     nombre = sum(1 for r in profil.references if correspond(besoin.filtre, r))
     if nombre < besoin.nb_references_min:
@@ -81,7 +89,7 @@ def evaluer(besoin: Besoin, profil: Profil, annee_reference: int) -> Adequation:
             ecarts.append("spécialité non trouvée : " + ", ".join(besoin.specialites))
     if not profil.disponible:
         ecarts.append("non disponible")
-    return Adequation(profil, annees, nombre, tuple(ecarts))
+    return Adequation(profil, annees, nombre, tuple(ecarts), estimees)
 
 
 def classer(besoin: Besoin, profils: Iterable[Profil], annee_reference: int) -> list[Adequation]:

@@ -286,6 +286,7 @@ def profils_du_vivier(references: list[Reference]) -> list[experts_moteur.Profil
                 textes=" ".join([e.specialite, e.fonction, *(d.intitule for d in diplomes)]),
                 niveau=niveau,
                 debut_carriere=e.debut_carriere,
+                annee_diplome=min((d.annee for d in diplomes if d.annee), default=None),
                 disponible=e.disponible,
                 a_verifier=bool(e.a_verifier.strip()),
                 references=tuple(

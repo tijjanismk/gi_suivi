@@ -104,6 +104,7 @@
       {% if l.retenu %}
         <p class="gic:text-sm">Retenu : <a class="text-primary-600 gic:hover:underline" href="{% url 'experts:fiche' l.retenu.profil.ident %}">{{ l.retenu.profil.nom }}</a>
           {% if l.retenu.complet %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-green-100 gic:text-green-900">répond au profil</span>{% else %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-amber-100 gic:text-amber-900">{{ l.retenu.ecarts|join:" ; " }}</span>{% endif %}
+          {% if l.retenu.annees_estimees %}<span class="gic:text-xs text-subtle">années comptées depuis le diplôme : début de carrière à saisir</span>{% endif %}
           {% if l.retenu.profil.a_verifier %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-amber-100 gic:text-amber-900">points à vérifier sur sa fiche</span>{% endif %}</p>
       {% elif b.expert_retenu %}
         <p class="gic:text-sm gic:text-red-700">Retenu : {{ b.expert_retenu }}, qui n'est plus mobilisable.</p>

@@ -52,3 +52,13 @@ def test_classement():
     loin = Profil(3, "C", "comptabilité", "", None)
     noms = [x.profil.nom for x in classer(CHEF, [loin, partiel, complet], 2026)]
     assert noms == ["B", "A", "C"]
+
+
+def test_annees_depuis_le_diplome_quand_la_carriere_manque():
+    """Le cas des experts du vivier sans début de carrière : un plafond, signalé."""
+    p = Profil(4, "TOGOLA Youssouf", "hydrogéologue", "bac+5", annee_diplome=1996)
+    x = evaluer(Besoin("Chef de mission", annees_min=5), p, 2026)
+    assert x.complet and x.annees == 30 and x.annees_estimees
+    jeune = Profil(5, "MOUMOUNI Seydou", "génie rural", "bac+5", annee_diplome=2023)
+    (ecart,) = evaluer(Besoin("Chef", annees_min=5), jeune, 2026).ecarts
+    assert ecart == "3 an(s) au plus, depuis le diplôme pour 5 demandé(s)"
