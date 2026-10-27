@@ -1,0 +1,113 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:liste' %}">Avis de marchés</a><span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:fiche' a.pk %}">{{ a.reference }}</a><span aria-hidden="true">›</span><span class="text-important">Simulation</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}La note sûre ne compte que les références dont les pièces sont auditées et bonnes ; la note possible compte aussi celles à auditer (ADR 0013). Le calcul est refait à chaque affichage ; « Enregistrer » garde la sélection et les notes sur la fiche.{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if peut_saisir %}<form method="post" action="{% url 'avis:enregistrer_simulation' a.pk %}">{% csrf_token %}<button type="submit" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer cette simulation</button></form>{% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="Résultat" %}
+  <dl class="gic:grid gic:grid-cols-[minmax(10rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="resultat">
+    <dt class="text-subtle">Note sûre</dt><dd class="text-important gic:tabular-nums" id="note-sure">{{ resultat.note_sure|floatformat:"-2" }}</dd>
+    <dt class="text-subtle">Note possible</dt><dd class="text-important gic:tabular-nums" id="note-possible">{{ resultat.note_possible|floatformat:"-2" }}</dd>
+    <dt class="text-subtle">Seuil</dt><dd class="text-important gic:tabular-nums">{% if a.seuil_eligibilite is not None %}{{ a.seuil_eligibilite|floatformat:"-2" }}{% if a.note_maximale is not None %} sur {{ a.note_maximale|floatformat:"-2" }}{% endif %}{% else %}non saisi{% endif %}</dd>
+    <dt class="text-subtle">Verdict</dt><dd id="verdict">{% if verdict %}<span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if resultat.verdict == 'eligible' %}gic:bg-green-100 gic:text-green-900{% elif resultat.verdict == 'non_eligible' %}gic:bg-red-100 gic:text-red-900{% else %}gic:bg-amber-100 gic:text-amber-900{% endif %}">{{ verdict }}</span>{% else %}<span class="text-subtle">pas de seuil saisi</span>{% endif %}</dd>
+    <dt class="text-subtle">Dernière simulation gardée</dt><dd class="text-subtle">{% if a.simulee_le %}{{ a.simulee_le|date:"d/m/Y H:i" }} : {{ a.note_sure|floatformat:"-2" }} / {{ a.note_possible|floatformat:"-2" }}{% else %}aucune{% endif %}</dd>
+  </dl>
+{% endcomponent %}
+
+{% for b in blocs %}{% with c=b.c rc=b.rc %}
+{% component "unfold/components/card.html" with title="Critère "|add:c.code %}
+  <div class="gic:flex gic:flex-col gic:gap-3" data-critere="{{ c.code }}">
+    <p class="gic:text-sm text-important">{{ c.libelle|linebreaksbr }}</p>
+    <p class="gic:text-sm gic:tabular-nums"><span class="text-subtle">Note sûre</span> <span class="text-important">{{ rc.note_sure|floatformat:"-2" }}</span> · <span class="text-subtle">possible</span> <span class="text-important">{{ rc.note_possible|floatformat:"-2" }}</span>{% if c.plafond is not None %} · <span class="text-subtle">plafond</span> {{ c.plafond|floatformat:"-2" }}{% endif %} · <span class="text-subtle">{{ rc.candidates|length }} référence{{ rc.candidates|length|pluralize }} éligible{{ rc.candidates|length|pluralize }}</span></p>
+    {% for alerte in rc.alertes %}<p class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">{{ alerte }}</p>{% endfor %}
+    {% if b.lignes %}
+    <div class="gic:overflow-x-auto">
+      <table class="gic:w-full gic:text-sm">
+        <thead>
+          <tr class="gic:border-b border-base-200 dark:border-base-800">
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Rang</th>
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Référence</th>
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Intitulé</th>
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Année</th>
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Preuve</th>
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Retenue</th>
+            <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">En jeu</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for l in b.lignes %}
+          <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ l.x.reference.code }}">
+            <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ forloop.counter }}</td>
+            <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' l.x.reference.code %}">{{ l.x.reference.code }}</a></td>
+            <td class="gic:py-2 gic:pr-3 text-important">{{ l.libelle|truncatechars:140 }}</td>
+            <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ l.x.reference.annee|default:"—" }}</td>
+            <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if l.x.preuve == 'prouvee' %}gic:bg-green-100 gic:text-green-900{% elif l.x.preuve == 'a_auditer' %}gic:bg-amber-100 gic:text-amber-900{% else %}gic:bg-red-100 gic:text-red-900{% endif %}">{% if l.x.preuve == 'prouvee' %}prouvée{% elif l.x.preuve == 'a_auditer' %}à auditer{% else %}pièce manquante{% endif %}</span></td>
+            <td class="gic:py-2 gic:pr-3">{% if l.retenue %}oui{% else %}<span class="text-subtle">non</span>{% endif %}{% if l.x.forcee %} <span class="text-subtle">(forcée)</span>{% endif %}</td>
+            <td class="gic:py-2 gic:tabular-nums">{% if l.en_jeu %}{{ l.en_jeu|floatformat:"-2" }} pts{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if b.autres %}<p class="gic:text-xs text-subtle">et {{ b.autres }} autre{{ b.autres|pluralize }} référence{{ b.autres|pluralize }} éligible{{ b.autres|pluralize }}, plus bas dans le classement.</p>{% endif %}
+    {% endif %}
+    {% if b.exclues %}
+    <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm">
+      {% for s in b.exclues %}<li><span class="gic:font-mono gic:text-xs">{{ s.mission.code }}</span> exclue : {{ s.motif }}{% if peut_saisir %} <form method="post" action="{% url 'avis:choix' a.pk %}" class="gic:inline">{% csrf_token %}<input type="hidden" name="critere" value="{{ c.pk }}"><input type="hidden" name="code" value="{{ s.mission.code }}"><button type="submit" name="decision" value="annuler" class="gic:ml-2 text-primary-600 gic:hover:underline">rendre au calcul</button></form>{% endif %}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if peut_saisir and c.mode != 'manuel' %}
+    <form method="post" action="{% url 'avis:choix' a.pk %}" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3">
+      {% csrf_token %}<input type="hidden" name="critere" value="{{ c.pk }}">
+      <label class="gic:text-xs text-subtle">Référence
+        <input type="text" name="code" placeholder="GIC-AEP-CTR-015" class="gic:mt-1 gic:block gic:w-56 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+      </label>
+      <label class="gic:text-xs text-subtle">Motif
+        <input type="text" name="motif" maxlength="300" class="gic:mt-1 gic:block gic:w-72 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+      </label>
+      <button type="submit" name="decision" value="forcer" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Forcer</button>
+      <button type="submit" name="decision" value="exclure" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Exclure</button>
+    </form>
+    {% endif %}
+  </div>
+{% endcomponent %}
+{% endwith %}{% endfor %}
+
+{% component "unfold/components/card.html" with title="Pièces en jeu" %}
+  {% if pieces %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="pieces-en-jeu">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Points</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Critère</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Référence</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Ce qui manque</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for l in pieces %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top">
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ l.p.points|floatformat:"-2" }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:font-mono gic:text-xs">{{ l.p.critere }}</td>
+          <td class="gic:py-2 gic:pr-3"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:justificatifs' l.p.code %}">{{ l.p.code }}</a><div class="gic:text-xs text-subtle">{{ l.intitule|truncatechars:90 }}</div></td>
+          <td class="gic:py-2">{% for m in l.p.manques %}{{ m.exigence|cut:"_"|default:"pièce" }} ({% if m.etat == 'a_auditer' %}à auditer{% else %}manquante{% endif %}){% if not forloop.last %}, {% endif %}{% endfor %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if autres_pieces %}<p class="gic:mt-3 gic:text-xs text-subtle">et {{ autres_pieces }} autre{{ autres_pieces|pluralize }}.</p>{% endif %}
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucune pièce en jeu : chaque critère a déjà ses points prouvés, ou ne peut pas en gagner davantage.{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+{% endblock %}

@@ -7,9 +7,14 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
+from decimal import Decimal
+
+from django.db import transaction
+from django.utils import timezone
 
 from administratif.models import TypePiece
-from avis.models import Avis, PieceExigee
+from avis.models import Avis, Critere, PieceExigee, Selection
+from moteur.avis import notation
 from moteur.avis.filtres import PIECES_PAR_DEFAUT, Piece, Preuve, Reference, lire_filtre
 from moteur.avis.selection import selectionner
 from references.models import Mission
@@ -142,3 +147,98 @@ def regler_pieces(avis: Avis, codes: Iterable[str]) -> tuple[int, int]:
     )
     retirees, _ = avis.pieces_exigees.filter(type_id__in=actuelles - voulues).delete()
     return len(voulues - actuelles), retirees
+
+
+# -- simulation (AV04) --------------------------------------------------------------------------
+def critere_moteur(c: Critere) -> notation.Critere:
+    """Un critère enregistré, tel que le moteur le calcule."""
+    return notation.Critere(
+        code=c.code,
+        mode=c.mode,
+        plafond=c.plafond,
+        points_par_mission=c.points_par_mission,
+        nb_min_missions=c.nb_min_missions,
+        annees_seuil=c.annees_seuil,
+        points_socle=c.points_socle,
+        points_par_annee=c.points_par_annee,
+        note_manuelle=c.note_manuelle,
+        filtre=lire_filtre(c.filtre),
+    )
+
+
+def choix_de(avis: Avis) -> dict[str, dict[int, bool]]:
+    """Les références forcées (vrai) ou exclues (faux) par une personne, par code de critère."""
+    choix: dict[str, dict[int, bool]] = {}
+    humains = Selection.objects.filter(critere__avis=avis, retenue_par__isnull=False)
+    for s in humains.select_related("critere"):
+        choix.setdefault(s.critere.code, {})[s.mission_id] = s.retenue
+    return choix
+
+
+def calculer(avis: Avis, references: list[Reference] | None = None) -> notation.Resultat:
+    """La note de l'avis, sans rien enregistrer. Lève `FiltreInvalideError` si un filtre ne se
+    lit plus. L'ancienneté se compte jusqu'à l'année de la date limite."""
+    if references is None:
+        references = references_du_bureau()
+    criteres = [critere_moteur(c) for c in avis.criteres.all()]
+    return notation.noter(
+        criteres, references, avis.date_limite.year, avis.seuil_eligibilite, choix_de(avis)
+    )
+
+
+def _points(rc: notation.ResultatCritere, candidate) -> Decimal:
+    """Ce qu'une référence retenue apporte : les points par référence (mode par mission)."""
+    c = rc.critere
+    if c.mode == notation.Mode.PAR_MISSION and candidate in rc.retenues:
+        return c.points_par_mission
+    return Decimal(0)
+
+
+@transaction.atomic
+def enregistrer_simulation(avis: Avis, resultat: notation.Resultat) -> None:
+    """La sélection devient celle du calcul ; les choix d'une personne restent (ADR 0013 § 2)."""
+    criteres = {c.code: c for c in avis.criteres.all()}
+    en_jeu = {(p.critere, p.code): p.points for p in resultat.en_jeu}
+    for rc in resultat.criteres:
+        c = criteres[rc.critere.code]
+        humains = {s.mission_id: s for s in c.selections.filter(retenue_par__isnull=False)}
+        c.selections.filter(retenue_par__isnull=True).delete()
+        retenues = {x.reference.ident for x in rc.retenues}
+        for rang, x in enumerate(rc.candidates, start=1):
+            valeurs = {
+                "rang": rang,
+                "preuve": x.preuve.value,
+                "points": _points(rc, x),
+                "points_en_jeu": en_jeu.get((c.code, x.reference.code), Decimal(0)),
+            }
+            if x.reference.ident in humains:
+                Selection.objects.filter(pk=humains[x.reference.ident].pk).update(**valeurs)
+            else:
+                Selection.objects.create(
+                    critere=c,
+                    mission_id=x.reference.ident,
+                    retenue=x.reference.ident in retenues,
+                    **valeurs,
+                )
+    avis.note_sure = resultat.note_sure
+    avis.note_possible = resultat.note_possible
+    avis.simulee_le = timezone.now()
+    avis.save(update_fields=["note_sure", "note_possible", "simulee_le", "modifie_le"])
+
+
+def choisir(critere: Critere, mission: Mission, decision: str, motif: str, par) -> None:
+    """Forcer ou exclure une référence pour un critère, avec un motif ; « annuler » rend la main
+    au calcul. Le choix vaut pour les simulations suivantes."""
+    if decision == "annuler":
+        Selection.objects.filter(critere=critere, mission=mission).delete()
+        return
+    if decision not in ("forcer", "exclure"):
+        raise ValueError(f"décision inconnue : {decision}")
+    s, _ = Selection.objects.get_or_create(
+        critere=critere, mission=mission, defaults={"preuve": Selection.Preuve.MANQUANTE}
+    )
+    s.retenue = decision == "forcer"
+    s.retenue_par = par
+    s.retenue_le = timezone.now()
+    s.motif = motif
+    s.save()

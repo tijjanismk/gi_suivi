@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block actions %}
+  {% if criteres %}<a href="{% url 'avis:simulation' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Simulation</a>{% endif %}
   {% if peut_saisir %}
   <a href="{% url 'avis:modifier' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Modifier l'avis</a>
   <a href="{% url 'avis:critere_nouveau' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Ajouter un critère</a>
@@ -28,6 +29,7 @@
     <dt class="text-subtle">Dépôt</dt><dd class="text-important">{{ a.get_mode_depot_display|default:"—" }}{% if a.lieu_depot %} · {{ a.lieu_depot }}{% endif %}{% if a.courriel_depot %} · {{ a.courriel_depot }}{% endif %}</dd>
     <dt class="text-subtle">Méthode de sélection</dt><dd class="text-important">{{ a.methode_selection|default:"—" }}</dd>
     <dt class="text-subtle">Seuil d'éligibilité</dt><dd class="text-important gic:tabular-nums">{% if a.seuil_eligibilite is not None %}{{ a.seuil_eligibilite|floatformat:"-2" }}{% if a.note_maximale is not None %} sur {{ a.note_maximale|floatformat:"-2" }}{% endif %}{% else %}—{% endif %}</dd>
+    <dt class="text-subtle">Dernière simulation</dt><dd class="text-important gic:tabular-nums" id="derniere-simulation">{% if a.simulee_le %}note sûre {{ a.note_sure|floatformat:"-2" }}, possible {{ a.note_possible|floatformat:"-2" }} <span class="text-subtle">({{ a.simulee_le|date:"d/m/Y H:i" }})</span>{% else %}<span class="text-subtle">aucune</span>{% endif %}</dd>
     {% if a.observations %}<dt class="text-subtle">Observations</dt><dd class="text-important">{{ a.observations|linebreaksbr }}</dd>{% endif %}
     <dt class="text-subtle">Saisi</dt><dd class="text-subtle">{{ a.cree_le|date:"d/m/Y H:i" }}{% if a.cree_par %} par {{ a.cree_par.nom_affiche|default:a.cree_par.login_windows }}{% endif %}</dd>
   </dl>

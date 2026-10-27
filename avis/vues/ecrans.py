@@ -21,6 +21,7 @@ from avis.formulaires import FormulaireAvis, FormulaireCritere
 from avis.models import Avis, Critere
 from identite.decorateurs import groupe_requis
 from moteur.avis.filtres import FiltreInvalideError
+from references.models import Mission
 from suivi.services import journaliser
 
 SAISIE = (settings.GROUPE_DIRECTION, settings.GROUPE_OFFRES)
@@ -228,3 +229,114 @@ def pieces(request, avis_id: int):
     bilan = f"{ajoutees} ajoutée(s), {retirees} retirée(s)"
     messages.success(request, f"Pièces exigées enregistrées ({bilan}).")
     return redirect("avis:fiche", avis_id=a.pk)
+
+
+# -- simulation (AV04) --------------------------------------------------------------------------
+VERDICTS = {"eligible": "éligible", "incertain": "incertain", "non_eligible": "non éligible"}
+CANDIDATES_AFFICHEES = 40
+PIECES_EN_JEU_AFFICHEES = 60
+
+
+@groupe_requis(*CONSULTATION)
+def simulation(request, avis_id: int):
+    """La note de l'avis, calculée à chaque affichage ; « Enregistrer » garde la sélection."""
+    a = get_object_or_404(Avis, pk=avis_id)
+    journaliser(request, "consulter:simulation_avis", str(a.pk))
+    try:
+        resultat = services.calculer(a)
+    except FiltreInvalideError as e:
+        messages.error(request, f"Un filtre du barème ne se lit plus : {e}")
+        return redirect("avis:fiche", avis_id=a.pk)
+    criteres = {c.code: c for c in a.criteres.all()}
+    ids = {x.reference.ident for rc in resultat.criteres for x in rc.candidates}
+    libelles = {m.pk: m.libelle for m in Mission.objects.filter(pk__in=ids)}
+    en_jeu = {(p.critere, p.code): p.points for p in resultat.en_jeu}
+    blocs = []
+    for rc in resultat.criteres:
+        c = criteres[rc.critere.code]
+        retenues = {x.reference.ident for x in rc.retenues}
+        lignes = [
+            {
+                "x": x,
+                "libelle": libelles.get(x.reference.ident, ""),
+                "retenue": x.reference.ident in retenues,
+                "en_jeu": en_jeu.get((c.code, x.reference.code)),
+            }
+            for x in rc.candidates[:CANDIDATES_AFFICHEES]
+        ]
+        exclues = c.selections.filter(retenue_par__isnull=False, retenue=False)
+        blocs.append(
+            {
+                "c": c,
+                "rc": rc,
+                "lignes": lignes,
+                "autres": max(len(rc.candidates) - CANDIDATES_AFFICHEES, 0),
+                "exclues": exclues.select_related("mission"),
+            }
+        )
+    codes = {p.code for p in resultat.en_jeu}
+    intitules = dict(Mission.objects.filter(code__in=codes).values_list("code", "intitule_court"))
+    pieces = [
+        {"p": p, "intitule": intitules.get(p.code, "")}
+        for p in resultat.en_jeu[:PIECES_EN_JEU_AFFICHEES]
+    ]
+    return render(
+        request,
+        "avis/simulation.html",
+        {
+            **admin.site.each_context(request),
+            "titre": f"Simulation {a.type} {a.reference}",
+            "a": a,
+            "resultat": resultat,
+            "verdict": VERDICTS.get(resultat.verdict or "", ""),
+            "blocs": blocs,
+            "pieces": pieces,
+            "autres_pieces": max(len(resultat.en_jeu) - PIECES_EN_JEU_AFFICHEES, 0),
+            "peut_saisir": _peut_saisir(request),
+        },
+    )
+
+
+@require_POST
+@groupe_requis(*SAISIE)
+def enregistrer_simulation(request, avis_id: int):
+    a = get_object_or_404(Avis, pk=avis_id)
+    try:
+        resultat = services.calculer(a)
+    except FiltreInvalideError as e:
+        messages.error(request, f"Un filtre du barème ne se lit plus : {e}")
+        return redirect("avis:fiche", avis_id=a.pk)
+    services.enregistrer_simulation(a, resultat)
+    notes = f"{resultat.note_sure.normalize():f} / {resultat.note_possible.normalize():f}"
+    journaliser(request, "avis:simulation", f"{a.pk} {notes}")
+    messages.success(request, f"Simulation enregistrée : note sûre / possible {notes}.")
+    return redirect("avis:simulation", avis_id=a.pk)
+
+
+@require_POST
+@groupe_requis(*SAISIE)
+def choix(request, avis_id: int):
+    """Forcer ou exclure une référence pour un critère, avec un motif, ou annuler ce choix."""
+    a = get_object_or_404(Avis, pk=avis_id)
+    critere_id = request.POST.get("critere", "")
+    if not critere_id.isdigit():
+        raise Http404("critère inconnu")
+    c = get_object_or_404(Critere, pk=int(critere_id), avis=a)
+    code = request.POST.get("code", "").strip().upper()
+    decision = request.POST.get("decision", "")
+    motif = request.POST.get("motif", "").strip()[:300]
+    m = Mission.objects.filter(code=code).first()
+    if m is None:
+        messages.error(request, f"Référence introuvable : {code or '(vide)'}.")
+    elif decision != "annuler" and not motif:
+        messages.error(request, "Indiquez le motif : il reste avec le choix.")
+    else:
+        try:
+            services.choisir(c, m, decision, motif, request.user)
+        except ValueError as e:
+            messages.error(request, str(e))
+        else:
+            journaliser(request, f"avis:{decision}", f"{a.pk} {c.code} {m.code}")
+            fait = {"forcer": "forcée", "exclure": "exclue", "annuler": "rendue au calcul"}
+            messages.success(request, f"{m.code} {fait[decision]} pour le critère {c.code}.")
+    return redirect("avis:simulation", avis_id=a.pk)
