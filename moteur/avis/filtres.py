@@ -24,7 +24,15 @@ NATURES = frozenset({"ETU", "CTR", "ETC"})
 ROLES = frozenset({"seul", "chef_de_file", "membre"})
 # Types et natures exactes des justificatifs (ADR 0011, `references.PieceJustificative`)
 TYPES_PIECE = frozenset(
-    {"garde", "signature", "attestation", "contrat_complet", "avenant", "autre"}
+    {
+        "garde",
+        "signature",
+        "attestation",
+        "deuxieme_page",  # exceptionnelle, quand l'avis la demande (ADR 0015)
+        "contrat_complet",
+        "avenant",
+        "autre",
+    }
 )
 NATURES_PIECE = frozenset(
     {

@@ -162,6 +162,8 @@ class PieceJustificative(models.Model):
         GARDE = "garde", "page de garde"
         SIGNATURE = "signature", "page de signature"
         ATTESTATION = "attestation", "attestation"
+        # Exceptionnelle (ADR 0015) : certains avis la demandent ; elle ne rend pas complet
+        DEUXIEME_PAGE = "deuxieme_page", "deuxième page du contrat"
         CONTRAT_COMPLET = "contrat_complet", "contrat complet"
         AVENANT = "avenant", "avenant"
         AUTRE = "autre", "autre pièce"

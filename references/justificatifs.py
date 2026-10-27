@@ -25,7 +25,13 @@ from references.models import TYPES_ESSENTIELS, Mission, PieceJustificative, Qua
 from referentiel.models import TypeQuantite
 
 DOSSIER = "REFERENCES\\02_JUSTIFICATIFS"
-NOMS_NORMALISES = ("GARDE.PDF", "SIGNATURE.PDF", "ATTESTATION.PDF", "CONTRAT_COMPLET.PDF")
+NOMS_NORMALISES = (
+    "GARDE.PDF",
+    "SIGNATURE.PDF",
+    "ATTESTATION.PDF",
+    "DEUXIEME-PAGE.PDF",
+    "CONTRAT_COMPLET.PDF",
+)
 BONNE = Q(pieces__lisible__in=("oui", "moyen"), pieces__coherente="oui")
 
 
@@ -35,10 +41,13 @@ def dossier_de(mission: Mission) -> str:
 
 def type_propose(nom: str) -> str:
     """D'après le nom normalisé du rangement : GARDE.pdf, SIGNATURE.pdf, ATTESTATION.pdf,
-    CONTRAT_COMPLET.pdf ; un avenant ; sinon « autre »."""
+    DEUXIEME-PAGE.pdf (ADR 0015), CONTRAT_COMPLET.pdf ; un avenant ; sinon « autre »."""
     n = nom.upper()
     for mot, type_ in (  # « page de garde du contrat » est une garde : CONTRAT en dernier
         ("AVENANT", "avenant"),
+        ("DEUXIEME", "deuxieme_page"),
+        ("2E PAGE", "deuxieme_page"),
+        ("2E-PAGE", "deuxieme_page"),
         ("GARDE", "garde"),
         ("SIGNATURE", "signature"),
         ("ATTESTATION", "attestation"),

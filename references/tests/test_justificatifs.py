@@ -66,6 +66,9 @@ def test_type_propose_d_apres_le_nom():
     assert js.type_propose("CONTRAT_COMPLET.pdf") == "contrat_complet"
     assert js.type_propose("Avenant n°1.pdf") == "avenant"
     assert js.type_propose("photo.jpg") == "autre"
+    # la 2e page, demandée par certains avis (ADR 0015)
+    assert js.type_propose("DEUXIEME-PAGE.pdf") == "deuxieme_page"
+    assert js.type_propose("2e page du contrat.pdf") == "deuxieme_page"
 
 
 def test_fichiers_rattacher_auditer_complet(dossier):

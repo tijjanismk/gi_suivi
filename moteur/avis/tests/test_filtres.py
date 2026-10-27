@@ -129,3 +129,18 @@ def test_preuve_pieces_par_defaut_et_unicef():
     assert preuve(unicef, replace(r, pieces=(execution,))) == (Preuve.MANQUANTE, (manque,))
     _, manques = preuve(defaut, replace(r, pieces=()))
     assert [m.exigence for m in manques] == ["garde", "signature", "attestation"]
+
+
+def test_deuxieme_page_quand_l_avis_la_demande():
+    """ADR 0015 : la 2e page du contrat, exigée par certains avis seulement."""
+    quatre = lire_filtre(
+        {"pieces_requises": ["garde", "deuxieme_page", "signature", "attestation"]}
+    )
+    bonnes = tuple(
+        Piece(t, auditee=True, bonne=True) for t in ("garde", "signature", "attestation")
+    )
+    r = replace(UNICEF_2019, pieces=bonnes)
+    assert preuve(lire_filtre({}), r) == (Preuve.PROUVEE, ())
+    assert preuve(quatre, r) == (Preuve.MANQUANTE, (Manque("deuxieme_page", Preuve.MANQUANTE),))
+    page = Piece("deuxieme_page", auditee=True, bonne=True)
+    assert preuve(quatre, replace(r, pieces=(*bonnes, page))) == (Preuve.PROUVEE, ())
