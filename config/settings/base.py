@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "referentiel",  # domaines, catégories, clients, bailleurs
     "references",  # références du bureau : une mission = un contrat (ADR 0008)
     "experts",  # vivier des experts et affectations (ADR 0012)
+    "avis",  # avis de marchés : barème, sélection, pièces exigées (ADR 0013)
 ]
 
 MIDDLEWARE = [
@@ -224,9 +225,14 @@ UNFOLD = {
                 ],
             },
             {
-                # Références (ADR 0008) et pièces administratives (ADR 0010) ; Avis s'y ajoutera
+                # Avis (ADR 0013), références (ADR 0008), experts, pièces administratives (ADR 0010)
                 "title": "Offres",
                 "items": [
+                    {
+                        "title": "Avis",
+                        "icon": "campaign",
+                        "link": _lien("avis:liste"),
+                    },
                     {
                         "title": "Références",
                         "icon": "library_books",

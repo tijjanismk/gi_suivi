@@ -19,6 +19,7 @@ urlpatterns = [
     path("administratif/", include("administratif.urls")),  # pièces administratives (ADR 0010)
     path("references/", include("references.urls")),  # références du bureau (ADR 0008)
     path("experts/", include("experts.urls")),  # vivier des experts (ADR 0012)
+    path("avis/", include("avis.urls")),  # avis de marchés (ADR 0013)
     path("sante/", sante, name="sante"),
     path("identite/", include("identite.urls")),
     path("api/", include("suivi.api.urls")),
