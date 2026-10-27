@@ -93,6 +93,10 @@ Préfixes : `P` préalables serveur (hors code), `S` socle et moteur, `A` API,
 Détail et critères de chaque chantier : `docs/phase0-collecte.md`. Tout se fait dans `D:\GIC`,
 par copie ; les anciens partages ne bougent pas.
 
+**En pause depuis le 27/10/2026 (décision du porteur).** Les chantiers restent dans l'état
+ci-dessous. Ce qui reste attend dans l'application (702 pièces « à auditer », 30 experts
+« à vérifier ») ou dans la ligne « Reste » de `docs/plan/en-cours.md`, jusqu'à la reprise.
+
 | Id | Chantier | État au 22/10/2026 (lignes datées quand elles sont plus récentes) |
 |---|---|---|
 | C1 | Le partage | **fait** (P06) : `D:\GIC` rempli sans doublon, 3 180 fichiers ; registres `copies.csv`, `doublons.csv`, `deplacements.csv` dans `REFERENCES\00_REGISTRE` ; `Rangement-GIC.ps1` se relance pour copier ce que l'équipe ajoute dans les anciens partages |
