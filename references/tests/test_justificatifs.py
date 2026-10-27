@@ -48,7 +48,8 @@ def fichier(nom: str, code: str = CODE) -> js.Fichier:
 
 
 def test_types_de_depart():
-    assert TypeOuvrage.objects.count() == 12 and Livrable.objects.count() == 6
+    # 12 types de départ (ADR 0011) et 5 de l'ADR 0014 : AES, SHVA, SHPA, pont, dalot
+    assert TypeOuvrage.objects.count() == 17 and Livrable.objects.count() == 6
     assert TypeQuantite.objects.count() == 5
     seuil = TypeOuvrage.objects.get(cle="seuil-epandage")
     assert "recharge de nappe" in seuil.synonymes and seuil.famille.startswith("mobilisation")

@@ -81,7 +81,8 @@ def test_import_de_la_liste_maitresse(liste):
     assert mission("GIC-AEP-CTR-003").montant == Decimal("45000000.00")
     assert mission("GIC-AEP-ETU-001").nature == "ETU"  # tirée du code quand la colonne est vide
     assert mission("GIC-HYD-ETU-032").absorbee_par.code == "GIC-HYD-ETU-033"
-    assert Categorie.objects.count() == 2 and Client.objects.count() == 3
+    # les 38 sous-domaines de l'ADR 0014, et 2 catégories créées par l'import
+    assert Categorie.objects.count() == 38 + 2 and Client.objects.count() == 3
 
 
 def test_import_idempotent_et_fiche_verifiee_protegee(liste):
