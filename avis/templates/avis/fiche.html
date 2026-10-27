@@ -96,6 +96,22 @@
 {% endcomponent %}
 
 {% component "unfold/components/card.html" with title="Pièces administratives exigées" %}
+  {% if controle %}
+  <p class="gic:mb-3 gic:text-sm text-subtle">État de chaque pièce au {{ a.date_limite|date:"d/m/Y" }}, date limite de dépôt, pas aujourd'hui (ADR 0010). <a class="text-primary-600 gic:hover:underline" href="{% url 'administratif:controle' %}?{{ lien_controle }}">Ouvrir le contrôle avant un dépôt</a></p>
+  <div class="gic:overflow-x-auto gic:mb-3">
+    <table class="gic:w-full gic:text-sm" id="controle-pieces">
+      <tbody>
+        {% for l in controle %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-piece="{{ l.type.code }}">
+          <td class="gic:py-2 gic:pr-3 text-important">{{ l.type.libelle }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums text-subtle">{% if l.version %}émise le {{ l.version.date_emission|date:"d/m/Y" }}{% if l.version.valide_jusqu_au %}, valable au {{ l.version.valide_jusqu_au|date:"d/m/Y" }}{% endif %}{% else %}aucune version{% endif %}</td>
+          <td class="gic:py-2 gic:whitespace-nowrap"><span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if l.a_regler %}gic:bg-red-100 gic:text-red-900{% else %}gic:bg-green-100 gic:text-green-900{% endif %}">{{ l.libelle_etat }}</span>{% if l.demande %} <span class="gic:text-xs text-subtle">demandée le {{ l.demande.demandee_le|date:"d/m/Y" }}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
   <form method="post" action="{% url 'avis:pieces' a.pk %}" id="form-pieces">
     {% csrf_token %}
     <div class="gic:grid gic:gap-1 gic:sm:grid-cols-2 gic:lg:grid-cols-3 gic:text-sm text-important">

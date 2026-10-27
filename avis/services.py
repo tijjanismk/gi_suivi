@@ -8,11 +8,13 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from decimal import Decimal
+from urllib.parse import urlencode
 
 from django.db import transaction
 from django.utils import timezone
 
 from administratif.models import TypePiece
+from administratif.services import LigneControle, controle_a_la_date
 from avis.models import Avis, Critere, PieceExigee, Selection
 from moteur.avis import notation
 from moteur.avis.filtres import PIECES_PAR_DEFAUT, Piece, Preuve, Reference, lire_filtre
@@ -242,3 +244,20 @@ def choisir(critere: Critere, mission: Mission, decision: str, motif: str, par) 
     s.retenue_le = timezone.now()
     s.motif = motif
     s.save()
+
+
+# -- pièces exigées à la date limite (AV05) ------------------------------------------------------
+def controle_pieces(avis: Avis) -> list[LigneControle]:
+    """Chaque pièce exigée par l'avis, la version qu'on joindrait et son état à la date limite de
+    dépôt, jamais à la date du jour (ADR 0010 § 6) : le calcul d'`administratif`."""
+    codes = list(avis.pieces_exigees.values_list("type__code", flat=True))
+    return controle_a_la_date(avis.date_limite, seulement=codes)
+
+
+def lien_controle(avis: Avis) -> str:
+    """Les paramètres de l'écran « Contrôle avant un dépôt » pour cet avis : la date limite et
+    les pièces demandées en plus des pièces par défaut."""
+    en_plus = avis.pieces_exigees.filter(type__exigee_par_defaut=False)
+    parametres = [("date", avis.date_limite.isoformat()), ("avis", avis.reference)]
+    parametres += [("avec", code) for code in en_plus.values_list("type__code", flat=True)]
+    return urlencode(parametres)

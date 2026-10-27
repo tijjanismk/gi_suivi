@@ -128,6 +128,8 @@ def fiche(request, avis_id: int):
             "jours": (a.date_limite - timezone.localdate()).days,
             "criteres": lignes,
             "pieces": [(t, exigees.get(t.pk)) for t in types],
+            "controle": services.controle_pieces(a),
+            "lien_controle": services.lien_controle(a),
             "fichiers": [_fichier(a, quoi) for quoi in FICHIERS],
             "peut_saisir": _peut_saisir(request),
         },

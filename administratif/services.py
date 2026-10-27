@@ -300,14 +300,21 @@ class LigneControle:
         return LIBELLES.get(e.value, e.value)
 
 
-def controle_a_la_date(date_limite: date, codes_en_plus: list[str] = ()) -> list[LigneControle]:
+def controle_a_la_date(
+    date_limite: date, codes_en_plus: list[str] = (), seulement: list[str] | None = None
+) -> list[LigneControle]:
     """Les pièces exigées par défaut, plus celles que l'avis demande en plus, à `date_limite` :
     pour chacune, la version la plus récente déjà émise à cette date (hors versions retirées)
-    et son état ce jour-là. Les pièces à régler d'abord (moteur.controle)."""
+    et son état ce jour-là. Les pièces à régler d'abord (moteur.controle). `seulement` : la liste
+    exacte des pièces d'un avis (module avis, ADR 0013 § 4), à la place des pièces par défaut."""
+    if seulement is not None:
+        choisis = TypePiece.objects.filter(code__in=list(seulement))
+    else:
+        choisis = TypePiece.objects.filter(actif=True)
     types = {
         t.code: t
-        for t in TypePiece.objects.filter(actif=True).order_by("ordre", "libelle")
-        if t.exigee_par_defaut or t.code in codes_en_plus
+        for t in choisis.order_by("ordre", "libelle")
+        if seulement is not None or t.exigee_par_defaut or t.code in codes_en_plus
     }
     versions: dict[str, list[PieceAdministrative]] = {code: [] for code in types}
     for v in PieceAdministrative.objects.filter(type__code__in=types, retiree=False):
