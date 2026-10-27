@@ -209,6 +209,19 @@ def test_ecran_liste_et_filtres(client, liste):
 
 
 @override_settings(**IIS)
+def test_ecran_liste_nombres_et_filtres_sans_resultat(client, liste):
+    page = html(client.get("/references/", **DIR))
+    assert "importée (4)" in page and "à vérifier (0)" in page
+    assert "incomplets (4)" in page and "pièce manquante (4)" in page and "à auditer (0)" in page
+    assert "Effacer les filtres" not in page
+    # le nombre d'un choix tient compte des autres filtres, pas de celui dont il est un choix
+    page = html(client.get("/references/", {"nature": "CTR", "verification": "a_verifier"}, **DIR))
+    assert "0 références" in page and "importée (1)" in page and "incomplets (0)" in page
+    assert "ne correspond à ces filtres" in page and 'id="ref-effacer"' in page
+    assert "references_importer" not in page
+
+
+@override_settings(**IIS)
 def test_ecran_liste_vide_et_pages(client, db):
     assert "references_importer" in html(client.get("/references/", **DIR))
     hyd = Domaine.objects.get(code="HYD")

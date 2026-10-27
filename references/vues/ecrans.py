@@ -6,7 +6,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.contrib import admin, messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -20,15 +20,20 @@ from suivi.services import journaliser
 
 PAR_PAGE = 100
 PAIRES_AFFICHEES = 30
+FILTRES = ("q", "domaine", "nature", "verification", "pieces", "ouvrage")
+CHOIX_PIECES = (  # sur les compteurs de js.avec_compteurs
+    ("completes", "complets, 3 bonnes", Q(nb_bonnes=3)),
+    ("incompletes", "incomplets", Q(nb_bonnes__lt=3)),
+    ("a_auditer", "à auditer", Q(nb_a_auditer__gt=0)),
+    ("manquantes", "pièce manquante", Q(nb_rattachees__lt=3)),
+)
 
 
-@consultation_requise
-def liste(request):
-    journaliser(request, "consulter:references")
-    qs = Mission.objects.select_related("domaine", "client", "absorbee_par").prefetch_related(
-        "domaines_secondaires"
-    )
-    texte = request.GET.get("q", "").strip()
+def _filtrer(choisis: dict[str, str], avec_absorbees: bool, sauf: str = "") -> QuerySet[Mission]:
+    """Les références qui répondent aux filtres choisis, sauf celui nommé : le nombre affiché à
+    côté de chaque choix d'un filtre tient compte des autres filtres."""
+    qs = Mission.objects.all()
+    texte = choisis["q"]
     if texte:
         qs = qs.filter(
             Q(code__icontains=texte)
@@ -37,31 +42,33 @@ def liste(request):
             | Q(client__nom__icontains=texte)
             | Q(client__sigle__icontains=texte)
         )
-    domaine = request.GET.get("domaine", "")
-    if domaine:
+    if choisis["domaine"]:
+        domaine = choisis["domaine"]
         qs = qs.filter(Q(domaine__code=domaine) | Q(domaines_secondaires__code=domaine)).distinct()
-    nature = request.GET.get("nature", "")
-    if nature in services.NATURES:
-        qs = qs.filter(nature=nature)
-    verification = request.GET.get("verification", "")
-    if verification in Mission.Verification.values:
-        qs = qs.filter(statut_verification=verification)
+    if choisis["nature"] in services.NATURES:
+        qs = qs.filter(nature=choisis["nature"])
+    if sauf != "verification" and choisis["verification"] in Mission.Verification.values:
+        qs = qs.filter(statut_verification=choisis["verification"])
     qs = js.avec_compteurs(qs)
-    pieces = request.GET.get("pieces", "")
-    if pieces == "completes":
-        qs = qs.filter(nb_bonnes=3)
-    elif pieces == "incompletes":
-        qs = qs.filter(nb_bonnes__lt=3)
-    elif pieces == "a_auditer":
-        qs = qs.filter(nb_a_auditer__gt=0)
-    elif pieces == "manquantes":
-        qs = qs.filter(nb_rattachees__lt=3)
-    ouvrage = request.GET.get("ouvrage", "")
-    if ouvrage:
-        qs = qs.filter(types_ouvrage__cle=ouvrage)
-    avec_absorbees = request.GET.get("absorbees") == "1"
+    pieces = {v: q for v, _, q in CHOIX_PIECES}.get(choisis["pieces"])
+    if sauf != "pieces" and pieces is not None:
+        qs = qs.filter(pieces)
+    if choisis["ouvrage"]:
+        qs = qs.filter(types_ouvrage__cle=choisis["ouvrage"])
     if not avec_absorbees:
         qs = qs.filter(absorbee_par=None)
+    return qs
+
+
+@consultation_requise
+def liste(request):
+    journaliser(request, "consulter:references")
+    choisis = {k: request.GET.get(k, "").strip() for k in FILTRES}
+    avec_absorbees = request.GET.get("absorbees") == "1"
+    qs = _filtrer(choisis, avec_absorbees).select_related("domaine", "client", "absorbee_par")
+    qs = qs.prefetch_related("domaines_secondaires")
+    sans_verification = _filtrer(choisis, avec_absorbees, sauf="verification")
+    sans_pieces = _filtrer(choisis, avec_absorbees, sauf="pieces")
     page = Paginator(qs.order_by("code"), PAR_PAGE).get_page(request.GET.get("page"))
     filtres = request.GET.copy()
     filtres.pop("page", None)
@@ -75,13 +82,15 @@ def liste(request):
             "total": page.paginator.count,
             "domaines": Domaine.objects.all(),
             "natures": Mission.Nature.choices,
-            "verifications": Mission.Verification.choices,
-            "q": texte,
-            "domaine": domaine,
-            "nature": nature,
-            "verification": verification,
-            "pieces": pieces,
-            "ouvrage": ouvrage,
+            "verifications": [
+                (v, libelle, sans_verification.filter(statut_verification=v).count())
+                for v, libelle in Mission.Verification.choices
+            ],
+            "choix_pieces": [
+                (v, libelle, sans_pieces.filter(q).count()) for v, libelle, q in CHOIX_PIECES
+            ],
+            **choisis,
+            "filtre_actif": any(choisis.values()),
             "types_ouvrage": TypeOuvrage.objects.filter(actif=True),
             "avec_absorbees": avec_absorbees,
             "requete": filtres.urlencode(),

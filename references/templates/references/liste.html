@@ -33,16 +33,13 @@
     <label class="gic:text-xs text-subtle">Vérification
       <select id="ref-verification" name="verification" class="gic:mt-1 gic:block gic:w-40 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
         <option value="">Toutes</option>
-        {% for v, l in verifications %}<option value="{{ v }}" {% if v == verification %}selected{% endif %}>{{ l }}</option>{% endfor %}
+        {% for v, l, n in verifications %}<option value="{{ v }}" {% if v == verification %}selected{% endif %}>{{ l }} ({{ n }})</option>{% endfor %}
       </select>
     </label>
     <label class="gic:text-xs text-subtle">Justificatifs
-      <select id="ref-pieces" name="pieces" class="gic:w-40 gic:mt-1 gic:block gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+      <select id="ref-pieces" name="pieces" class="gic:w-52 gic:mt-1 gic:block gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
         <option value="">Tous</option>
-        <option value="completes" {% if pieces == 'completes' %}selected{% endif %}>complets (3 bonnes)</option>
-        <option value="incompletes" {% if pieces == 'incompletes' %}selected{% endif %}>incomplets</option>
-        <option value="a_auditer" {% if pieces == 'a_auditer' %}selected{% endif %}>à auditer</option>
-        <option value="manquantes" {% if pieces == 'manquantes' %}selected{% endif %}>pièce manquante</option>
+        {% for v, l, n in choix_pieces %}<option value="{{ v }}" {% if v == pieces %}selected{% endif %}>{{ l }} ({{ n }})</option>{% endfor %}
       </select>
     </label>
     <label class="gic:text-xs text-subtle">Type d'ouvrage
@@ -55,6 +52,7 @@
       <input type="checkbox" id="ref-absorbees" name="absorbees" value="1" {% if avec_absorbees %}checked{% endif %}> Afficher les {{ nb_absorbees }} absorbée{{ nb_absorbees|pluralize }}
     </label>
     <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Filtrer</button>
+    {% if filtre_actif %}<a href="{% url 'references:liste' %}" id="ref-effacer" class="gic:pb-1.5 gic:text-sm text-primary-600 gic:hover:underline">Effacer les filtres</a>{% endif %}
   </form>
 {% endcomponent %}
 
@@ -96,6 +94,8 @@
     {% if page.has_next %}<a class="text-primary-600 gic:hover:underline" href="?{{ requete }}&page={{ page.next_page_number }}">Suivantes</a>{% endif %}
   </nav>
   {% endif %}
+  {% elif filtre_actif %}
+    {% component "unfold/components/text.html" %}Aucune référence ne correspond à ces filtres : le nombre entre parenthèses, à côté de chaque choix, dit combien en répondent avec les autres filtres. <a href="{% url 'references:liste' %}" class="text-primary-600 gic:hover:underline">Effacer les filtres</a>{% endcomponent %}
   {% else %}
     {% component "unfold/components/text.html" %}Aucune référence. La liste maîtresse s'importe avec <span class="gic:font-mono gic:text-xs">manage.py references_importer liste.csv</span>.{% endcomponent %}
   {% endif %}
