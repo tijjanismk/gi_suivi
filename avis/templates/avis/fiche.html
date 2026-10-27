@@ -51,6 +51,7 @@
 {% endcomponent %}
 
 {% component "unfold/components/card.html" with title="Barème" %}
+  {% if brouillons %}<p class="gic:mb-3 gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">{{ brouillons }} critère{{ brouillons|pluralize }} en brouillon, préparé{{ brouillons|pluralize }} par Claude Desktop : ouvrez-les et enregistrez-les pour qu'ils comptent dans la note.</p>{% endif %}
   {% if criteres %}
   <div class="gic:overflow-x-auto">
     <table class="gic:w-full gic:text-sm" id="table-criteres">
@@ -66,7 +67,7 @@
       <tbody>
         {% for ligne in criteres %}{% with c=ligne.c %}
         <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-critere="{{ c.code }}">
-          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap gic:font-mono gic:text-xs">{{ c.code }}</td>
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap gic:font-mono gic:text-xs">{{ c.code }}{% if c.brouillon %}<div class="gic:mt-1"><span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium gic:bg-amber-100 gic:text-amber-900 gic:font-sans">brouillon</span></div>{% endif %}</td>
           <td class="gic:py-2 gic:pr-3 text-important">{{ c.libelle|linebreaksbr }}{% if c.mode != 'manuel' %}<div class="gic:mt-1 gic:text-xs text-subtle">{{ ligne.filtre|join:" · " }}</div>{% endif %}</td>
           <td class="gic:py-2 gic:pr-3 gic:tabular-nums">
             {% if c.mode == 'par_mission' %}{{ c.points_par_mission|floatformat:"-2" }} pts par référence{% if c.plafond is not None %}, plafond {{ c.plafond|floatformat:"-2" }}{% endif %}{% if c.nb_min_missions %}, {{ c.nb_min_missions }} au moins{% endif %}

@@ -21,10 +21,18 @@ from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Proposition, S
 from experts.models import Expert
 from moteur.avis import experts as experts_moteur
 from moteur.avis import notation
-from moteur.avis.filtres import PIECES_PAR_DEFAUT, Piece, Preuve, Reference, lire_filtre
+from moteur.avis.filtres import (
+    PIECES_PAR_DEFAUT,
+    Piece,
+    Preuve,
+    Reference,
+    correspond,
+    lire_filtre,
+)
 from moteur.avis.selection import selectionner
+from moteur.references.doublons import mots
 from references.models import Mission
-from referentiel.models import Bailleur, Client
+from referentiel.models import Bailleur, Categorie, Client, Domaine, TypeOuvrage, TypeQuantite
 
 CODES_EN_APERCU = 10
 EXPERTS_PROPOSES = 15  # dans la liste où l'on choisit l'expert retenu
@@ -188,7 +196,7 @@ def calculer(avis: Avis, references: list[Reference] | None = None) -> notation.
     lit plus. L'ancienneté se compte jusqu'à l'année de la date limite."""
     if references is None:
         references = references_du_bureau()
-    criteres = [critere_moteur(c) for c in avis.criteres.all()]
+    criteres = [critere_moteur(c) for c in avis.criteres.filter(brouillon=False)]
     return notation.noter(
         criteres, references, avis.date_limite.year, avis.seuil_eligibilite, choix_de(avis)
     )
@@ -205,7 +213,7 @@ def _points(rc: notation.ResultatCritere, candidate) -> Decimal:
 @transaction.atomic
 def enregistrer_simulation(avis: Avis, resultat: notation.Resultat) -> None:
     """La sélection devient celle du calcul ; les choix d'une personne restent (ADR 0013 § 2)."""
-    criteres = {c.code: c for c in avis.criteres.all()}
+    criteres = {c.code: c for c in avis.criteres.filter(brouillon=False)}
     en_jeu = {(p.critere, p.code): p.points for p in resultat.en_jeu}
     for rc in resultat.criteres:
         c = criteres[rc.critere.code]
@@ -447,3 +455,106 @@ def rejeter(p: Proposition, motif: str, par) -> None:
 
 def a_valider() -> int:
     return Proposition.objects.filter(statut=Proposition.Statut.A_VALIDER).count()
+
+
+# -- outils MCP (AV09) ---------------------------------------------------------------------------
+def rechercher(
+    filtre: dict, texte: str = "", limite: int = 20, references: list[Reference] | None = None
+) -> tuple[int, list]:
+    """Les références qui répondent au filtre d'un critère et au texte libre (tous ses mots dans
+    l'intitulé), classées comme pour un critère. `pieces_completes_requises` à vrai ne garde que
+    les références prouvées. Rend (nombre total, les premières)."""
+    if references is None:
+        references = references_du_bureau()
+    candidates = selectionner(lire_filtre(filtre), references)
+    if filtre.get("pieces_completes_requises") is True:
+        candidates = [c for c in candidates if c.preuve == Preuve.PROUVEE]
+    if texte.strip():
+        libre = lire_filtre({"mots_cles": [texte]})
+        candidates = [c for c in candidates if correspond(libre, c.reference)]
+    return len(candidates), candidates[:limite]
+
+
+def vocabulaire_pour(texte: str) -> dict:
+    """Le vocabulaire de la base qu'un filtre peut employer, chaque entrée marquée quand elle
+    partage un mot avec le texte du bailleur (le thésaurus : synonymes et familles compris).
+    Aucune traduction ici : Claude propose le filtre, une personne le valide à l'écran."""
+    cherches = mots(texte or "")
+
+    def evoque(*textes: str) -> bool:
+        return bool(cherches & mots(" ".join(t for t in textes if t)))
+
+    return {
+        "domaines": [
+            {"code": d.code, "libelle": d.libelle, "evoque": evoque(d.libelle)}
+            for d in Domaine.objects.all()
+        ],
+        "categories": [
+            {
+                "cle": c.cle,
+                "libelle": c.libelle,
+                "domaine": c.domaine.code,
+                "evoque": evoque(c.libelle),
+            }
+            for c in Categorie.objects.select_related("domaine")
+        ],
+        "types_ouvrage": [
+            {
+                "cle": o.cle,
+                "libelle": o.libelle,
+                "famille": o.famille,
+                "synonymes": list(o.synonymes),
+                "evoque": evoque(o.libelle, o.famille, *o.synonymes),
+            }
+            for o in TypeOuvrage.objects.filter(actif=True)
+        ],
+        "types_quantite": [
+            {"cle": q.cle, "libelle": q.libelle, "unite": q.unite}
+            for q in TypeQuantite.objects.all()
+        ],
+        "natures": NATURES,
+        "roles": ROLES,
+    }
+
+
+CHAMPS_CRITERE = (
+    "code",
+    "libelle",
+    "reference_avis",
+    "mode",
+    "points_par_mission",
+    "plafond",
+    "nb_min_missions",
+    "annees_seuil",
+    "points_socle",
+    "points_par_annee",
+    "note_manuelle",
+)
+
+
+def enregistrer_brouillon(avis: Avis, donnees: dict) -> Critere:
+    """Un critère préparé par Claude, marqué brouillon : il ne compte pas dans la note avant
+    qu'une personne l'ouvre et l'enregistre. Lève `ValidationError` (filtre, mode, code pris)."""
+    champs = {k: donnees[k] for k in CHAMPS_CRITERE if donnees.get(k) not in (None, "")}
+    c = Critere(
+        avis=avis,
+        brouillon=True,
+        filtre=donnees.get("filtre") or {},
+        ordre=avis.criteres.count() + 1,
+        **champs,
+    )
+    c.full_clean()
+    c.save()
+    return c
+
+
+def rechercher_experts(
+    besoin: experts_moteur.Besoin,
+    disponibles_seulement: bool = True,
+    references: list[Reference] | None = None,
+) -> list[experts_moteur.Adequation]:
+    """Le vivier comparé à un profil, cette année : comme pour un poste d'avis."""
+    profils = profils_du_vivier(references if references is not None else references_du_bureau())
+    if disponibles_seulement:
+        profils = [p for p in profils if p.disponible]
+    return experts_moteur.classer(besoin, profils, timezone.localdate().year)

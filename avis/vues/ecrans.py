@@ -129,6 +129,7 @@ def fiche(request, avis_id: int):
             "a": a,
             "jours": (a.date_limite - timezone.localdate()).days,
             "criteres": lignes,
+            "brouillons": sum(1 for c in criteres if c.brouillon),
             "pieces": [(t, exigees.get(t.pk)) for t in types],
             "controle": services.controle_pieces(a),
             "besoins": services.experts_pour(a, references) if besoins else [],
@@ -197,7 +198,9 @@ def critere(request, avis_id: int, critere_id: int | None = None):
         if request.POST.get("action") == "apercu":
             apercu = services.apercu(formulaire.instance.filtre)
         else:
-            c = formulaire.save()
+            c = formulaire.save(commit=False)
+            c.brouillon = False  # enregistré par une personne : il compte (AV09)
+            c.save()
             journaliser(request, "avis:critere", f"{a.pk} {c.code}")
             messages.success(request, f"Critère {c.code} enregistré.")
             return redirect("avis:fiche", avis_id=a.pk)

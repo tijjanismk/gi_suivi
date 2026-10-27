@@ -19,6 +19,8 @@ Principes :
 
 ## Outils du MVP
 
+Écrits et testés le 27/10/2026 (AV09) comme fonctions de `avis/outils_mcp.py` ; leur montage sous `/mcp/` et le pont du poste attendent la décision de l'ADR 0016 (dépendance `mcp`). `enregistrer_brouillon_critere` crée un critère `brouillon`, qui ne compte pas dans la note avant qu'une personne l'enregistre à l'écran.
+
 ### `rechercher_missions`
 
 Recherche des références du bureau par filtre. Paramètres : les clés du

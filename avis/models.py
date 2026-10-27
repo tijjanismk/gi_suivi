@@ -171,6 +171,10 @@ class Critere(models.Model):
         default=dict, blank=True, help_text="Format dans docs/schema-donnees.md"
     )
     note_manuelle = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    brouillon = models.BooleanField(
+        default=False,
+        help_text="Préparé par Claude Desktop (outil MCP) : ne compte pas avant d'être confirmé",
+    )
 
     class Meta:
         verbose_name = "critère"
