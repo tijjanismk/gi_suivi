@@ -138,6 +138,5 @@ def test_creation_dans_l_administration(client):
     avis = Avis.objects.get(reference="09/2026/001/MI/SOMAPEP/DG")
     assert avis.cree_par.login_windows == "giconseils\\directrice"
     assert avis.criteres.get().note_manuelle == 10
-    assert avis.pieces_exigees.count() == TypePiece.objects.filter(
-        exigee_par_defaut=True, actif=True
-    ).count()
+    par_defaut = TypePiece.objects.filter(exigee_par_defaut=True, actif=True).count()
+    assert avis.pieces_exigees.count() == par_defaut
