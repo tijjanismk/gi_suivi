@@ -12,10 +12,10 @@
 {% endblock %}
 
 {% block ecran %}
-{% if alertes %}
+{% if alertes or points %}
 <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900" id="alertes">
   <p class="gic:font-semibold">À vérifier avant de présenter ce CV :</p>
-  <ul class="gic:list-disc gic:pl-5">{% for a in alertes %}<li>{{ a.message }}</li>{% endfor %}</ul>
+  <ul class="gic:list-disc gic:pl-5">{% for p in points %}<li data-point="1">{{ p }}</li>{% endfor %}{% for a in alertes %}<li>{{ a.message }}</li>{% endfor %}</ul>
 </div>
 {% endif %}
 {% if e.statut == 'externe' and not e.accord_le %}<div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-amber-100 gic:text-amber-900">Expert externe sans accord écrit enregistré : son CV ne peut pas être présenté.</div>{% endif %}

@@ -27,12 +27,13 @@
       <select id="expert-domaine" name="domaine" class="gic:mt-1 gic:block gic:w-52 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900"><option value="">Tous</option>{% for d in domaines %}<option value="{{ d.code }}" {% if d.code == domaine %}selected{% endif %}>{{ d }}</option>{% endfor %}</select>
     </label>
     <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important gic:pb-1.5" for="expert-mobilisables"><input type="checkbox" id="expert-mobilisables" name="mobilisables" value="1" {% if mobilisables %}checked{% endif %}> Mobilisables seulement</label>
+    <label class="gic:flex gic:items-center gic:gap-2 gic:text-sm text-important gic:pb-1.5" for="expert-a-verifier"><input type="checkbox" id="expert-a-verifier" name="a_verifier" value="1" {% if a_verifier %}checked{% endif %}> À vérifier seulement</label>
     <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Filtrer</button>
   </form>
 {% endcomponent %}
 
 {% component "unfold/components/card.html" with title="Vivier" %}
-  <p class="gic:mb-3 gic:text-sm text-subtle" id="experts-total">{{ experts|length }} expert{{ experts|length|pluralize }}</p>
+  <p class="gic:mb-3 gic:text-sm text-subtle" id="experts-total">{{ experts|length }} expert{{ experts|length|pluralize }}{% if nb_a_regler %}, dont {{ nb_a_regler }} à vérifier avant de présenter le CV{% endif %}</p>
   {% if experts %}
   <div class="gic:overflow-x-auto">
     <table class="gic:w-full gic:text-sm" id="table-experts">
@@ -47,7 +48,7 @@
       <tbody>
         {% for e in experts %}
         <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-expert="{{ e.nom }}">
-          <td class="gic:py-2 gic:pr-3"><a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'experts:fiche' e.pk %}">{{ e }}</a></td>
+          <td class="gic:py-2 gic:pr-3"><a class="text-primary-600 gic:font-medium gic:hover:underline" href="{% url 'experts:fiche' e.pk %}">{{ e }}</a>{% if e.a_regler %} <span class="gic:text-xs gic:text-amber-900" data-a-verifier="1">· à vérifier</span>{% endif %}</td>
           <td class="gic:py-2 gic:pr-3">{{ e.specialite|default:"—" }}{% for d in e.domaines.all %} <span class="text-subtle">{{ d.code }}</span>{% endfor %}</td>
           <td class="gic:py-2 gic:pr-3">{{ e.get_categorie_display|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{% if e.annees is not None %}{{ e.annees }} an{{ e.annees|pluralize }}{% else %}—{% endif %}</td>

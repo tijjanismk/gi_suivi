@@ -122,3 +122,39 @@ def test_commande_diplomes(awa, tmp_path):
     assert "Simulation, rien n'est gardé : 1 ligne(s) lue(s) ; 1 diplôme(s) créé(s)" in texte
     call_command("experts_diplomes", str(f), stdout=StringIO())
     assert Diplome.objects.get().justificatif == DIPLOME
+
+
+def test_points_a_verifier_et_registre(awa):
+    assert services.points_a_verifier(awa, js.fichiers(awa)) == ["Aucun diplôme enregistré."]
+    awa.a_verifier = "Naissance à corriger sur le CV\n\n  Accord écrit à obtenir "
+    awa.save()
+    Diplome.objects.create(expert=awa, intitule="Ingénieur hydraulicien")
+    assert services.points_a_verifier(awa, []) == [
+        "Naissance à corriger sur le CV",
+        "Accord écrit à obtenir",
+        "Aucun CV dans le dossier.",
+    ]
+    assert len(services.points_a_verifier(awa, None)) == 2  # dossier non lu : rien sur le CV
+    # le registre apporte les points ; une valeur vide n'efface pas ceux déjà notés
+    entete = "Dossier;Catégorie;A_verifier\n"
+    services.importer(services.lire_csv(entete + "TRAORÉ Awa;Ingénieurs;CV à demander\n"))
+    awa.refresh_from_db()
+    assert awa.a_verifier == "CV à demander"
+    services.importer(services.lire_csv(entete + "TRAORÉ Awa;Ingénieurs;\n"))
+    awa.refresh_from_db()
+    assert awa.a_verifier == "CV à demander"
+
+
+@override_settings(**IIS)
+def test_points_sur_la_fiche_et_le_vivier(client, awa):
+    awa.a_verifier = "Naissance à corriger sur le CV"
+    awa.save()
+    page = unescape(client.get(f"/experts/{awa.pk}/", **DIR).content.decode())
+    assert "Naissance à corriger sur le CV" in page and "Aucun diplôme enregistré." in page
+    assert "Aucun CV dans le dossier" not in page  # son CV est dans le dossier
+    sans_souci = Expert.objects.create(nom="SANS", prenoms="Souci")
+    Diplome.objects.create(expert=sans_souci, intitule="Ingénieur")
+    page = unescape(client.get("/experts/", **DIR).content.decode())
+    assert "2 experts, dont 1 à vérifier" in page and 'data-a-verifier="1"' in page
+    page = unescape(client.get("/experts/", {"a_verifier": "1"}, **DIR).content.decode())
+    assert "1 expert, dont 1 à vérifier" in page and 'data-expert="SANS"' not in page

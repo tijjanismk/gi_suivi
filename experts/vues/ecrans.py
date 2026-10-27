@@ -48,11 +48,13 @@ class FormulaireExpert(forms.ModelForm):
             "dossier",
             "accord_le",
             "notes",
+            "a_verifier",
         ]
         widgets = {
             "domaines": forms.CheckboxSelectMultiple,
             "accord_le": forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
             "notes": forms.Textarea(attrs={"rows": 3}),
+            "a_verifier": forms.Textarea(attrs={"rows": 3}),
         }
 
     def __init__(self, *args, **kwargs) -> None:
@@ -66,7 +68,10 @@ class FormulaireExpert(forms.ModelForm):
 @consultation_requise
 def vivier(request):
     journaliser(request, "consulter:experts")
-    qs = Expert.objects.prefetch_related("domaines").annotate(nb_affectations=Count("affectations"))
+    qs = Expert.objects.prefetch_related("domaines").annotate(
+        nb_affectations=Count("affectations", distinct=True),
+        nb_diplomes=Count("diplomes", distinct=True),
+    )
     texte = request.GET.get("q", "").strip()
     if texte:
         qs = qs.filter(
@@ -90,6 +95,10 @@ def vivier(request):
     experts = list(qs.order_by("nom", "prenoms"))
     for e in experts:
         e.annees = services.annees(e)
+        e.a_regler = bool(e.a_verifier.strip()) or not e.nb_diplomes  # un point noté, ou rien
+    a_verifier = request.GET.get("a_verifier") == "1"
+    if a_verifier:
+        experts = [e for e in experts if e.a_regler]
     return render(
         request,
         "experts/vivier.html",
@@ -102,6 +111,8 @@ def vivier(request):
             "categorie": categorie,
             "domaine": domaine,
             "mobilisables": mobilisables,
+            "a_verifier": a_verifier,
+            "nb_a_regler": sum(1 for e in experts if e.a_regler),
             "statuts": Expert.Statut.choices,
             "categories": Expert.Categorie.choices,
             "domaines": Domaine.objects.all(),
@@ -128,6 +139,7 @@ def fiche(request, expert_id: int):
     for d in diplomes:  # le justificatif s'ouvre s'il est dans le dossier de l'expert
         dans = d.justificatif[len(prefixe) :] if d.justificatif.lower().startswith(prefixe) else ""
         d.dans_dossier = dans if e.dossier else ""
+    lus = fichiers if e.dossier and not erreur else None  # sans lecture, rien sur le CV
     return render(
         request,
         "experts/fiche.html",
@@ -137,6 +149,7 @@ def fiche(request, expert_id: int):
             "e": e,
             "annees": services.annees(e),
             "alertes": services.alertes(e),
+            "points": services.points_a_verifier(e, lus),
             "affectations": e.affectations.select_related("mission", "mission__client"),
             "diplomes": diplomes,
             "fichiers": fichiers,

@@ -35,6 +35,18 @@ def annees(expert: Expert) -> int | None:
     return controles.annees_experience(expert.debut_carriere, timezone.localdate())
 
 
+def points_a_verifier(expert: Expert, fichiers=None) -> list[str]:
+    """Ce qui empêche de présenter le CV tel quel : les points notés sur la fiche (un par ligne),
+    puis ce qui manque au dossier. `fichiers` : les justificatifs lus sur le partage, ou None
+    s'ils n'ont pas pu l'être (on ne dit alors rien du CV)."""
+    points = [p.strip() for p in expert.a_verifier.splitlines() if p.strip()]
+    if fichiers is not None and not any(f.type == "cv" for f in fichiers):
+        points.append("Aucun CV dans le dossier.")
+    if not expert.diplomes.exists():
+        points.append("Aucun diplôme enregistré.")
+    return points
+
+
 @dataclass
 class Rapport:
     crees: list[str] = field(default_factory=list)
@@ -84,8 +96,9 @@ def lire_csv(contenu: str) -> list[dict[str, str]]:
 @transaction.atomic
 def importer(lignes: list[dict[str, str]], simuler: bool = False) -> Rapport:
     """Crée ou met à jour les experts du registre (nom et prénoms). Actif = non : ancien, non
-    disponible. Les affectations ne viennent pas du registre : elles se saisissent avec leur
-    preuve. En simulation, rien n'est gardé."""
+    disponible. Colonne `a_verifier` : les points à vérifier avant de présenter le CV (une
+    valeur vide n'efface pas ceux déjà notés). Les affectations ne viennent pas du registre :
+    elles se saisissent avec leur preuve. En simulation, rien n'est gardé."""
     rapport = Rapport()
     for n, ligne in enumerate(lignes, start=2):
         if ligne.get("nom"):
@@ -100,6 +113,7 @@ def importer(lignes: list[dict[str, str]], simuler: bool = False) -> Rapport:
             "specialite": ligne.get("specialite", "")[:200],
             "categorie": CATEGORIES.get(slugify(ligne.get("categorie", "")), ""),
             "dossier": (f"EXPERTS\\{ligne['dossier']}" if ligne.get("dossier") else "")[:300],
+            "a_verifier": ligne.get("a_verifier", ""),
         }
         if not actif:
             valeurs.update(statut=Expert.Statut.ANCIEN, disponible=False)

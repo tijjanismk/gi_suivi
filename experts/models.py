@@ -46,6 +46,11 @@ class Expert(models.Model):
         help_text="Expert externe : accord écrit pour présenter son CV (règles des CV, section 7)",
     )
     notes = models.TextField(blank=True)
+    a_verifier = models.TextField(
+        "points à vérifier",
+        blank=True,
+        help_text="Un point par ligne, affiché sur la fiche ; l'effacer quand il est réglé",
+    )
     cree_le = models.DateTimeField(auto_now_add=True)
     modifie_le = models.DateTimeField(auto_now=True)
 

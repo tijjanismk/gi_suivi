@@ -9,7 +9,7 @@
     {% csrf_token %}
     {% for e2 in formulaire.non_field_errors %}<div class="gic:sm:col-span-2 gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-red-100 gic:text-red-900">{{ e2 }}</div>{% endfor %}
     {% for champ in formulaire %}
-      <div class="{% if champ.name == 'domaines' or champ.name == 'notes' %}gic:sm:col-span-2{% endif %}">
+      <div class="{% if champ.name == 'domaines' or champ.name == 'notes' or champ.name == 'a_verifier' %}gic:sm:col-span-2{% endif %}">
         {% if champ.name == 'domaines' %}
           <fieldset><legend class="gic:text-xs text-subtle">{{ champ.label|capfirst }}</legend>
             <div class="gic:mt-1 gic:grid gic:gap-1 gic:sm:grid-cols-3 gic:lg:grid-cols-4 gic:text-sm text-important">{% for case in champ %}<label class="gic:flex gic:items-center gic:gap-2" for="{{ case.id_for_label }}">{{ case.tag }} {{ case.choice_label }}</label>{% endfor %}</div>
