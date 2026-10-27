@@ -1,0 +1,80 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><span class="text-important">Avis de marchés</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Les AMI, DP et AO reçus, avec leur barème décrit en données (ADR 0013). La date limite et les jours restants disent ce qui presse.{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if peut_saisir %}<a href="{% url 'avis:nouveau' %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Nouvel avis</a>{% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" %}
+  <form method="get" class="gic:flex gic:flex-wrap gic:items-end gic:gap-3" id="filtres-avis">
+    <label class="gic:text-xs text-subtle">Recherche
+      <input type="search" id="avis-q" name="q" value="{{ q }}" placeholder="référence, objet, bailleur" class="gic:mt-1 gic:block gic:w-72 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+    </label>
+    <label class="gic:text-xs text-subtle">Type
+      <select id="avis-type" name="type" class="gic:mt-1 gic:block gic:w-56 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Tous</option>
+        {% for v, l in types %}<option value="{{ v }}" {% if v == type %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="gic:text-xs text-subtle">Statut
+      <select id="avis-statut" name="statut" class="gic:mt-1 gic:block gic:w-44 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Tous</option>
+        {% for v, l in statuts %}<option value="{{ v }}" {% if v == statut %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="gic:text-xs text-subtle">Échéance
+      <select id="avis-echeance" name="echeance" class="gic:mt-1 gic:block gic:w-40 gic:rounded-md gic:px-2 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 dark:bg-base-900">
+        <option value="">Toutes</option>
+        {% for v, l in echeances %}<option value="{{ v }}" {% if v == echeance %}selected{% endif %}>{{ l }}</option>{% endfor %}
+      </select>
+    </label>
+    <button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Filtrer</button>
+    {% if filtre_actif %}<a href="{% url 'avis:liste' %}" id="avis-effacer" class="gic:pb-1.5 gic:text-sm text-primary-600 gic:hover:underline">Effacer les filtres</a>{% endif %}
+  </form>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Avis" %}
+  <p class="gic:mb-3 gic:text-sm text-subtle" id="avis-total">{{ total }} avis</p>
+  {% if lignes %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-avis">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Référence</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Objet</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Type</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Maître d'ouvrage</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Date limite</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Statut</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Critères</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a, jours in lignes %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-avis="{{ a.pk }}">
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'avis:fiche' a.pk %}">{{ a.reference }}</a></td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ a.objet|truncatechars:160 }}</td>
+          <td class="gic:py-2 gic:pr-3">{{ a.type }}</td>
+          <td class="gic:py-2 gic:pr-3">{{ a.maitre_ouvrage|default:"—" }}{% if a.bailleur %} <span class="text-subtle">· {{ a.bailleur }}</span>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums gic:whitespace-nowrap">{{ a.date_limite|date:"d/m/Y" }}<div class="gic:text-xs text-subtle">{% if jours > 1 %}dans {{ jours }} jours{% elif jours == 1 %}demain{% elif jours == 0 %}aujourd'hui{% else %}passée{% endif %}</div></td>
+          <td class="gic:py-2 gic:pr-3">{{ a.get_statut_display }}</td>
+          <td class="gic:py-2 gic:tabular-nums">{{ a.nb_criteres }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif filtre_actif %}
+    {% component "unfold/components/text.html" %}Aucun avis ne correspond à ces filtres. <a href="{% url 'avis:liste' %}" class="text-primary-600 gic:hover:underline">Effacer les filtres</a>{% endcomponent %}
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucun avis pour l'instant.{% if peut_saisir %} <a href="{% url 'avis:nouveau' %}" class="text-primary-600 gic:hover:underline">Saisir le premier</a>{% endif %}{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+{% endblock %}

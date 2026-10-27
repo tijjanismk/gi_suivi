@@ -1,0 +1,47 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:liste' %}">Avis de marchés</a><span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:fiche' a.pk %}">{{ a.reference }}</a><span aria-hidden="true">›</span><span class="text-important">{% if c.pk %}Critère {{ c.code }}{% else %}Nouveau critère{% endif %}</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}Recopiez le texte du critère tel que l'avis l'écrit, puis traduisez-le en conditions : chaque bloc rempli s'ajoute aux autres ; dans un bloc, une seule case cochée suffit. « Aperçu » montre les références retenues sans rien enregistrer.{% endcomponent %}
+{% endblock %}
+
+{% block ecran %}
+<form method="post" class="gic:flex gic:flex-col gic:gap-6" novalidate id="form-critere">
+  {% csrf_token %}
+  {% for e in formulaire.non_field_errors %}<p class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-red-100 gic:text-red-900" role="alert">{{ e }}</p>{% endfor %}
+  {% if apercu %}
+  <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-blue-50 gic:text-blue-900" id="apercu" role="status">
+    <strong>{{ apercu.total }} référence{{ apercu.total|pluralize }} retenue{{ apercu.total|pluralize }}</strong> : {{ apercu.prouvees }} prouvée{{ apercu.prouvees|pluralize }}, {{ apercu.a_auditer }} à auditer, {{ apercu.manquantes }} sans pièce.
+    {% if apercu.codes %}<div class="gic:mt-1 gic:font-mono gic:text-xs">{{ apercu.codes|join:" · " }}{% if apercu.total > apercu.codes|length %} …{% endif %}</div>{% endif %}
+  </div>
+  {% endif %}
+  {% for titre, champs in formulaire.groupes %}
+  {% component "unfold/components/card.html" with title=titre %}
+    <div class="gic:grid gic:gap-4 gic:sm:grid-cols-2 gic:max-w-5xl">
+      {% for champ in champs %}
+      <div class="{% if champ.name == 'libelle' or champ.field.widget.input_type == 'checkbox' %}gic:sm:col-span-2{% endif %}">
+        {% if champ.field.widget.input_type == 'checkbox' %}
+          <fieldset>
+            <legend class="gic:text-xs text-subtle">{{ champ.label|capfirst }}</legend>
+            <div class="gic:mt-1 gic:grid gic:gap-1 gic:sm:grid-cols-3 gic:lg:grid-cols-4 gic:text-sm text-important">{% for case in champ %}<label class="gic:flex gic:items-center gic:gap-2" for="{{ case.id_for_label }}">{{ case.tag }} {{ case.choice_label }}</label>{% empty %}<span class="text-subtle">aucun choix</span>{% endfor %}</div>
+          </fieldset>
+        {% else %}
+          <label class="gic:text-xs text-subtle" for="{{ champ.id_for_label }}">{{ champ.label|capfirst }}</label>
+          {{ champ }}
+        {% endif %}
+        {% if champ.help_text %}<p class="gic:mt-1 gic:text-xs text-subtle">{{ champ.help_text }}</p>{% endif %}
+        {% for e in champ.errors %}<p class="gic:mt-1 gic:text-xs gic:text-red-700">{{ e }}</p>{% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+  {% endcomponent %}
+  {% endfor %}
+  <div class="gic:flex gic:flex-wrap gic:gap-2">
+    <button type="submit" name="action" value="apercu" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Aperçu</button>
+    <button type="submit" name="action" value="enregistrer" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer</button>
+    <a href="{% url 'avis:fiche' a.pk %}" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-subtle gic:hover:bg-gray-50">Annuler</a>
+  </div>
+</form>
+{% endblock %}

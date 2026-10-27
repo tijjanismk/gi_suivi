@@ -101,7 +101,7 @@ def test_une_reference_par_critere():
 @override_settings(**IIS)
 def test_administration_sans_suppression(client):
     avis = unicef()
-    assert client.get("/avis/", **DIR).url == "/admin/avis/avis/"
+    assert client.get("/avis/", **DIR).status_code == 200  # la liste (AV03)
     assert client.get("/admin/avis/avis/", **DIR).status_code == 200
     assert client.get(f"/admin/avis/avis/{avis.pk}/change/", **DIR).status_code == 200
     assert client.get(f"/admin/avis/avis/{avis.pk}/delete/", **DIR).status_code == 403

@@ -1,8 +1,20 @@
 from django.urls import path
-from django.views.generic import RedirectView
+
+from avis.vues import ecrans
 
 app_name = "avis"
 urlpatterns = [
-    # Les écrans viennent avec AV03 ; d'ici là, la liste est celle de l'administration
-    path("", RedirectView.as_view(pattern_name="admin:avis_avis_changelist"), name="liste"),
+    path("", ecrans.liste, name="liste"),
+    path("nouveau", ecrans.modifier, name="nouveau"),
+    path("<int:avis_id>/", ecrans.fiche, name="fiche"),
+    path("<int:avis_id>/modifier", ecrans.modifier, name="modifier"),
+    path("<int:avis_id>/fichier/<str:quoi>", ecrans.fichier, name="fichier"),
+    path("<int:avis_id>/pieces", ecrans.pieces, name="pieces"),
+    path("<int:avis_id>/critere", ecrans.critere, name="critere_nouveau"),
+    path("<int:avis_id>/critere/<int:critere_id>", ecrans.critere, name="critere"),
+    path(
+        "<int:avis_id>/critere/<int:critere_id>/retirer",
+        ecrans.retirer_critere,
+        name="retirer_critere",
+    ),
 ]

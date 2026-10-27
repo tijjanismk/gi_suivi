@@ -1,0 +1,107 @@
+{% extends "administratif/base.html" %}
+{% load unfold %}
+
+{% block ariane %}<span aria-hidden="true">›</span><a class="text-primary-600 gic:hover:underline" href="{% url 'avis:liste' %}">Avis de marchés</a><span aria-hidden="true">›</span><span class="text-important">{{ a.reference }}</span>{% endblock %}
+
+{% block sous_titre %}
+  {% component "unfold/components/text.html" %}{{ a.objet }}{% endcomponent %}
+{% endblock %}
+
+{% block actions %}
+  {% if peut_saisir %}
+  <a href="{% url 'avis:modifier' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Modifier l'avis</a>
+  <a href="{% url 'avis:critere_nouveau' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Ajouter un critère</a>
+  {% endif %}
+{% endblock %}
+
+{% block ecran %}
+{% component "unfold/components/card.html" with title="L'avis" %}
+  <dl class="gic:grid gic:grid-cols-[minmax(10rem,auto)_1fr] gic:gap-x-4 gic:gap-y-2 gic:text-sm" id="fiche-avis">
+    <dt class="text-subtle">Référence</dt><dd class="text-important gic:font-mono">{{ a.reference }}</dd>
+    <dt class="text-subtle">Type</dt><dd class="text-important">{{ a.get_type_display }}</dd>
+    <dt class="text-subtle">Statut</dt><dd class="text-important">{{ a.get_statut_display }}</dd>
+    <dt class="text-subtle">Maître d'ouvrage</dt><dd class="text-important">{{ a.maitre_ouvrage.nom|default:"—" }}</dd>
+    <dt class="text-subtle">Bailleur</dt><dd class="text-important">{{ a.bailleur|default:"—" }}</dd>
+    <dt class="text-subtle">Pays</dt><dd class="text-important">{{ a.pays }}{% if a.groupement %} · en groupement{% endif %}</dd>
+    <dt class="text-subtle">Publié le</dt><dd class="text-important">{{ a.date_publication|date:"d/m/Y"|default:"—" }}</dd>
+    <dt class="text-subtle">Date limite</dt><dd class="text-important gic:tabular-nums" id="date-limite">{{ a.date_limite|date:"d/m/Y" }}{% if a.heure_limite %} à {{ a.heure_limite|time:"H:i" }}{% endif %} <span class="text-subtle">({% if jours > 1 %}dans {{ jours }} jours{% elif jours == 1 %}demain{% elif jours == 0 %}aujourd'hui{% else %}passée{% endif %})</span></dd>
+    <dt class="text-subtle">Dépôt</dt><dd class="text-important">{{ a.get_mode_depot_display|default:"—" }}{% if a.lieu_depot %} · {{ a.lieu_depot }}{% endif %}{% if a.courriel_depot %} · {{ a.courriel_depot }}{% endif %}</dd>
+    <dt class="text-subtle">Méthode de sélection</dt><dd class="text-important">{{ a.methode_selection|default:"—" }}</dd>
+    <dt class="text-subtle">Seuil d'éligibilité</dt><dd class="text-important gic:tabular-nums">{% if a.seuil_eligibilite is not None %}{{ a.seuil_eligibilite|floatformat:"-2" }}{% if a.note_maximale is not None %} sur {{ a.note_maximale|floatformat:"-2" }}{% endif %}{% else %}—{% endif %}</dd>
+    {% if a.observations %}<dt class="text-subtle">Observations</dt><dd class="text-important">{{ a.observations|linebreaksbr }}</dd>{% endif %}
+    <dt class="text-subtle">Saisi</dt><dd class="text-subtle">{{ a.cree_le|date:"d/m/Y H:i" }}{% if a.cree_par %} par {{ a.cree_par.nom_affiche|default:a.cree_par.login_windows }}{% endif %}</dd>
+  </dl>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Fichiers sur le partage" %}
+  <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="fichiers-avis">
+    {% for f in fichiers %}
+    <li><span class="text-subtle">{{ f.libelle }} :</span>
+      {% if not f.chemin %}<span class="text-subtle">aucun chemin saisi</span>
+      {% else %}<span class="gic:font-mono gic:text-xs">{{ f.chemin }}</span>
+        {% if f.existe %} · <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:fichier' a.pk f.quoi %}">ouvrir</a>
+        {% elif f.existe is False %} · <span class="gic:text-red-700">introuvable sur le partage</span>
+        {% else %} · <span class="text-subtle">partage non joignable</span>{% endif %}
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Barème" %}
+  {% if criteres %}
+  <div class="gic:overflow-x-auto">
+    <table class="gic:w-full gic:text-sm" id="table-criteres">
+      <thead>
+        <tr class="gic:border-b border-base-200 dark:border-base-800">
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Code</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Critère</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Calcul</th>
+          <th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2">Références retenues</th>
+          {% if peut_saisir %}<th scope="col" class="gic:text-left gic:font-medium text-subtle gic:py-2"><span class="gic:sr-only">Actions</span></th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for ligne in criteres %}{% with c=ligne.c %}
+        <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-critere="{{ c.code }}">
+          <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap gic:font-mono gic:text-xs">{{ c.code }}</td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ c.libelle|linebreaksbr }}{% if c.mode != 'manuel' %}<div class="gic:mt-1 gic:text-xs text-subtle">{{ ligne.filtre|join:" · " }}</div>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 gic:tabular-nums">
+            {% if c.mode == 'par_mission' %}{{ c.points_par_mission|floatformat:"-2" }} pts par référence{% if c.plafond is not None %}, plafond {{ c.plafond|floatformat:"-2" }}{% endif %}{% if c.nb_min_missions %}, {{ c.nb_min_missions }} au moins{% endif %}
+            {% elif c.mode == 'anciennete' %}{{ c.points_socle|floatformat:"-2" }} pts si {{ c.annees_seuil }} ans au moins{% if c.points_par_annee %}, + {{ c.points_par_annee|floatformat:"-2" }} par année{% endif %}{% if c.plafond is not None %}, plafond {{ c.plafond|floatformat:"-2" }}{% endif %}
+            {% elif c.mode == 'forfait' %}{{ c.plafond|floatformat:"-2"|default:"?" }} pts si {{ c.nb_min_missions|default:1 }} référence(s) au moins
+            {% else %}note {% if c.note_manuelle is not None %}{{ c.note_manuelle|floatformat:"-2" }}{% else %}à saisir{% endif %}{% if c.plafond is not None %} sur {{ c.plafond|floatformat:"-2" }}{% endif %}{% endif %}
+          </td>
+          <td class="gic:py-2 gic:pr-3">
+            {% if ligne.erreur %}<span class="gic:text-red-700">Filtre : {{ ligne.erreur }}</span>
+            {% elif ligne.apercu %}<span class="text-important gic:tabular-nums">{{ ligne.apercu.total }}</span> <span class="text-subtle">({{ ligne.apercu.prouvees }} prouvée{{ ligne.apercu.prouvees|pluralize }}, {{ ligne.apercu.a_auditer }} à auditer, {{ ligne.apercu.manquantes }} sans pièce)</span>
+            {% else %}<span class="text-subtle">noté à la main</span>{% endif %}
+          </td>
+          {% if peut_saisir %}
+          <td class="gic:py-2 gic:whitespace-nowrap">
+            <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:critere' a.pk c.pk %}">Modifier</a>
+            <form method="post" action="{% url 'avis:retirer_critere' a.pk c.pk %}" class="gic:inline" onsubmit="return confirm('Retirer le critère {{ c.code|escapejs }} du barème ?');">{% csrf_token %}<button type="submit" class="gic:ml-2 gic:text-red-700 gic:hover:underline">Retirer</button></form>
+          </td>
+          {% endif %}
+        </tr>
+        {% endwith %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% component "unfold/components/text.html" %}Aucun critère.{% if peut_saisir %} <a href="{% url 'avis:critere_nouveau' a.pk %}" class="text-primary-600 gic:hover:underline">Saisir le premier critère du barème</a>{% endif %}{% endcomponent %}
+  {% endif %}
+{% endcomponent %}
+
+{% component "unfold/components/card.html" with title="Pièces administratives exigées" %}
+  <form method="post" action="{% url 'avis:pieces' a.pk %}" id="form-pieces">
+    {% csrf_token %}
+    <div class="gic:grid gic:gap-1 gic:sm:grid-cols-2 gic:lg:grid-cols-3 gic:text-sm text-important">
+      {% for t, exigee in pieces %}
+      <label class="gic:flex gic:items-center gic:gap-2" for="piece-{{ t.code }}"><input type="checkbox" id="piece-{{ t.code }}" name="pieces" value="{{ t.code }}" {% if exigee %}checked{% endif %} {% if not peut_saisir %}disabled{% endif %}> {{ t.libelle }}{% if exigee and exigee.origine == 'avis' %} <span class="text-subtle">(demandée par l'avis)</span>{% endif %}</label>
+      {% endfor %}
+    </div>
+    {% if peut_saisir %}<button type="submit" class="gic:mt-3 gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Enregistrer les pièces exigées</button>{% endif %}
+  </form>
+{% endcomponent %}
+{% endblock %}
