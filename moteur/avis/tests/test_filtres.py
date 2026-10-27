@@ -8,7 +8,7 @@ import pytest
 
 from moteur.avis.filtres import (
     PIECES_PAR_DEFAUT,
-    FiltreInvalide,
+    FiltreInvalideError,
     Manque,
     Piece,
     Preuve,
@@ -62,7 +62,7 @@ def test_filtre_invalide_dit_pourquoi():
         ({"pieces_completes_requises": "oui"}, "true ou false"),
         (["CTR"], "objet JSON"),
     ]:
-        with pytest.raises(FiltreInvalide, match=re.escape(message)):
+        with pytest.raises(FiltreInvalideError, match=re.escape(message)):
             lire_filtre(donnees)
 
 

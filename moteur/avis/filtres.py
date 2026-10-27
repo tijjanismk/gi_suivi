@@ -4,7 +4,7 @@ Le champ `Critere.filtre` est un objet JSON dont toutes les clés sont optionnel
 conditions se cumulent (ET) ; dans une liste, une seule valeur suffit (OU). Format complet dans
 `docs/schema-donnees.md` ; il n'est interprété qu'ici.
 
-- `lire_filtre` : le JSON vérifié ; une clé inconnue ou un mauvais type lève `FiltreInvalide`,
+- `lire_filtre` : le JSON vérifié ; une clé inconnue ou un mauvais type lève `FiltreInvalideError`,
   avec un message pour l'écran de saisie.
 - `correspond` : la référence répond-elle au filtre ?
 - `mots_cles_trouves` : combien de mots-clés du filtre sont dans son intitulé (pour classer).
@@ -62,7 +62,7 @@ CLES = frozenset(
 )
 
 
-class FiltreInvalide(ValueError):
+class FiltreInvalideError(ValueError):
     """Le filtre ne se lit pas ; le message dit pourquoi, en français."""
 
 
@@ -144,7 +144,7 @@ def _liste(donnees: Mapping, cle: str) -> list[str]:
     if valeur is None:
         return []
     if not isinstance(valeur, list) or not all(isinstance(v, str) and v.strip() for v in valeur):
-        raise FiltreInvalide(f"« {cle} » doit être une liste de textes non vides")
+        raise FiltreInvalideError(f"« {cle} » doit être une liste de textes non vides")
     return [v.strip() for v in valeur]
 
 
@@ -153,7 +153,7 @@ def _annee(donnees: Mapping, cle: str) -> int | None:
     if valeur is None:
         return None
     if isinstance(valeur, bool) or not isinstance(valeur, int) or not 1900 <= valeur <= 2100:
-        raise FiltreInvalide(f"« {cle} » doit être une année (par exemple 2016)")
+        raise FiltreInvalideError(f"« {cle} » doit être une année (par exemple 2016)")
     return valeur
 
 
@@ -162,7 +162,9 @@ def _quantites(donnees: Mapping) -> dict[str, Decimal]:
     if valeur is None:
         return {}
     if not isinstance(valeur, Mapping):
-        raise FiltreInvalide("« quantites_min » doit associer un type de quantité à un minimum")
+        raise FiltreInvalideError(
+            "« quantites_min » doit associer un type de quantité à un minimum"
+        )
     quantites = {}
     for cle, minimum in valeur.items():
         nombre = None
@@ -172,7 +174,9 @@ def _quantites(donnees: Mapping) -> dict[str, Decimal]:
             except InvalidOperation:
                 nombre = None
         if nombre is None or not nombre.is_finite() or nombre < 0:
-            raise FiltreInvalide(f"« quantites_min » : le minimum de {cle} doit être un nombre")
+            raise FiltreInvalideError(
+                f"« quantites_min » : le minimum de {cle} doit être un nombre"
+            )
         quantites[str(cle)] = nombre
     return quantites
 
@@ -182,7 +186,7 @@ def _pieces_requises(donnees: Mapping) -> tuple[frozenset[str], ...]:
         return PIECES_PAR_DEFAUT
     exigences = _liste(donnees, "pieces_requises")
     if not exigences:
-        raise FiltreInvalide(
+        raise FiltreInvalideError(
             "« pieces_requises » ne peut pas être vide : mettre "
             "« pieces_completes_requises » à false si l'avis ne demande pas de justificatif"
         )
@@ -191,7 +195,7 @@ def _pieces_requises(donnees: Mapping) -> tuple[frozenset[str], ...]:
         variantes = frozenset(v.strip() for v in exigence.split("|") if v.strip())
         inconnues = sorted(variantes - TYPES_PIECE - NATURES_PIECE)
         if not variantes or inconnues:
-            raise FiltreInvalide(
+            raise FiltreInvalideError(
                 f"« pieces_requises » : pièce inconnue ({', '.join(inconnues) or exigence})"
             )
         lues.append(variantes)
@@ -204,28 +208,28 @@ def lire_filtre(donnees: Mapping | None) -> Filtre:
     if donnees is None:
         return Filtre()
     if not isinstance(donnees, Mapping):
-        raise FiltreInvalide("le filtre doit être un objet JSON")
+        raise FiltreInvalideError("le filtre doit être un objet JSON")
     inconnues = sorted(set(donnees) - CLES)
     if inconnues:
-        raise FiltreInvalide(f"clé inconnue : {', '.join(inconnues)}")
+        raise FiltreInvalideError(f"clé inconnue : {', '.join(inconnues)}")
 
     natures = frozenset(v.upper() for v in _liste(donnees, "natures"))
     if natures - NATURES:
-        raise FiltreInvalide(f"« natures » : {', '.join(sorted(natures - NATURES))} inconnue")
+        raise FiltreInvalideError(f"« natures » : {', '.join(sorted(natures - NATURES))} inconnue")
     roles = frozenset(_liste(donnees, "roles"))
     if roles - ROLES:
-        raise FiltreInvalide(f"« roles » : {', '.join(sorted(roles - ROLES))} inconnu")
+        raise FiltreInvalideError(f"« roles » : {', '.join(sorted(roles - ROLES))} inconnu")
     mots_cles = []
     for mot_cle in _liste(donnees, "mots_cles"):
         if not mots(mot_cle):
-            raise FiltreInvalide(f"« mots_cles » : « {mot_cle} » ne contient aucun mot utile")
+            raise FiltreInvalideError(f"« mots_cles » : « {mot_cle} » ne contient aucun mot utile")
         mots_cles.append(mots(mot_cle))
     annee_min, annee_max = _annee(donnees, "annee_min"), _annee(donnees, "annee_max")
     if annee_min and annee_max and annee_min > annee_max:
-        raise FiltreInvalide("« annee_min » est après « annee_max »")
+        raise FiltreInvalideError("« annee_min » est après « annee_max »")
     completes = donnees.get("pieces_completes_requises", True)
     if not isinstance(completes, bool):
-        raise FiltreInvalide("« pieces_completes_requises » vaut true ou false")
+        raise FiltreInvalideError("« pieces_completes_requises » vaut true ou false")
 
     return Filtre(
         natures=natures,
