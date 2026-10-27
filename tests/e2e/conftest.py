@@ -54,6 +54,10 @@ def donnees_de_depart(db):
         importlib.import_module("referentiel.migrations.0002_domaines").creer(apps, None)
     if not TypeOuvrage.objects.exists():
         importlib.import_module("referentiel.migrations.0004_types_de_depart").creer(apps, None)
+    if not Domaine.objects.filter(code="RUR").exists():  # les six domaines de l'ADR 0014
+        importlib.import_module("referentiel.migrations.0005_domaines_presentation").appliquer(
+            apps, None
+        )
 
 
 def capturer(page, nom: str) -> None:

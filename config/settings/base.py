@@ -129,6 +129,7 @@ GROUPE_OFFRES = env.str("GROUPE_OFFRES", "GI-Offres")
 # Partage des documents du bureau (D:\GIC). Les pièces administratives y sont lues, jamais écrites
 # (ADR 0010, règle 4). Vide en développement : les écrans le signalent.
 PARTAGE_GIC = env.str("PARTAGE_GIC", "")
+ENVIRONNEMENT = env.str("ENVIRONNEMENT", "")  # test ou prod sur le serveur, vide en développement
 
 
 # --- Interface (Unfold, ADR 0005) -----------------------------------------------------

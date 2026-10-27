@@ -63,10 +63,11 @@ def mission(code: str) -> Mission:
 
 
 def test_domaines_de_depart():
+    # ADR 0014 : les six domaines de la présentation du bureau, dans son ordre
     assert list(Domaine.objects.values_list("code", flat=True)) == [
-        "HYD", "AEP", "ENV", "BAT", "RTE", "AQA", "VRD",
+        "AEP", "RUR", "RTE", "HYD", "BAT", "ENV",
     ]  # fmt: skip
-    assert str(Domaine.objects.get(code="HYD")) == "HYD — Hydraulique"
+    assert str(Domaine.objects.get(code="HYD")) == "HYD — Aménagements hydro-agricoles"
 
 
 def test_import_de_la_liste_maitresse(liste):
