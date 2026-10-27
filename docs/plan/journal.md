@@ -158,4 +158,21 @@ des planches (l'OCR lit les en-têtes, mal les spécialités et les sessions), y
 des diplômes en Word (une en EMF). 58 diplômes importés sur `test` par `experts_diplomes`, chacun
 avec son scan. Écartés : deux copies en double, et les deux DUT de SIDIBE Nasser Hassane, même
 numéro GC20/592 mais sessions 2016 et 2020. La CI #140 avait refusé un fichier sans retour à la
-ligne final (écrit par PowerShell) : vérifier ce point avant de pousser un fichier complété ainsi.
+ligne final (écrit par PowerShell) : vérifier ce point avant de pousser un fichier complété ainsi.## 27/10/2026 au soir — module avis, de AV01 à AV09
+
+La collecte est mise en pause (décision du porteur) : son dernier état est dans `taches.md`
+(chantiers C1 à C9) et dans la ligne « Reste » de `en-cours.md`. Le module avis démarre (ADR
+0013) et va jusqu'à AV09 dans la journée, chaque tâche poussée seule et sa CI lue : moteur du
+barème (note sûre et note possible, la seconde comptant les pièces à auditer, puisque les 702
+pièces de `test` le sont toutes), application et écrans, simulation, pièces à la date limite,
+experts demandés, propositions, outils MCP. Le porteur a rappelé les domaines de sa
+présentation : six domaines, dont le développement rural (ADR 0014) ; les cinq séries existantes
+sont gardées, les cinq références VRD recodées avant la production (partage, `missions.csv`,
+`recodages.csv`, `test`). Il a signalé la deuxième page du contrat, que certains avis demandent
+(ADR 0015). L'avis d'essai UNICEF est saisi sur `test` par un script rejouable (`C:\GIC\Claude
+outputs\UNICEF\av07_unicef.py`) : 26 références de contrôle retenues (le Word en comptait 29),
+note possible 25 sur 25, note sûre 0 tant que les attestations ne sont pas auditées ; le vivier
+n'ayant pas de début de carrière, les années se comptent depuis le premier diplôme, signalées
+comme un plafond. Pièges de la journée : `Tout-en-un.ps1` lancé avec `*>&1` s'arrête sur un
+simple avis de `psql` ; un `*.csv` n'entre pas dans Git (`.gitignore`, « données ») ; ruff coupe
+les longues assertions à sa façon : passer par une variable.
