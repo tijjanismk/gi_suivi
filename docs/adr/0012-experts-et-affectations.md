@@ -59,6 +59,8 @@ une copie en double n'est pas reprise (la copie certifiée l'emporte) ; un breve
 l'intitulé. Les deux DUT de SIDIBE Nasser Hassane (même numéro, sessions 2016 et 2020) ne sont
 pas importés : à vérifier sur l'original.
 
+Points à vérifier (27/10/2026, à la demande du porteur : « insérer les CV et noter le reste dans l'application ») : champ `a_verifier` de l'expert (migration 0002), un point par ligne, rempli par la colonne `A_verifier` du registre (une valeur vide n'efface rien) et modifiable sur la fiche. La fiche les affiche en alerte avec ce qui manque, calculé (aucun CV dans le dossier, aucun diplôme enregistré) ; le vivier marque et filtre ces experts. Les 75 experts du registre sont au vivier de `test`, les points en suspens (dont les rapprochements du 23/10 à valider) notés sur leur fiche.
+
 ### 5. Hors de cet ADR
 
 La production des CV au format d'un bailleur (format de fichier, bibliothèque, signature) fera
