@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from pathlib import Path, PureWindowsPath
 from urllib.parse import urlencode
 
 from django.db import transaction
@@ -16,11 +17,17 @@ from django.db.models import Q
 from django.utils import timezone
 
 from administratif.models import TypePiece
-from administratif.services import LigneControle, controle_a_la_date
+from administratif.services import (
+    LigneControle,
+    PartageIndisponibleError,
+    chemin_absolu,
+    controle_a_la_date,
+)
 from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Proposition, Selection
 from experts.models import Expert
 from moteur.avis import experts as experts_moteur
 from moteur.avis import notation
+from moteur.avis import sommaire as sommaire_moteur
 from moteur.avis.filtres import (
     PIECES_PAR_DEFAUT,
     Piece,
@@ -343,6 +350,58 @@ def experts_pour(avis: Avis, references: list[Reference] | None = None) -> list[
             }
         )
     return lignes
+
+
+# -- sommaire et intercalaires d'un AMI ------------------------------------------------------------
+IMAGES = {"entete": "ENTETE", "pied": "PIED"}  # nom du fichier, en png ou en jpg
+PIED_DU_BUREAU = "ADMINISTRATIF\\LOGOS"  # le pied commun, que le dossier d'un avis peut remplacer
+
+
+def image_intercalaire(avis: Avis, quoi: str) -> Path | None:
+    """L'en-tête ou le pied des feuilles d'intercalaires, lu sur le partage (règle 4) : `ENTETE`
+    ou `PIED` dans le dossier de l'avis, à côté de son fichier ; pour le pied, à défaut, celui du
+    bureau. None : pas d'image, ou partage injoignable (la feuille garde alors l'en-tête texte)."""
+    dossiers = []
+    if avis.fichier_avis_chemin:
+        parent = str(PureWindowsPath(avis.fichier_avis_chemin).parent)
+        dossiers.append("" if parent == "." else parent)
+    if quoi == "pied":
+        dossiers.append(PIED_DU_BUREAU)
+    for dossier in dossiers:
+        for extension in (".png", ".jpg", ".jpeg"):
+            try:
+                chemin = chemin_absolu(f"{dossier}\\{IMAGES[quoi]}{extension}")
+                if chemin.is_file():
+                    return chemin
+            except PartageIndisponibleError:
+                return None
+            except (ValueError, OSError):
+                continue
+    return None
+
+
+def sommaire(
+    avis: Avis,
+    controle: Iterable[LigneControle] = (),
+    postes: Iterable[dict] = (),
+    apercus: dict[int, Apercu | None] | None = None,
+) -> list[sommaire_moteur.Rubrique]:
+    """Les intercalaires de la réponse (`moteur.avis.sommaire`) et, pour la fiche, ce qu'on sait
+    de chacun : `controle` (pièces exigées), `postes` (lignes d'`experts_pour`), `apercus` (par
+    critère). Un critère en brouillon n'y entre pas tant qu'il n'est pas enregistré (règle 3)."""
+    apercus = apercus or {}
+    criteres = [
+        sommaire_moteur.Critere(
+            c.code, c.libelle, apercus[c.pk].total if apercus.get(c.pk) else None
+        )
+        for c in avis.criteres.filter(brouillon=False)
+    ]
+    return sommaire_moteur.sommaire(
+        criteres,
+        avis.groupement,
+        [sommaire_moteur.Piece(x.type.code, x.libelle_etat, x.a_regler) for x in controle],
+        [x["retenu"] is not None for x in postes],
+    )
 
 
 # -- propositions à valider (AV08) ---------------------------------------------------------------

@@ -120,6 +120,12 @@ def fiche(request, avis_id: int):
         )
     exigees = {p.type_id: p for p in a.pieces_exigees.all()}
     types = TypePiece.objects.filter(Q(actif=True) | Q(pk__in=list(exigees)))
+    controle = services.controle_pieces(a)
+    postes = services.experts_pour(a, references) if besoins else []
+    sommaire = []
+    if a.type == Avis.Type.AMI:
+        apercus = {ligne["c"].pk: ligne["apercu"] for ligne in lignes}
+        sommaire = services.sommaire(a, controle, postes, apercus)
     return render(
         request,
         "avis/fiche.html",
@@ -131,13 +137,46 @@ def fiche(request, avis_id: int):
             "criteres": lignes,
             "brouillons": sum(1 for c in criteres if c.brouillon),
             "pieces": [(t, exigees.get(t.pk)) for t in types],
-            "controle": services.controle_pieces(a),
-            "besoins": services.experts_pour(a, references) if besoins else [],
+            "controle": controle,
+            "besoins": postes,
+            "sommaire": sommaire,
             "lien_controle": services.lien_controle(a),
             "fichiers": [_fichier(a, quoi) for quoi in FICHIERS],
             "peut_saisir": _peut_saisir(request),
         },
     )
+
+
+@groupe_requis(*CONSULTATION)
+def intercalaires(request, avis_id: int):
+    """Le sommaire puis un intercalaire par page A4, à imprimer depuis le navigateur (en PDF au
+    besoin) : la même liste que la carte « Sommaire » de la fiche. AMI seulement."""
+    a = get_object_or_404(
+        Avis.objects.select_related("maitre_ouvrage"), pk=avis_id, type=Avis.Type.AMI
+    )
+    journaliser(request, "consulter:avis", f"{a.pk} intercalaires")
+    images = {quoi: services.image_intercalaire(a, quoi) is not None for quoi in services.IMAGES}
+    return render(
+        request,
+        "avis/intercalaires.html",
+        {
+            "a": a,
+            "rubriques": services.sommaire(a),
+            **images,
+            "pied_du_bureau": services.PIED_DU_BUREAU,
+        },
+    )
+
+
+@groupe_requis(*CONSULTATION)
+def image_intercalaire(request, avis_id: int, quoi: str):
+    """L'en-tête ou le pied des feuilles d'intercalaires, lu sur le partage (jamais écrit)."""
+    a = get_object_or_404(Avis, pk=avis_id, type=Avis.Type.AMI)
+    chemin = services.image_intercalaire(a, quoi) if quoi in services.IMAGES else None
+    if chemin is None:
+        raise Http404("pas d'image")
+    type_mime = mimetypes.guess_type(chemin.name)[0] or "application/octet-stream"
+    return FileResponse(chemin.open("rb"), content_type=type_mime)
 
 
 @groupe_requis(*CONSULTATION)

@@ -9,6 +9,7 @@
 
 {% block actions %}
   {% if criteres %}<a href="{% url 'avis:simulation' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Simulation</a>{% endif %}
+  {% if sommaire %}<a href="{% url 'avis:intercalaires' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Intercalaires</a>{% endif %}
   {% if peut_saisir %}
   <a href="{% url 'avis:modifier' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Modifier l'avis</a>
   <a href="{% url 'avis:critere_nouveau' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Ajouter un critère</a>
@@ -34,6 +35,21 @@
     <dt class="text-subtle">Saisi</dt><dd class="text-subtle">{{ a.cree_le|date:"d/m/Y H:i" }}{% if a.cree_par %} par {{ a.cree_par.nom_affiche|default:a.cree_par.login_windows }}{% endif %}</dd>
   </dl>
 {% endcomponent %}
+
+{% if sommaire %}
+{% component "unfold/components/card.html" with title="Sommaire de la manifestation d'intérêt" %}
+  <p class="gic:mb-3 gic:text-sm text-subtle">Une ligne par intercalaire, dans l'ordre du dossier ; les rubriques de E sont les critères du barème. <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:intercalaires' a.pk %}">Imprimer le sommaire et les intercalaires</a></p>
+  <ol class="gic:flex gic:flex-col gic:gap-1.5 gic:text-sm" id="sommaire">
+    {% for r in sommaire %}
+    <li class="gic:flex gic:items-baseline gic:gap-3{% if r.niveau == 2 %} gic:ml-8{% elif r.niveau == 3 %} gic:ml-16{% elif r.niveau > 3 %} gic:ml-24{% endif %}" data-rubrique="{{ r.code }}" data-niveau="{{ r.niveau }}">
+      <span class="gic:shrink-0 gic:min-w-14 gic:rounded-sm gic:px-2 gic:py-0.5 gic:font-serif gic:text-white gic:bg-slate-600">{{ r.code }}.</span>
+      <span class="gic:min-w-0"><span class="text-important gic:font-bold">{{ r.libelle }}</span>
+      {% if r.etat %}<span class="gic:ml-2 gic:inline-block gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if r.a_regler %}gic:bg-red-100 gic:text-red-900{% elif r.a_regler is False %}gic:bg-green-100 gic:text-green-900{% else %}gic:bg-gray-100 gic:text-gray-700{% endif %}">{{ r.etat }}</span>{% endif %}</span>
+    </li>
+    {% endfor %}
+  </ol>
+{% endcomponent %}
+{% endif %}
 
 {% component "unfold/components/card.html" with title="Fichiers sur le partage" %}
   <ul class="gic:flex gic:flex-col gic:gap-1 gic:text-sm" id="fichiers-avis">
