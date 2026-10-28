@@ -63,4 +63,7 @@ def test_creer_affecter_et_controler(onglet, live_server, references):
     page.goto(f"{live_server.url}/references/GIC-HYD-ETU-033/")
     expect(page.locator("#experts-affectes")).to_contain_text("TRAORÉ Awa · chef de mission")
     page.goto(f"{live_server.url}/experts/?mobilisables=1")
-    expect(page.locator("#experts-total")).to_have_text("1 expert")
+    # aucun diplôme enregistré : l'expert est à vérifier avant de présenter son CV
+    expect(page.locator("#experts-total")).to_have_text(
+        "1 expert, dont 1 à vérifier avant de présenter le CV"
+    )
