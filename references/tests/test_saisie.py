@@ -47,13 +47,13 @@ def test_revoir_et_verifier(client, liste):
     m = Mission.objects.get(code="GIC-AEP-CTR-003")
     page = html(client.get("/references/GIC-AEP-CTR-003/modifier", **DIR))
     assert "Revoir GIC-AEP-CTR-003" in page and "ne change pas" in page
-    rur = Domaine.objects.get(code="RUR")
+    env = Domaine.objects.get(code="ENV")
     r = client.post(
         "/references/GIC-AEP-CTR-003/modifier",
         donnees(
             m,
             numero_contrat="N° 12/2020/SOMAGEP",
-            domaines_secondaires=[rur.pk, m.domaine_id],  # le principal est retiré des secondaires
+            domaines_secondaires=[env.pk, m.domaine_id],  # le principal est retiré des secondaires
             date_debut="2020-03-01",
             date_fin="2021-02-28",
             annee="",
@@ -69,7 +69,7 @@ def test_revoir_et_verifier(client, liste):
     assert "GIC-AEP-CTR-003 enregistrée (vérifiée)" in html(r)
     m.refresh_from_db()
     assert m.statut_verification == "verifiee" and m.annee == 2020 and m.part_bureau == 60
-    assert list(m.domaines_secondaires.values_list("code", flat=True)) == ["RUR"]
+    assert list(m.domaines_secondaires.values_list("code", flat=True)) == ["ENV"]
     assert m.client.nom.startswith("Société malienne") and Client.objects.count() == 4
     assert JournalAcces.objects.filter(action="reference:revue").exists()
     # remettre « à vérifier », enregistrer simplement

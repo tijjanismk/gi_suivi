@@ -63,9 +63,9 @@ def mission(code: str) -> Mission:
 
 
 def test_domaines_de_depart():
-    # ADR 0014 : les six domaines de la présentation du bureau, dans son ordre
+    # ADR 0014 et 0017 : les cinq domaines de la présentation du bureau, dans son ordre
     assert list(Domaine.objects.values_list("code", flat=True)) == [
-        "AEP", "RUR", "RTE", "HYD", "BAT", "ENV",
+        "AEP", "RTE", "HYD", "BAT", "ENV",
     ]  # fmt: skip
     assert str(Domaine.objects.get(code="HYD")) == "HYD — Aménagements hydro-agricoles"
 
@@ -81,8 +81,8 @@ def test_import_de_la_liste_maitresse(liste):
     assert mission("GIC-AEP-CTR-003").montant == Decimal("45000000.00")
     assert mission("GIC-AEP-ETU-001").nature == "ETU"  # tirée du code quand la colonne est vide
     assert mission("GIC-HYD-ETU-032").absorbee_par.code == "GIC-HYD-ETU-033"
-    # les 38 sous-domaines de l'ADR 0014, et 2 catégories créées par l'import
-    assert Categorie.objects.count() == 38 + 2 and Client.objects.count() == 3
+    # les 31 sous-domaines des ADR 0014 et 0017, et 2 catégories créées par l'import
+    assert Categorie.objects.count() == 31 + 2 and Client.objects.count() == 3
 
 
 def test_import_idempotent_et_fiche_verifiee_protegee(liste):

@@ -46,7 +46,7 @@ def donnees_de_depart(db):
     from django.apps import apps
 
     from administratif.models import TypePiece
-    from referentiel.models import Domaine, TypeOuvrage
+    from referentiel.models import Categorie, Domaine, TypeOuvrage
 
     if not TypePiece.objects.exists():
         importlib.import_module("administratif.migrations.0002_types_initiaux").creer(apps, None)
@@ -54,8 +54,11 @@ def donnees_de_depart(db):
         importlib.import_module("referentiel.migrations.0002_domaines").creer(apps, None)
     if not TypeOuvrage.objects.exists():
         importlib.import_module("referentiel.migrations.0004_types_de_depart").creer(apps, None)
-    if not Domaine.objects.filter(code="RUR").exists():  # les six domaines de l'ADR 0014
+    if not Categorie.objects.filter(cle="ponts").exists():  # domaines des ADR 0014 et 0017
         importlib.import_module("referentiel.migrations.0005_domaines_presentation").appliquer(
+            apps, None
+        )
+        importlib.import_module("referentiel.migrations.0006_retrait_developpement_rural").retirer(
             apps, None
         )
 

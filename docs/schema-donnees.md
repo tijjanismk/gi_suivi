@@ -9,7 +9,7 @@ le schéma mais non exploités au MVP.
 
 | Table | Champs clés | Notes |
 |---|---|---|
-| `Domaine` | `code` (3 lettres, unique : AEP, RUR, RTE, HYD, BAT, ENV), `libelle`, `ordre` | Les six domaines de la présentation du bureau (ADR 0014) : eau et assainissement, développement rural, infrastructures de transport, aménagements hydro-agricoles, bâtiments civils et industriels, environnement. AQA et VRD retirés. |
+| `Domaine` | `code` (3 lettres, unique : AEP, RTE, HYD, BAT, ENV), `libelle`, `ordre` | Les cinq domaines de la présentation du bureau (ADR 0014 et 0017) : eau et assainissement, infrastructures de transport, aménagements hydro-agricoles, bâtiments civils et industriels, environnement. AQA, VRD et le développement rural (RUR) retirés. |
 | `Categorie` | `domaine` FK, `cle` (slug unique), `libelle`, `exige_quantite` (type de quantité attendu, nullable) | Les sous-domaines de chaque domaine (ADR 0014 § 1), ex. `adductions-eau-sommaires`, `ponts`, `barrages-retenues`, `bas-fonds-et-plaines`. |
 | `TypeOuvrage` | `cle`, `libelle`, `famille` (texte : « mobilisation des eaux de surface », « recharge de nappe », « hydraulique villageoise »…), `synonymes` (tableau de textes) | Le thésaurus. Une mission porte plusieurs types. La recherche « recharge de nappe » trouve `micro-barrage` par sa famille. |
 | `Localite` | `nom`, `niveau` (pays / region / cercle / commune / village), `parent` FK self, `cle`, `variantes` (tableau) | Hiérarchie du Mali ; les variantes absorbent les orthographes (`Koulikoro`, `KOULIKORO`, `Klkoro`). |
