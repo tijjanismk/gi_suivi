@@ -96,7 +96,7 @@ def test_detail_et_referentiel(references):
     assert d["client"] == "Welthungerhilfe" and d["quantites"] == {"superficie-ha": "30"}
     inconnue = outils.detail_mission("GIC-XXX-ETU-001")
     assert inconnue == {"erreur": "référence inconnue : GIC-XXX-ETU-001"}
-    assert len(outils.lister_referentiel("domaines")["domaines"]) == 6
+    assert len(outils.lister_referentiel("domaines")["domaines"]) == 5  # ADR 0017
     barrages = outils.lister_referentiel("types_ouvrage", "barrage")["types_ouvrage"]
     assert [o["cle"] for o in barrages] == ["micro-barrage"]
     assert "table inconnue" in outils.lister_referentiel("localites")["erreur"]
