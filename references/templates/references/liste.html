@@ -76,7 +76,7 @@
         {% for m in page.object_list %}
         <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ m.code }}">
           <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' m.code %}">{{ m.code }}</a></td>
-          <td class="gic:py-2 gic:pr-3 text-important">{{ m.libelle }}{% if m.absorbee_par %}<div class="gic:text-xs text-subtle">absorbée par {{ m.absorbee_par.code }}</div>{% endif %}</td>
+          <td class="gic:py-2 gic:pr-3 text-important">{{ m.libelle }}{% if m.ouvrage_d_apres_intitule %}<div class="gic:text-xs text-subtle">type d'ouvrage d'après l'intitulé</div>{% endif %}{% if m.absorbee_par %}<div class="gic:text-xs text-subtle">absorbée par {{ m.absorbee_par.code }}</div>{% endif %}</td>
           <td class="gic:py-2 gic:pr-3">{{ m.client|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ m.annee|default:"—" }}</td>
           <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap">{{ m.domaine.code }}{% for d in m.domaines_secondaires.all %} <span class="text-subtle">+ {{ d.code }}</span>{% endfor %}</td>

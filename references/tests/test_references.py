@@ -14,7 +14,7 @@ from django.test import override_settings
 
 from references import services
 from references.models import DecisionDoublon, Mission
-from referentiel.models import Categorie, Client, Domaine
+from referentiel.models import Categorie, Client, Domaine, TypeOuvrage
 from suivi.models import JournalAcces
 
 pytestmark = pytest.mark.django_db
@@ -221,6 +221,19 @@ def test_ecran_liste_nombres_et_filtres_sans_resultat(client, liste):
     assert "0 références" in page and "importée (1)" in page and "incomplets (0)" in page
     assert "ne correspond à ces filtres" in page and 'id="ref-effacer"' in page
     assert "references_importer" not in page
+
+
+@override_settings(**IIS)
+def test_filtre_ouvrage_saisi_ou_dans_l_intitule(client, liste):
+    # tant que le chantier 4 n'a pas rempli les types : libellé, sigle ou synonyme dans l'intitulé
+    page = html(client.get("/references/", {"ouvrage": "micro-barrage"}, **DIR))  # « barrage »
+    assert "2 références" in page and page.count("type d'ouvrage d'après l'intitulé") == 2
+    page = html(client.get("/references/", {"ouvrage": "aep"}, **DIR))  # « d'AEP »
+    assert "2 références" in page and "GIC-AEP-CTR-003" in page
+    mission("GIC-HYD-ETU-033").types_ouvrage.add(TypeOuvrage.objects.get(cle="micro-barrage"))
+    page = html(client.get("/references/", {"ouvrage": "micro-barrage"}, **DIR))
+    assert "2 références" in page and page.count("type d'ouvrage d'après l'intitulé") == 1
+    assert "0 références" in html(client.get("/references/", {"ouvrage": "inconnu"}, **DIR))
 
 
 @override_settings(**IIS)

@@ -29,7 +29,9 @@ CHOIX_PIECES = (  # sur les compteurs de js.avec_compteurs
 )
 
 
-def _filtrer(choisis: dict[str, str], avec_absorbees: bool, sauf: str = "") -> QuerySet[Mission]:
+def _filtrer(
+    choisis: dict[str, str], avec_absorbees: bool, ouvrage: TypeOuvrage | None, sauf: str = ""
+) -> QuerySet[Mission]:
     """Les références qui répondent aux filtres choisis, sauf celui nommé : le nombre affiché à
     côté de chaque choix d'un filtre tient compte des autres filtres."""
     qs = Mission.objects.all()
@@ -54,7 +56,7 @@ def _filtrer(choisis: dict[str, str], avec_absorbees: bool, sauf: str = "") -> Q
     if sauf != "pieces" and pieces is not None:
         qs = qs.filter(pieces)
     if choisis["ouvrage"]:
-        qs = qs.filter(types_ouvrage__cle=choisis["ouvrage"])
+        qs = qs.filter(services.q_ouvrage(ouvrage)) if ouvrage else qs.none()
     if not avec_absorbees:
         qs = qs.filter(absorbee_par=None)
     return qs
@@ -65,13 +67,22 @@ def liste(request):
     journaliser(request, "consulter:references")
     choisis = {k: request.GET.get(k, "").strip() for k in FILTRES}
     avec_absorbees = request.GET.get("absorbees") == "1"
-    qs = _filtrer(choisis, avec_absorbees).select_related("domaine", "client", "absorbee_par")
+    ouvrage = TypeOuvrage.objects.filter(cle=choisis["ouvrage"]).first()
+    qs = _filtrer(choisis, avec_absorbees, ouvrage)
+    qs = qs.select_related("domaine", "client", "absorbee_par")
     qs = qs.prefetch_related("domaines_secondaires")
-    sans_verification = _filtrer(choisis, avec_absorbees, sauf="verification")
-    sans_pieces = _filtrer(choisis, avec_absorbees, sauf="pieces")
+    sans_verification = _filtrer(choisis, avec_absorbees, ouvrage, sauf="verification")
+    sans_pieces = _filtrer(choisis, avec_absorbees, ouvrage, sauf="pieces")
     page = Paginator(qs.order_by("code"), PAR_PAGE).get_page(request.GET.get("page"))
     filtres = request.GET.copy()
     filtres.pop("page", None)
+    # type d'ouvrage trouvé dans l'intitulé seulement : signalé dans la liste
+    affichees = [m.pk for m in page.object_list]
+    saisis = set(
+        ouvrage.missions.filter(pk__in=affichees).values_list("pk", flat=True) if ouvrage else []
+    )
+    for m in page.object_list:
+        m.ouvrage_d_apres_intitule = ouvrage is not None and m.pk not in saisis
     return render(
         request,
         "references/liste.html",

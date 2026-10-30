@@ -11,14 +11,32 @@ from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils.text import slugify
 
 from moteur.references import doublons
 from references.models import DecisionDoublon, Mission
-from referentiel.models import Categorie, Client, Domaine
+from referentiel.models import Categorie, Client, Domaine, TypeOuvrage
 
 NATURES = {n.value for n in Mission.Nature}
 _CODE = re.compile(r"^(?:GIC-)?([A-Z]{3})-(ETU|CTR|ETC)-\d+$")
+
+
+def q_ouvrage(type_ouvrage: TypeOuvrage) -> Q:
+    """Les références d'un type d'ouvrage : saisi sur la fiche, ou cité dans l'intitulé par son
+    libellé (sans la parenthèse), son sigle ou un synonyme du thésaurus, en mot entier. Tant que
+    le chantier 4 n'a pas rempli les types (ADR 0011), le filtre ne reste pas vide."""
+    termes = {re.sub(r"\s*\(.*?\)", "", type_ouvrage.libelle).strip(), *type_ouvrage.synonymes}
+    sigle = re.search(r"\(([^)]+)\)", type_ouvrage.libelle)
+    if sigle:
+        termes.add(sigle.group(1))
+    motif = r"\m(" + "|".join(re.escape(t) for t in sorted(termes) if t) + r")\M"
+    motif = motif.replace("'", "['’]")  # apostrophe droite ou typographique
+    return (
+        Q(types_ouvrage=type_ouvrage)
+        | Q(intitule__iregex=motif)
+        | Q(intitule_court__iregex=motif)
+    )
 
 
 # -- doublons ---------------------------------------------------------------------------------
