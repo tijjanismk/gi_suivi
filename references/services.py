@@ -33,9 +33,7 @@ def q_ouvrage(type_ouvrage: TypeOuvrage) -> Q:
     motif = r"\m(" + "|".join(re.escape(t) for t in sorted(termes) if t) + r")\M"
     motif = motif.replace("'", "['’]")  # apostrophe droite ou typographique
     return (
-        Q(types_ouvrage=type_ouvrage)
-        | Q(intitule__iregex=motif)
-        | Q(intitule_court__iregex=motif)
+        Q(types_ouvrage=type_ouvrage) | Q(intitule__iregex=motif) | Q(intitule_court__iregex=motif)
     )
 
 
