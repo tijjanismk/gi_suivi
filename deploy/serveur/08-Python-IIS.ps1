@@ -2,7 +2,9 @@
 .SYNOPSIS
   S07 (c) — Installe Python 3.14 pour tous les utilisateurs, configure IIS
   comme frontal d'authentification Windows (Kerberos seul) et proxy inverse
-  vers Uvicorn, crée les sites suivi-test et suivi, règle le pare-feu.
+  vers Uvicorn, crée les sites suivi-test (environnement test, nom principal app.giconseils.local)
+  et suivi (prod), règle le pare-feu. Noms d'hôte : ..\noms-hotes.ps1 (ADR 0009). Rejouable : ce qui
+  existe est gardé, les noms nouveaux reçoivent leurs liaisons.
 
 .USAGE
     # Télécharger d'abord :
@@ -12,27 +14,34 @@
     .\08-Python-IIS.ps1 -Python ... -UrlRewrite ... -ARR ... -AutoSigne     # pas d'autorité interne : certificat auto-signé créé ici
     .\08-Python-IIS.ps1 -SeulementIIS -Empreinte <empreinte>     # Python déjà installé
     .\08-Python-IIS.ps1 -SansHttps                                  # test sans certificat (réseau local, provisoire)
+    .\08-Python-IIS.ps1 -SeulementIIS -AutoSigne                    # ajout d'un nom (ADR 0009) : certificat et liaisons
 
 .CERTIFICAT
   -Empreinte : empreinte SHA1 d'un certificat déjà présent dans
-  Cert:\LocalMachine\My couvrant suivi.giconseils.local et suivi-test.giconseils.local
+  Cert:\LocalMachine\My couvrant tous les noms de ..\noms-hotes.ps1 (app, suivi-test, suivi)
   (autorité interne AD CS, ou auto-signé déployé par GPO).
   -AutoSigne : AD-SERVEUR n'a pas d'autorité de certification (inventaire du 06/10). Le script
-  crée (ou réutilise) un certificat auto-signé pour les deux noms, valable 5 ans, et l'exporte
-  en C:\GIC\deploy\gic-serveur.cer : ce fichier est à copier dans le kit de l'agent
-  (installer-poste.ps1 l'approuve sur chaque poste) — plus tard, une GPO le fera.
+  réutilise un certificat auto-signé qui couvre déjà tous les noms, sinon en crée un (5 ans), et
+  l'exporte en C:\GIC\deploy\gic-serveur.cer : ce fichier part dans le kit de l'agent et dans la GPO
+  « GI-Suivi - Agent » (installer-poste.ps1 l'approuve sur chaque poste).
+  Un nom qui a déjà un certificat attaché le garde : un nouveau certificat n'est attaché qu'aux noms
+  qui n'en ont pas, pour ne pas couper l'agent ni les navigateurs des postes qui ne l'approuvent pas
+  encore. -RemplacerCertificat l'attache à tous les noms : à lancer une fois le nouveau certificat
+  approuvé par tous les postes (redémarrage après la mise à jour de la GPO).
   Sans -Empreinte, -AutoSigne ni -SansHttps, le script s'arrête : Kerberos sans HTTPS n'a pas
   de sens en production.
 #>
 param(
     [string]$Python, [string]$UrlRewrite, [string]$ARR,
     [string]$Empreinte, [switch]$AutoSigne, [switch]$SansHttps, [switch]$SeulementIIS,
+    [switch]$RemplacerCertificat,
     [string]$CompteService = "svc-application"
 )
 $ErrorActionPreference = "Stop"
 $journaux = "D:\SAUVEGARDES\journaux"; New-Item -ItemType Directory -Path $journaux -Force | Out-Null
 Start-Transcript -Path "$journaux\08-python-iis_$(Get-Date -Format yyyyMMdd_HHmm).log" | Out-Null
 $zone = (Get-ADDomain).DNSRoot; $dom = (Get-ADDomain).NetBIOSName
+. (Join-Path $PSScriptRoot '..\noms-hotes.ps1')     # noms d'hôte par environnement (ADR 0009)
 
 # 1. Python 3.14 pour tous les utilisateurs, hors profil. S'il a été installé à la main (assistant
 #    python.org, « pour tous les utilisateurs »), on le retrouve par le registre et on le garde ;
@@ -125,28 +134,35 @@ if (-not (Test-Path "IIS:\AppPools\GIC")) { New-WebAppPool -Name "GIC" | Out-Nul
 Set-ItemProperty "IIS:\AppPools\GIC" -Name managedRuntimeVersion -Value ""     # pas de .NET : simple proxy
 Set-ItemProperty "IIS:\AppPools\GIC" -Name processModel -Value @{ userName = "$dom\$CompteService"; password = $mdp; identityType = 3 }
 
-# 4 bis. Certificat auto-signé (pas d'autorité interne) : créé une fois, réutilisé ensuite, exporté pour les postes
+# 4 bis. Certificat auto-signé (pas d'autorité interne) : créé une fois, réutilisé tant qu'il couvre tous les
+#        noms d'hôte de noms-hotes.ps1, exporté pour les postes. Un nom ajouté au tableau (ADR 0009) en
+#        fait créer un nouveau, qui couvre les nouveaux noms et les anciens.
+function Couvre-Noms($cert, [string[]]$noms) {
+    $dns = @($cert.DnsNameList | ForEach-Object { $_.Unicode })
+    -not ($noms | Where-Object { $dns -notcontains $_ })
+}
 if ($AutoSigne -and -not $SansHttps) {
-    $noms = @("suivi.$zone", "suivi-test.$zone")
-    $existant = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.Subject -eq "CN=suivi.$zone" -and $_.NotAfter -gt (Get-Date).AddMonths(6) } | Sort-Object NotAfter -Descending | Select-Object -First 1
-    if ($existant) { Write-Host "Certificat auto-signé existant réutilisé (expire le $($existant.NotAfter.ToShortDateString()))."; $certificat = $existant }
+    $noms = @(Tous-Les-Noms | ForEach-Object { "$_.$zone" })     # nom principal de test en premier : il donne le CN
+    $existant = Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.NotAfter -gt (Get-Date).AddMonths(6) -and (Couvre-Noms $_ $noms) } | Sort-Object NotAfter -Descending | Select-Object -First 1
+    if ($existant) { Write-Host "Certificat existant réutilisé, il couvre $($noms -join ', ') (expire le $($existant.NotAfter.ToShortDateString()))."; $certificat = $existant }
     else {
-        $certificat = New-SelfSignedCertificate -DnsName $noms -CertStoreLocation Cert:\LocalMachine\My -FriendlyName "GIC - suivi (auto-signé)" `
+        $certificat = New-SelfSignedCertificate -DnsName $noms -CertStoreLocation Cert:\LocalMachine\My -FriendlyName "GIC - $($NomsHotes['test'][0]) (auto-signé)" `
             -KeyAlgorithm RSA -KeyLength 2048 -HashAlgorithm SHA256 -NotAfter (Get-Date).AddYears(5) -KeyExportPolicy NonExportable
         Write-Host "Certificat auto-signé créé pour $($noms -join ', '), valable jusqu'au $($certificat.NotAfter.ToShortDateString())."
     }
     $Empreinte = $certificat.Thumbprint
     New-Item -ItemType Directory -Path C:\GIC\deploy -Force | Out-Null
     Export-Certificate -Cert $certificat -FilePath C:\GIC\deploy\gic-serveur.cer -Type CERT -Force | Out-Null
-    # Le serveur lui-même doit l'approuver (verifier.ps1 appelle https://suivi-test… depuis la console)
+    # Le serveur lui-même doit l'approuver (verifier.ps1 appelle https://app… depuis la console)
     if (-not (Get-ChildItem Cert:\LocalMachine\Root | Where-Object Thumbprint -eq $Empreinte)) { Import-Certificate -FilePath C:\GIC\deploy\gic-serveur.cer -CertStoreLocation Cert:\LocalMachine\Root | Out-Null }
-    Write-Host "Empreinte : $Empreinte — fichier à joindre au kit de l'agent : C:\GIC\deploy\gic-serveur.cer"
+    Write-Host "Empreinte : $Empreinte — fichier à joindre au kit de l'agent et à la GPO : C:\GIC\deploy\gic-serveur.cer"
 }
 
-# 5. Sites
+# 5. Sites (noms IIS inchangés ; noms d'hôte de chaque environnement lus dans noms-hotes.ps1, ADR 0009)
 $sites = @{ "suivi-test" = @{ port = 8001; env = "test" }; "suivi" = @{ port = 8000; env = "prod" } }
 foreach ($nom in $sites.Keys) {
-    $hote = "$nom.$zone"; $racine = "C:\GIC\$($sites[$nom].env)\site"; New-Item -ItemType Directory -Path $racine -Force | Out-Null
+    $hotes = @(Hotes-Complets $sites[$nom].env $zone); $hote = $hotes[0]
+    $racine = "C:\GIC\$($sites[$nom].env)\site"; New-Item -ItemType Directory -Path $racine -Force | Out-Null
     # Création par le lecteur IIS:\ (New-Website / Get-Website -Name sont capricieux : « référence d'objet non définie »)
     $existe = Get-ChildItem IIS:\Sites | Where-Object { $_.Name -eq $nom }
     if (-not $existe) {
@@ -155,20 +171,34 @@ foreach ($nom in $sites.Keys) {
         New-Item "IIS:\Sites\$nom" -Id $id -PhysicalPath $racine -Bindings @{ protocol = "http"; bindingInformation = "*:80:$hote" } | Out-Null
     } else { Write-Host "  $nom : site existant" }
     Set-ItemProperty "IIS:\Sites\$nom" -Name applicationPool -Value "GIC"
+    # Une liaison http par nom (principal et alias) ; celles qui existent sont gardées
+    $liaisons = (Get-ItemProperty "IIS:\Sites\$nom" -Name bindings).Collection
+    foreach ($h in $hotes) {
+        if (-not ($liaisons | Where-Object { $_.protocol -eq "http" -and $_.bindingInformation -eq "*:80:$h" })) {
+            Write-Host "  $nom : liaison http *:80:$h"
+            New-ItemProperty "IIS:\Sites\$nom" -Name bindings -Value @{ protocol = "http"; bindingInformation = "*:80:$h" } | Out-Null
+        }
+    }
     if (-not $SansHttps) {
         if (-not $Empreinte) { throw "Indiquez -Empreinte du certificat, -AutoSigne (pas d'autorité interne) ou -SansHttps." }
-        $liaisons = (Get-ItemProperty "IIS:\Sites\$nom" -Name bindings).Collection
-        if (-not ($liaisons | Where-Object { $_.protocol -eq "https" -and $_.bindingInformation -eq "*:443:$hote" })) {
-            Write-Host "  $nom : liaison https *:443:$hote (SNI)"
-            New-ItemProperty "IIS:\Sites\$nom" -Name bindings -Value @{ protocol = "https"; bindingInformation = "*:443:$hote"; sslFlags = 1 } | Out-Null
-        }
-        # Certificat attaché au couple nom d'hôte:443 dans HTTP.sys (netsh : indépendant du module IIS)
-        $deja = & netsh http show sslcert hostnameport="${hote}:443" 2>$null | Select-String -Pattern $Empreinte -Quiet
-        if (-not $deja) {
-            Write-Host "  $nom : certificat $Empreinte attaché à ${hote}:443"
-            & netsh http delete sslcert hostnameport="${hote}:443" 2>$null | Out-Null
-            $r = & netsh http add sslcert hostnameport="${hote}:443" certhash=$Empreinte appid="{4dc3e181-e14b-4a21-b022-59fc669b0914}" certstorename=MY
-            if ($LASTEXITCODE -ne 0) { throw "netsh http add sslcert a échoué : $r" }
+        foreach ($h in $hotes) {
+            if (-not ($liaisons | Where-Object { $_.protocol -eq "https" -and $_.bindingInformation -eq "*:443:$h" })) {
+                Write-Host "  $nom : liaison https *:443:$h (SNI)"
+                New-ItemProperty "IIS:\Sites\$nom" -Name bindings -Value @{ protocol = "https"; bindingInformation = "*:443:$h"; sslFlags = 1 } | Out-Null
+            }
+            # Certificat attaché au couple nom d'hôte:443 dans HTTP.sys (netsh : indépendant du module IIS).
+            # Un nom qui a déjà un certificat (empreinte de 40 caractères dans la sortie) le garde, sauf
+            # -RemplacerCertificat : les postes qui n'approuvent pas encore le nouveau ne sont pas coupés.
+            $actuel = (& netsh http show sslcert hostnameport="${h}:443" 2>$null) -join "`n"
+            if ($actuel -match $Empreinte) { Write-Host "  $nom : ${h}:443 a déjà ce certificat" }
+            elseif (($actuel -match '[0-9a-fA-F]{40}') -and -not $RemplacerCertificat) {
+                Write-Host "  $nom : ${h}:443 garde son certificat actuel (-RemplacerCertificat quand tous les postes approuvent le nouveau)"
+            } else {
+                Write-Host "  $nom : certificat $Empreinte attaché à ${h}:443"
+                & netsh http delete sslcert hostnameport="${h}:443" 2>$null | Out-Null
+                $r = & netsh http add sslcert hostnameport="${h}:443" certhash=$Empreinte appid="{4dc3e181-e14b-4a21-b022-59fc669b0914}" certstorename=MY
+                if ($LASTEXITCODE -ne 0) { throw "netsh http add sslcert a échoué : $r" }
+            }
         }
     }
     # Authentification (ADR 0007) : IIS ne vérifie PAS le ticket — il laisse passer la requête avec son
@@ -222,7 +252,7 @@ foreach ($nom in $sites.Keys) {
         Write-Host "  $nom : jonction $racine\static -> $statiques"
         New-Item -ItemType Junction -Path "$racine\static" -Target $statiques | Out-Null
     }
-    Write-Host "Site $nom : https://$hote -> 127.0.0.1:$port"
+    Write-Host "Site $nom : https://$($hotes -join ', https://') -> 127.0.0.1:$port"
 }
 
 
@@ -271,5 +301,5 @@ foreach ($nom in $sites.Keys) {
     Write-Host "Site $nom redémarré (configuration relue par http.sys)"
 }
 
-Write-Host "`nTERMINÉ. Prochaine étape (ticket S07) : installer l'application dans C:\GIC\test\app, créer le service NSSM GIC-Test, puis ouvrir https://suivi-test.$zone/identite/qui-suis-je depuis un poste."
+Write-Host "`nTERMINÉ. Prochaine étape (ticket S07) : installer l'application dans C:\GIC\test\app, créer le service NSSM GIC-Test, puis ouvrir https://$($NomsHotes['test'][0]).$zone/identite/qui-suis-je depuis un poste."
 Stop-Transcript | Out-Null

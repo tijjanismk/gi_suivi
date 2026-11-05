@@ -116,7 +116,9 @@ foreach ($e in $etapes) {
 if ($Simuler) { Write-Host "`nSimulation : rien n'a été lancé." -ForegroundColor Yellow; exit 0 }
 
 $zone = (Get-ADDomain).DNSRoot
+. (Join-Path $ici '..\noms-hotes.ps1')
+$adresse = "https://$($NomsHotes['test'][0]).$zone"     # nom principal de test (ADR 0009)
 Write-Host "`n=== Terminé ===" -ForegroundColor Green
-Write-Host "1. Depuis un poste du domaine : https://suivi-test.$zone/identite/qui-suis-je (login et groupes sans mot de passe)."
+Write-Host "1. Depuis un poste du domaine : $adresse/identite/qui-suis-je (login et groupes sans mot de passe)."
 Write-Host "2. Poste de Dicko : kit GiSuivi-agent-<version>-poste.zip + C:\GIC\deploy\gic-serveur.cer à côté d'installer-poste.ps1, puis installer-poste.ps1 en administrateur."
-Write-Host "3. Sous 3 minutes, le poste apparaît dans https://suivi-test.$zone/suivi/postes/."
+Write-Host "3. Sous 3 minutes, le poste apparaît dans $adresse/suivi/postes/."

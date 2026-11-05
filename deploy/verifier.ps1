@@ -15,7 +15,8 @@ param(
 $ErrorActionPreference = "Continue"
 $base = "C:\GIC\$Env"; $service = "GIC-$($Env.Substring(0,1).ToUpper() + $Env.Substring(1))"
 $port = if ($Env -eq "prod") { 8000 } else { 8001 }
-$hote = if ($Env -eq "prod") { "suivi.giconseils.local" } else { "suivi-test.giconseils.local" }
+. (Join-Path $PSScriptRoot 'noms-hotes.ps1')
+$hotes = @(Hotes-Complets $Env); $hote = $hotes[0]     # nom principal, puis alias (ADR 0009)
 $bloquants = 0
 
 function Point($nom, $ok, $detail, [switch]$Bloquant) {
@@ -68,11 +69,14 @@ try {
     Point "Kerberos (qui-suis-je)" ($code -eq 403) "$(if ($code) { $code } else { $_.Exception.Message })$aide"
 }
 
-# Santé à travers IIS (Negotiate, identité de la console). Hors domaine ou sans certificat : avertissement
-try {
-    $r = Invoke-WebRequest -Uri "https://$hote/api/sante" -UseBasicParsing -UseDefaultCredentials -TimeoutSec 15
-    Point "Santé via IIS https://$hote" ($r.StatusCode -eq 200) "$($r.StatusCode) $($r.Content)"
-} catch { Point "Santé via IIS https://$hote" $false "$($_.Exception.Message) — DNS, certificat, site IIS ou Negotiate (08-Python-IIS.ps1)" }
+# Santé à travers IIS (Negotiate, identité de la console), pour le nom principal et chaque alias.
+# Hors domaine, sans enregistrement DNS ou sans certificat pour ce nom : avertissement
+foreach ($h in $hotes) {
+    try {
+        $r = Invoke-WebRequest -Uri "https://$h/api/sante" -UseBasicParsing -UseDefaultCredentials -TimeoutSec 15
+        Point "Santé via IIS https://$h" ($r.StatusCode -eq 200) "$($r.StatusCode) $($r.Content)"
+    } catch { Point "Santé via IIS https://$h" $false "$($_.Exception.Message) — DNS, certificat, site IIS ou Negotiate (06-DNS-SPN.ps1, 08-Python-IIS.ps1)" }
+}
 
 # Tâches planifiées
 $taches = Get-ScheduledTask -ErrorAction SilentlyContinue | Where-Object { $_.TaskName -like "GIC $Env -*" -or $_.TaskName -eq "GIC - Sauvegarde PostgreSQL" }

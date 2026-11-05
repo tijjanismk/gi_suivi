@@ -1,9 +1,16 @@
 # Déploiement de l'application GIC
 
 Deux environnements sur le serveur, `test` (port 8001, base `gic_test`, site
-`suivi-test`) et `prod` (port 8000, base `gic`, site `suivi`), dans
+IIS `suivi-test`, adresse `https://app.giconseils.local`) et `prod` (port 8000,
+base `gic`, site `suivi`, adresse `https://suivi.giconseils.local`), dans
 `C:\GIC\<env>\`. Tout passe par les scripts de ce dossier ; rien ne se fait à
 la main.
+
+Les noms d'hôte de chaque environnement ne sont écrits qu'à un endroit, `noms-hotes.ps1` (ADR 0009) :
+le premier est l'adresse donnée aux utilisateurs, les suivants restent servis comme alias
+(`suivi-test.giconseils.local`, le temps que chaque poste reçoive par la GPO le nouveau certificat
+et la nouvelle adresse de l'agent ; il sera ensuite retiré). `installer.ps1` ajoute à `ALLOWED_HOSTS` du `.env` conservé les noms
+qui y manquent ; `verifier.ps1` interroge chacun d'eux.
 
 ## Règle : Git seul, aucun outil de développement sur le serveur (décision du 08/10/2026)
 
@@ -29,7 +36,7 @@ scripts\dev\verifier.ps1 (tout vert)
 fusion dans main ; git push         ──────► C:\GIC\depot  (clone privé, jeton GitHub lecture seule)
                                             .\deploy\installer.ps1 -Env test -Ref main
                                             .\deploy\verifier.ps1 -Env test
-                                            validation sur https://suivi-test.giconseils.local
+                                            validation sur https://app.giconseils.local
 git tag -a v1.0.0 ; git push --tags ──────► .\deploy\installer.ps1 -Env prod -Ref v1.0.0
                                             .\deploy\verifier.ps1 -Env prod
 ```

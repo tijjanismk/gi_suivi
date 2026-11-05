@@ -36,7 +36,8 @@ $base = "C:\GIC\$Env"; $app = "$base\app"; $prec = "$base\app_precedent"; $nouve
 $venv = "$base\venv"; $envFile = "$base\.env"; $service = "GIC-$($Env.Substring(0,1).ToUpper() + $Env.Substring(1))"
 $port = if ($Env -eq "prod") { 8000 } else { 8001 }
 $bdd  = if ($Env -eq "prod") { "gic" } else { "gic_test" }
-$hote = if ($Env -eq "prod") { "suivi.giconseils.local" } else { "suivi-test.giconseils.local" }
+. (Join-Path $PSScriptRoot 'noms-hotes.ps1')
+$hotes = @(Hotes-Complets $Env); $hote = $hotes[0]     # nom principal, puis alias (ADR 0009)
 New-Item -ItemType Directory -Path $base\journaux -Force | Out-Null
 Start-Transcript -Path "$base\journaux\installer_$(Get-Date -Format yyyyMMdd_HHmm).log" | Out-Null
 
@@ -156,7 +157,7 @@ if (-not (Test-Path $envFile)) {
     @(
         "DJANGO_SETTINGS_MODULE=config.settings.prod",
         "SECRET_KEY=$secret",
-        "ALLOWED_HOSTS=$hote,127.0.0.1,localhost",
+        "ALLOWED_HOSTS=$($hotes -join ','),127.0.0.1,localhost",
         "DATABASE_URL=postgres://gic:$($pg['PGPASSWORD'])@localhost:5432/$bdd",
         "GROUPE_DIRECTION=GI-Direction",
         "GROUPE_DIRECTION_LECTURE=GI-Direction-Lecture",
@@ -169,7 +170,22 @@ if (-not (Test-Path $envFile)) {
     ) | Set-Content $envFile -Encoding ASCII
     & icacls $envFile /inheritance:r /grant:r "BUILTIN\Administrateurs:F" "SYSTEM:F" "GICONSEILS\svc-application:R" | Out-Null
     Write-Host ".env créé : $envFile"
-} else { Write-Host ".env conservé : $envFile" }
+} else {
+    # .env conservé, mais les noms d'hôte du tableau (noms-hotes.ps1) doivent tous être dans ALLOWED_HOSTS :
+    # Django refuse (400) un nom absent. On ajoute ceux qui manquent, on n'en retire aucun (ADR 0009).
+    $lignes = @(Get-Content $envFile)
+    $i = -1
+    for ($k = 0; $k -lt $lignes.Count; $k++) { if ($lignes[$k] -match '^\s*ALLOWED_HOSTS\s*=') { $i = $k; break } }
+    $actuels = @("127.0.0.1", "localhost")     # valeur de Django quand la ligne manque (base.py)
+    if ($i -ge 0) { $actuels = @(($lignes[$i] -replace '^\s*ALLOWED_HOSTS\s*=', '').Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ }) }
+    $manquants = @($hotes | Where-Object { $actuels -notcontains $_ })
+    if ($manquants.Count -gt 0) {
+        $ligne = "ALLOWED_HOSTS=$((@($actuels) + $manquants) -join ',')"
+        if ($i -ge 0) { $lignes[$i] = $ligne } else { $lignes += $ligne }
+        $lignes | Set-Content $envFile -Encoding ASCII
+        Write-Host ".env conservé, ALLOWED_HOSTS complété : $($manquants -join ', ')"
+    } else { Write-Host ".env conservé : $envFile" }
+}
 Copy-Item $envFile "$nouveau\.env" -Force
 
 # 6. Vérifications Django

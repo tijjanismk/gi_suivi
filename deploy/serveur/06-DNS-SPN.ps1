@@ -6,16 +6,20 @@
 
 .USAGE
     .\06-DNS-SPN.ps1 -WhatIf
-    .\06-DNS-SPN.ps1
-    .\06-DNS-SPN.ps1 -Noms suivi,suivi-test -AdresseIP 192.168.2.250 -CompteService svc-application
+    .\06-DNS-SPN.ps1                 # tous les noms de ..\noms-hotes.ps1 (app, suivi-test, suivi)
+    .\06-DNS-SPN.ps1 -Noms app -AdresseIP 192.168.2.250 -CompteService svc-application
+  Ce qui existe déjà (enregistrement, SPN) est laissé tel quel : le script n'ajoute que ce qui manque.
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    [string[]]$Noms = @("suivi", "suivi-test"),
+    [string[]]$Noms,                 # par défaut : tous les noms du tableau ..\noms-hotes.ps1
     [string]$AdresseIP = "192.168.2.250",
     [string]$CompteService = "svc-application"
 )
 $ErrorActionPreference = "Stop"
+. (Join-Path $PSScriptRoot '..\noms-hotes.ps1')
+if (-not $Noms) { $Noms = @(Tous-Les-Noms) }
+$principal = $NomsHotes['test'][0]     # nom donné aux utilisateurs (ADR 0009)
 Import-Module ActiveDirectory; Import-Module DnsServer
 $zone = (Get-ADDomain).DNSRoot     # giconseils.local
 $dom  = (Get-ADDomain).NetBIOSName
@@ -41,5 +45,5 @@ foreach ($n in $Noms) {
 
 Write-Host "`nSPN du compte $CompteService :"
 & setspn -L "$dom\$CompteService"
-Write-Host "`nTest depuis un poste du domaine : nslookup suivi.$zone  puis, après 08, https://suivi.$zone/identite/qui-suis-je"
-Write-Host "Vérifier Kerberos côté poste : klist  (un ticket HTTP/suivi.$zone doit apparaître après la première visite)."
+Write-Host "`nTest depuis un poste du domaine : nslookup $principal.$zone  puis, après 08, https://$principal.$zone/identite/qui-suis-je"
+Write-Host "Vérifier Kerberos côté poste : klist  (un ticket HTTP/$principal.$zone doit apparaître après la première visite)."

@@ -13,7 +13,7 @@ dans `D:\SAUVEGARDES\journaux\`.
 | `03-Mises-a-jour.ps1` | P03 | Applique les mises à jour Windows, programme les suivantes | 01 fait ; fenêtre hors heures de bureau ; redémarrage à prévoir |
 | `04-Comptes-et-groupes.ps1` | P04 | OU `GIC`, six groupes, compte de service, comptes d'administration nominatifs | Liste des membres validée par la direction |
 | `05-Partage-GIC.ps1` | P06 | `D:\GIC`, arborescence, partage, droits par groupe | 04 fait |
-| `06-DNS-SPN.ps1` | S07 | Enregistrements DNS `suivi`, `suivi-test` ; SPN sur le compte de service | 04 fait |
+| `06-DNS-SPN.ps1` | S07, S08 | Enregistrements DNS et SPN `HTTP/<nom>` sur le compte de service, pour chaque nom de `..\noms-hotes.ps1` (`app`, `suivi-test`, `suivi`) ; n'ajoute que ce qui manque | 04 fait |
 | `07-PostgreSQL.ps1` | S07 | Installe PostgreSQL 18 (ou -Version 17), crée rôle et bases, pare-feu | Installateur EDB téléchargé |
 | `08-Python-IIS.ps1` | S07 | Installe Python 3.14, configure IIS (Negotiate seul, ARR, sites), pare-feu | Installateurs Python, URL Rewrite et ARR téléchargés ; mémoire ≥ 16 Go pour la production |
 

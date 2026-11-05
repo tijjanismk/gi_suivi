@@ -7,7 +7,7 @@
 # Ensuite : fermer complètement le navigateur et le rouvrir.
 param(
     [string]$Domaine = 'giconseils.local',
-    [string[]]$Sites = @('suivi', 'suivi-test')
+    [string[]]$Sites = @('app', 'suivi', 'suivi-test')     # tous les noms de deploy\noms-hotes.ps1 (ADR 0009)
 )
 $ErrorActionPreference = 'Stop'
 $admin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -30,4 +30,4 @@ foreach ($p in 'HKLM:\SOFTWARE\Policies\Microsoft\Edge', 'HKLM:\SOFTWARE\Policie
     Set-ItemProperty $p -Name AuthServerAllowlist -Value "*.$Domaine" -Type String
 }
 Write-Host "Strategie navigateur : AuthServerAllowlist = *.$Domaine (Edge, Chrome)"
-Write-Host "`nTermine. Fermez completement Edge/Chrome puis rouvrez-le : la page https://suivi-test.$Domaine/moi doit s'ouvrir sans demander de mot de passe."
+Write-Host "`nTermine. Fermez completement Edge/Chrome puis rouvrez-le : la page https://app.$Domaine/moi doit s'ouvrir sans demander de mot de passe."

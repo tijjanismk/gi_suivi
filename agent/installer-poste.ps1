@@ -68,7 +68,7 @@ if (Test-Path $cer) {
 # Edge/Chrome n'envoient pas le ticket Kerberos et affichent une boîte de connexion que rien ne satisfait
 # (IIS n'accepte que Kerberos). Plus tard, une GPO fera la même chose pour tout le parc.
 $zoneBase = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Internet Settings\ZoneMap\Domains\giconseils.local'
-foreach ($site in 'suivi', 'suivi-test') {
+foreach ($site in 'app', 'suivi', 'suivi-test') {     # tous les noms de deploy\noms-hotes.ps1 (ADR 0009)
     $cle = Join-Path $zoneBase $site
     if (-not (Test-Path $cle)) { New-Item $cle -Force | Out-Null }
     Set-ItemProperty $cle -Name https -Value 1 -Type DWord

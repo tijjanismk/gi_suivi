@@ -154,8 +154,8 @@ un nouveau qui le remplace et on met à jour le statut de l'ancien.
 
 Numérotation : on prend le **numéro suivant libre** au moment d'écrire,
 on n'en réserve pas d'avance (les réservations du début, 0003 à 0005,
-ont été prises par d'autres décisions). Seule exception en cours : `0009`,
-gardé pour le renommage `gic.giconseils.local`. Prochain libre : `0017`.
+ont été prises par d'autres décisions). La dernière exception, `0009`, gardé
+pour le renommage, a été prise le 05/11/2026 (`app.giconseils.local`). Prochain libre : `0018`.
 Sujets encore sans ADR : décisions de la direction pour GI-SUIVI (P05),
 pont MCP local et identité, aucune IA côté serveur au MVP (règle 5 de
 `CONTEXT.md`).

@@ -3,9 +3,9 @@
 Pourquoi : derrière IIS + ARR, l'identité authentifiée par IIS n'est pas disponible au moment où la
 règle de réécriture pose les en-têtes (mode noyau), et le mode utilisateur refuse les tickets des
 postes. IIS laisse donc passer la requête avec son en-tête `Authorization: Negotiate <ticket>`, et
-c'est le service — qui tourne sous `svc-application`, le compte qui porte les SPN `HTTP/suivi…` —
-qui valide le ticket et en tire `GICONSEILS\\login`. Kerberos seul : un ticket NTLM (plusieurs
-allers-retours) est refusé, comme IIS le faisait (ADR 0007).
+c'est le service — qui tourne sous `svc-application`, le compte qui porte les SPN `HTTP/app…`,
+`HTTP/suivi…` (ADR 0009) — qui valide le ticket et en tire `GICONSEILS\\login`. Kerberos seul :
+un ticket NTLM (plusieurs allers-retours) est refusé, comme IIS le faisait (ADR 0007).
 """
 
 from __future__ import annotations

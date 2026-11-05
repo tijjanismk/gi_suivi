@@ -103,6 +103,9 @@ Ce qui a coûté du temps et reviendra. Le récit complet : `docs/plan/journal.m
 - **Identité** (ADR 0007) : l'application valide elle-même le ticket Kerberos ; IIS est en
   anonyme et ne fait que transmettre. Compte de service en Kerberos AES (RC4 refusé par
   Server 2025). Sonde : `/api/sante?identite=1`.
+- **Adresses** (ADR 0009) : test = `https://app.giconseils.local` (`suivi-test` en alias jusqu'à
+  son retrait), prod = `suivi` ; noms écrits seulement dans `deploy/noms-hotes.ps1`. Un nom de
+  plus = DNS, SPN et certificat auto-signé à rediffuser aux postes par la GPO.
 - **Uvicorn** : un seul processus de travail, sans `--proxy-headers` ; port libéré avant
   chaque démarrage (`deploy/liberer-port.ps1`) ; `/api/sante` donne le commit en service.
 - **Windows Server 2025, contrôleur de domaine** : plus de `wmic` ; les cmdlets WMI se

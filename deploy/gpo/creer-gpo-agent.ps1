@@ -13,6 +13,8 @@
     .\creer-gpo-agent.ps1 -Kit \\AD-SERVEUR\DICKO\GiSuivi-agent-0.2.4-poste.zip                  # groupe GI-Postes-Suivi seulement
     .\creer-gpo-agent.ps1 -Kit ...\GiSuivi-agent-0.2.5-poste.zip -TousLesPostes   # mise à jour : même commande
     .\creer-gpo-agent.ps1 -Kit ... -WhatIf                             # montre sans faire
+    .\creer-gpo-agent.ps1 -Kit ...\GiSuivi-agent-0.2.4-poste.zip -Config C:\GIC\depot\agent\config-pilote.json -TousLesPostes
+        # même agent, configuration du dépôt à la place de celle du kit (url_api, racines) : ADR 0009
 
 .ENSUITE
     Ajouter un poste : Utilisateurs et ordinateurs AD → GIC\Groupes\GI-Postes-Suivi → Ajouter
@@ -29,13 +31,22 @@ param(
     # Tous les postes du domaine (groupe intégré « Ordinateurs du domaine ») au lieu du seul groupe
     # GI-Postes-Suivi. Les contrôleurs de domaine (dont AD-SERVEUR) n'en font pas partie : le
     # serveur ne reçoit jamais l'agent.
-    [switch]$TousLesPostes
+    [switch]$TousLesPostes,
+    # Configuration de l'agent publiée à la place de celle du kit (même format que
+    # agent\config-pilote.json) : change url_api ou les racines sans reconstruire le kit sur le poste.
+    [string]$Config
 )
 $ErrorActionPreference = "Stop"
 Import-Module ActiveDirectory; Import-Module GroupPolicy
 $domaine = Get-ADDomain; $dns = $domaine.DNSRoot; $dn = $domaine.DistinguishedName
 if (-not (Test-Path $Kit)) { throw "Kit introuvable : $Kit" }
 if (-not (Test-Path $Certificat)) { throw "Certificat introuvable : $Certificat (serveur\08-Python-IIS.ps1 -AutoSigne)." }
+if ($Config) {
+    if (-not (Test-Path $Config)) { throw "Configuration introuvable : $Config" }
+    $json = Get-Content $Config -Raw -Encoding UTF8
+    $urlApi = (ConvertFrom-Json $json).url_api     # refuse un JSON mal formé avant de toucher à la GPO
+    Write-Host "Configuration publiée : $Config (url_api = $urlApi)"
+}
 
 # 1. Groupe d'ordinateurs ciblés
 $ouGroupes = "OU=Groupes,OU=GIC,$dn"
@@ -90,6 +101,9 @@ if ($PSCmdlet.ShouldProcess($demarrage, "Publier le kit et le script de démarra
     if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
     Expand-Archive -Path $Kit -DestinationPath $tmp
     Copy-Item $Certificat (Join-Path $tmp "gic-serveur.cer") -Force
+    # Même écriture que agent\preparer-kit.ps1 (UTF-8 sans BOM). Un poste dont la configuration
+    # diffère de celle-ci réinstalle l'agent à son démarrage suivant (demarrage-gpo.ps1).
+    if ($Config) { [IO.File]::WriteAllText((Join-Path $tmp "config.json"), $json, (New-Object Text.UTF8Encoding $false)) }
     New-Item -ItemType Directory -Force "$demarrage\GiSuivi" | Out-Null
     & robocopy.exe $tmp "$demarrage\GiSuivi" /MIR /NFL /NDL /NJH /NJS /NP | Out-Null
     if ($LASTEXITCODE -ge 8) { throw "Copie du kit vers SYSVOL en échec (robocopy $LASTEXITCODE)." }
