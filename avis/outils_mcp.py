@@ -1,8 +1,9 @@
 """Outils MCP du module avis (`docs/outils-mcp.md`, ADR 0016) : ce que Claude Desktop voit de
 l'application. Chaque fonction est un outil : sa documentation, en français et avec des exemples,
 est ce que Claude lit. Elles appellent les services, comme les écrans ; aucun calcul ici. Lecture
-libre, écriture bornée : seulement une proposition d'avis ou un critère en brouillon, jamais un
-avis validé (règle 3). Les réponses sont compactes ; `detail_mission` donne tout.
+libre, écriture bornée : seulement une proposition d'avis, un critère en brouillon ou un terme
+proposé (ADR 0019), jamais un avis ni un terme validés (règle 3). Les réponses sont compactes ;
+`detail_mission` donne tout.
 
 Le montage sous `/mcp/` (SDK MCP officiel) et le pont du poste attendent la décision de l'ADR 0016
 (nouvelle dépendance) : ces fonctions s'y enregistrent telles quelles.
@@ -20,6 +21,7 @@ from experts.models import Affectation
 from moteur.avis.experts import Besoin
 from moteur.avis.filtres import FiltreInvalideError, lire_filtre
 from references.models import Mission
+from referentiel import services as referentiel_services
 from referentiel.models import Bailleur, Categorie, Client, Domaine, TypeOuvrage, TypeQuantite
 
 LIMITE = 20
@@ -244,15 +246,54 @@ def rechercher_experts(
 
 def proposer_filtre_critere(texte_critere: str, avis_id: int | None = None) -> dict:
     """Ne calcule rien : rend le vocabulaire de la base (domaines, catégories, types d'ouvrages
-    avec familles et synonymes, types de quantités, natures, rôles), chaque entrée marquée
-    `evoque` quand elle partage un mot avec le texte du bailleur, pour que Claude construise le
-    filtre et l'explique. L'humain le valide à l'écran. C'est la réponse au problème
+    avec familles et termes validés par pays, types de quantités, natures, rôles), chaque entrée
+    marquée `evoque` quand elle partage un mot avec le texte du bailleur, pour que Claude
+    construise le filtre et l'explique. L'humain le valide à l'écran. C'est la réponse au problème
     « recharge de nappe » ≠ « micro-barrage »."""
     vocabulaire = services.vocabulaire_pour(texte_critere)
     vocabulaire["texte_critere"] = texte_critere
     if avis_id is not None and _avis(avis_id) is None:
         vocabulaire["avertissement"] = f"avis inconnu : {avis_id}"
     return vocabulaire
+
+
+def proposer_terme(
+    type_ouvrage: str,
+    terme: str,
+    pays: str = "",
+    source_url: str = "",
+    nb_avis: int | None = None,
+    portee: str = "partout",
+    par: str = "",
+) -> dict:
+    """Propose un nom local d'un type d'ouvrage, à valider par une personne (jamais validé ici).
+    Exemple : type_ouvrage="aes", terme="AEPS", pays="Burkina Faso", source_url=l'avis où il est
+    lu. `type_ouvrage` : une clé de `lister_referentiel("types_ouvrage")` ; `pays` : un pays du
+    bureau (Mali, Niger, Burkina Faso, Guinée, Mauritanie, Sénégal, Togo, Gabon, Cameroun), vide
+    pour tous ; `portee` : « partout » ou « references » (seulement les intitulés des références du
+    bureau, pour un sigle qui veut dire autre chose dans les avis, comme PPM). Écrire le terme tel
+    qu'il est dans l'avis : accents, tiret, sigle en capitales."""
+    try:
+        t, cree = referentiel_services.proposer(
+            type_ouvrage,
+            terme,
+            origine="claude",
+            pays=pays,
+            portee=portee,
+            source_url=source_url,
+            nb_avis=nb_avis,
+            par=par or "Claude Desktop",
+        )
+    except ValueError as e:
+        return {"erreur": str(e)}
+    reponse = {
+        "terme_id": t.pk,
+        "statut": t.get_statut_display(),
+        "adresse": f"/admin/referentiel/terme/{t.pk}/change/",
+    }
+    if not cree:
+        reponse["avertissement"] = "ce terme existait déjà pour ce type et ce pays : rien changé"
+    return reponse
 
 
 def creer_proposition(
@@ -292,6 +333,7 @@ OUTILS = (
     pieces_manquantes,
     rechercher_experts,
     proposer_filtre_critere,
+    proposer_terme,
     creer_proposition,
     enregistrer_brouillon_critere,
 )

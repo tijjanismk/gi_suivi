@@ -73,10 +73,21 @@ correspondantes, statut}`.
 
 Paramètres : `texte_critere` (le texte du bailleur, tel quel), `avis_id`
 optionnel. **Ne calcule rien** : rend le vocabulaire de la base susceptible
-de correspondre (catégories, types d'ouvrages avec leurs familles et
-synonymes, types de quantités) pour que Claude construise un filtre et
-l'explique à l'humain. L'humain valide à l'écran. Cet outil est la réponse au
-problème « recharge de nappe » ≠ « micro-barrage ».
+de correspondre (catégories, types d'ouvrages avec leurs familles et leurs
+termes validés par pays, ADR 0019 ; les termes proposés à part, sans effet ;
+types de quantités) pour que Claude construise un filtre et l'explique à
+l'humain. L'humain valide à l'écran. Cet outil est la réponse au problème
+« recharge de nappe » ≠ « micro-barrage ».
+
+### `proposer_terme`
+
+Paramètres : `type_ouvrage` (clé), `terme` (tel qu'il est écrit dans l'avis),
+`pays` (un pays du bureau, vide pour tous), `source_url`, `nb_avis`, `portee`
+(`partout` ou `references`). Crée un `referentiel.Terme` **proposé**, origine
+`claude` (ADR 0019) : « AEPS » au Burkina pour l'AES. Une personne le valide
+ou le rejette dans l'administration. Un terme qui existe déjà pour ce type et
+ce pays est rendu tel quel, avec un avertissement. **Ne valide jamais un
+terme.**
 
 ### `creer_proposition`
 

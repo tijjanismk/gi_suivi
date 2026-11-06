@@ -39,7 +39,15 @@ from moteur.avis.filtres import (
 from moteur.avis.selection import selectionner
 from moteur.references.doublons import mots
 from references.models import Mission
-from referentiel.models import Bailleur, Categorie, Client, Domaine, TypeOuvrage, TypeQuantite
+from referentiel.models import (
+    Bailleur,
+    Categorie,
+    Client,
+    Domaine,
+    Terme,
+    TypeOuvrage,
+    TypeQuantite,
+)
 
 CODES_EN_APERCU = 10
 EXPERTS_PROPOSES = 15  # dans la liste où l'on choisit l'expert retenu
@@ -536,12 +544,20 @@ def rechercher(
 
 def vocabulaire_pour(texte: str) -> dict:
     """Le vocabulaire de la base qu'un filtre peut employer, chaque entrée marquée quand elle
-    partage un mot avec le texte du bailleur (le thésaurus : synonymes et familles compris).
+    partage un mot avec le texte du bailleur (le thésaurus : familles et termes validés compris,
+    avec leur pays, ADR 0019 ; les termes proposés sont signalés à part, ils ne comptent pas).
     Aucune traduction ici : Claude propose le filtre, une personne le valide à l'écran."""
     cherches = mots(texte or "")
 
     def evoque(*textes: str) -> bool:
         return bool(cherches & mots(" ".join(t for t in textes if t)))
+
+    termes: dict[int, dict[str, list[dict]]] = {}
+    for t in Terme.objects.exclude(statut=Terme.Statut.REJETE):
+        place = termes.setdefault(t.type_ouvrage_id, {"valides": [], "proposes": []})
+        cle = "valides" if t.statut == Terme.Statut.VALIDE else "proposes"
+        place[cle].append({"terme": t.terme, "pays": t.pays or "tous", "portee": t.portee})
+    vide: dict[str, list[dict]] = {"valides": [], "proposes": []}
 
     return {
         "domaines": [
@@ -562,8 +578,13 @@ def vocabulaire_pour(texte: str) -> dict:
                 "cle": o.cle,
                 "libelle": o.libelle,
                 "famille": o.famille,
-                "synonymes": list(o.synonymes),
-                "evoque": evoque(o.libelle, o.famille, *o.synonymes),
+                "termes": termes.get(o.pk, vide)["valides"],
+                "termes_proposes": termes.get(o.pk, vide)["proposes"],
+                "evoque": evoque(
+                    o.libelle,
+                    o.famille,
+                    *(x["terme"] for x in termes.get(o.pk, vide)["valides"]),
+                ),
             }
             for o in TypeOuvrage.objects.filter(actif=True)
         ],

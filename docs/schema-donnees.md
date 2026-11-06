@@ -11,7 +11,8 @@ le schéma mais non exploités au MVP.
 |---|---|---|
 | `Domaine` | `code` (3 lettres, unique : AEP, RTE, HYD, BAT, ENV), `libelle`, `ordre` | Les cinq domaines de la présentation du bureau (ADR 0014 et 0017) : eau et assainissement, infrastructures de transport, aménagements hydro-agricoles, bâtiments civils et industriels, environnement. AQA, VRD et le développement rural (RUR) retirés. |
 | `Categorie` | `domaine` FK, `cle` (slug unique), `libelle`, `exige_quantite` (type de quantité attendu, nullable) | Les sous-domaines de chaque domaine (ADR 0014 § 1), ex. `adductions-eau-sommaires`, `ponts`, `barrages-retenues`, `bas-fonds-et-plaines`. |
-| `TypeOuvrage` | `cle`, `libelle`, `famille` (texte : « mobilisation des eaux de surface », « recharge de nappe », « hydraulique villageoise »…), `synonymes` (tableau de textes) | Le thésaurus. Une mission porte plusieurs types. La recherche « recharge de nappe » trouve `micro-barrage` par sa famille. |
+| `TypeOuvrage` | `cle`, `libelle`, `famille` (texte : « mobilisation des eaux de surface », « recharge de nappe », « hydraulique villageoise »…), `synonymes` (tableau de textes, ancien : repris en `Terme`, retiré quand plus rien ne le lit) | Le thésaurus. Une mission porte plusieurs types. La recherche « recharge de nappe » trouve `micro-barrage` par sa famille. |
+| `Terme` (ADR 0019) | `type_ouvrage` FK protégée, `terme` (tel qu'écrit dans les avis), `cle` (normalisée), `pays` (un pays du bureau, vide = tous), `portee` (partout / references), `statut` (propose / valide / rejete), `origine` (reprise / collecte / saisie / claude / avis), `source_url`, `nb_avis`, `motif`, `propose_par`, `propose_le`, `decide_par`, `decide_le` ; unique (`type_ouvrage`, `cle`, `pays`) | Les noms d'un type d'ouvrage selon le pays : « AEPS » au Burkina, « PEA » au Niger mènent à l'AES. Seuls les termes validés servent ; portée `references` pour un sigle qui veut dire autre chose dans les avis (PPM). Jamais supprimé : rejeté, il reste. |
 | `Localite` | `nom`, `niveau` (pays / region / cercle / commune / village), `parent` FK self, `cle`, `variantes` (tableau) | Hiérarchie du Mali ; les variantes absorbent les orthographes (`Koulikoro`, `KOULIKORO`, `Klkoro`). |
 | `Client` | `nom` unique, `sigle`, `type` (etat / collectivite / projet / ong / prive / bailleur), `pays` | Maître d'ouvrage. |
 | `Bailleur` | `nom` unique, `sigle` | BM, BAD, GIZ, UE… |
@@ -87,8 +88,8 @@ Règles d'interprétation :
   une localité **descendante** correspondent (le service passe au moteur les
   localités de la mission et leurs ascendants).
 - `types_ouvrage` et `familles_ouvrage` ne font qu'une condition : l'un des
-  types, ou un type de l'une des familles. Les synonymes du thésaurus servent
-  à construire le filtre (`proposer_filtre_critere`).
+  types, ou un type de l'une des familles. Les termes validés du thésaurus
+  (ADR 0019) servent à construire le filtre (`proposer_filtre_critere`).
 - `mots_cles` : cherchés dans l'intitulé et l'intitulé court, casse, accents
   et pluriels ignorés ; un mot-clé suffit ; un mot-clé de plusieurs mots
   (« génie civil ») les demande tous. Comparés dans le moteur, sans recherche

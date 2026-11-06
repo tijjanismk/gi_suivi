@@ -14,7 +14,7 @@ from avis import services
 from avis.models import Avis, Critere, Proposition
 from experts.models import Diplome, Expert
 from references.models import Mission, PieceJustificative, Quantite
-from referentiel.models import Client, Domaine, TypeOuvrage, TypeQuantite
+from referentiel.models import Client, Domaine, Terme, TypeOuvrage, TypeQuantite
 
 pytestmark = pytest.mark.django_db
 
@@ -133,6 +133,32 @@ def test_proposer_filtre_critere():
     assert v["texte_critere"].startswith("Études") and "natures" in v
 
 
+def test_vocabulaire_avec_les_termes_par_pays():
+    """ADR 0019 : un terme validé évoque son type, avec son pays ; un terme proposé est montré à
+    part et n'évoque rien."""
+    aes = TypeOuvrage.objects.get(cle="aes")
+    Terme.objects.create(type_ouvrage=aes, terme="PEA", pays="Niger", statut="valide")
+    Terme.objects.create(type_ouvrage=aes, terme="MAEP", pays="Niger")  # proposé
+    v = outils.proposer_filtre_critere("Contrôle de 12 PEA à Tillabéri")
+    o = next(x for x in v["types_ouvrage"] if x["cle"] == "aes")
+    assert {"terme": "PEA", "pays": "Niger", "portee": "partout"} in o["termes"] and o["evoque"]
+    assert o["termes_proposes"] == [{"terme": "MAEP", "pays": "Niger", "portee": "partout"}]
+    v = outils.proposer_filtre_critere("Contrôle des MAEP de Dosso")
+    assert not next(x for x in v["types_ouvrage"] if x["cle"] == "aes")["evoque"]
+
+
+def test_proposer_terme_jamais_valide():
+    r = outils.proposer_terme(
+        "aes", "AEPS", pays="Burkina Faso", source_url="https://exemple.org/1", nb_avis=3
+    )
+    t = Terme.objects.get(pk=r["terme_id"])
+    assert (t.statut, t.origine, t.pays, t.nb_avis) == ("propose", "claude", "Burkina Faso", 3)
+    assert r["statut"] == "proposé" and r["adresse"].endswith(f"/terme/{t.pk}/change/")
+    assert "avertissement" in outils.proposer_terme("aes", "aeps", pays="Burkina Faso")
+    assert "type d'ouvrage inconnu" in outils.proposer_terme("inconnu", "x")["erreur"]
+    assert "pays hors de la liste" in outils.proposer_terme("aes", "PEA", pays="Bénin")["erreur"]
+
+
 def test_creer_proposition_jamais_un_avis():
     r = outils.creer_proposition({"reference": "AMI-2026-17", "type": "AMI"}, par="essai")
     p = Proposition.objects.get(pk=r["proposition_id"])
@@ -157,4 +183,4 @@ def test_brouillon_de_critere_ne_compte_pas(avis):
     assert "existe déjà" in outils.enregistrer_brouillon_critere(avis.pk, brouillon)["erreur"]
     faux = {**brouillon, "code": "4", "filtre": {"nature": ["CTR"]}}
     assert "filtre" in outils.enregistrer_brouillon_critere(avis.pk, faux)["erreur"]
-    assert len(outils.OUTILS) == 9
+    assert len(outils.OUTILS) == 10
