@@ -253,7 +253,7 @@ def test_consultation_seule_lit_sans_ecrire():
 
 @override_settings(IDENTITE_SOURCE="dev", UTILISATEUR_DEV="GICONSEILS\\essai")
 def test_mode_dev_utilisateur_fictif_sans_ticket():
-    # le mode est posé ici : un module de tests précédent peut laisser « iis » derrière lui
+    # le mode est posé par chaque test, sans compter sur celui de config/settings/test.py
     utilisateur, jeton = serveur_mcp._identifier({}, "127.0.0.1")
     assert (utilisateur.login_windows, jeton) == ("giconseils\\essai", None)
 
