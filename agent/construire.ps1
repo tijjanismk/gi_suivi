@@ -36,7 +36,17 @@ Write-Host "Construction de gisuivi-agent $version ..."
     --hidden-import win32timezone --hidden-import pystray._win32 --hidden-import PIL.Image `
     --collect-submodules gisuivi_agent --collect-submodules moteur `
     lancer.py
+# Pont MCP de Claude Desktop (ADR 0016) : programme console (stdio), rangé à côté de l'agent avec ses
+# propres bibliothèques (_pont\), installé avec lui dans Program Files par installer-poste.ps1.
+& .\.venv\Scripts\python.exe -m PyInstaller --noconfirm --clean --onedir --console --name pont-mcp `
+    --contents-directory _pont --distpath dist\pont `
+    --paths $depot --paths $PSScriptRoot `
+    --hidden-import requests_negotiate_sspi --hidden-import truststore `
+    pont-mcp.py
+if ($LASTEXITCODE -ne 0) { throw "Construction du pont MCP en echec." }
+Copy-Item dist\pont\pont-mcp\* dist\gisuivi-agent\ -Recurse -Force
 Copy-Item config.exemple.json dist\gisuivi-agent\config.exemple.json -Force
+Copy-Item claude_desktop_config.exemple.json dist\gisuivi-agent\claude_desktop_config.exemple.json -Force
 Write-Host "`nTerminé : dist\gisuivi-agent\gisuivi-agent.exe"
 Write-Host "Pour un test : copier config.exemple.json en dist\gisuivi-agent\config.json (ou en $env:ProgramData\GiSuivi\config.json), ajuster les racines, lancer l'exe."
 Write-Host "Le premier config.json trouve l'emporte : a cote de l'exe, puis ProgramData. Le registre (GPO) passe avant les deux."

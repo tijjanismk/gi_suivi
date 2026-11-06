@@ -17,9 +17,10 @@ tampon SQLite, icône, résumé du jour) et en **mode connecté** dès que
 | `gisuivi_agent/envoi.py` | `POST /api/segments`, Negotiate (SSPI), attente exponentielle |
 | `gisuivi_agent/icone.py` | Le voyant : vert / orange / gris, menu, notification au démarrage |
 | `gisuivi_agent/config.py` | Registre `HKLM\SOFTWARE\GI-CONSEILS\Suivi` (GPO) > `config.json` > défauts |
+| `pont-mcp.py`, `gisuivi_agent/pont_mcp.py` | Pont MCP de Claude Desktop (ADR 0016) : stdio → `UrlApi/mcp/` en Negotiate ; `pont-mcp.exe --claude` l'ajoute à `claude_desktop_config.json` |
 | `../moteur/suivi/` | Segmentation et classement, Python pur, 22 tests |
 | `tests/test_fichiers.py` | 17 titres de fenêtres réels |
-| `construire.ps1` | PyInstaller `--onedir` → `dist\gisuivi-agent\` |
+| `construire.ps1` | PyInstaller `--onedir` → `dist\gisuivi-agent\`, avec `pont-mcp.exe` (console) et `_pont\` |
 | `installer-poste.ps1` / `desinstaller-poste.ps1` | Pilote sur un poste, avant le MSI : `Program Files` + service |
 | `construire-msi.ps1`, `msi/Produit.wxs` | MSI WiX 3 (G07), non signé tant qu'il n'y a pas de certificat |
 | `CONTROLE.md` | Les 10 vérifications manuelles avant chaque livraison |

@@ -67,11 +67,37 @@ Modifier `C:\ProgramData\GiSuivi\config.json` (`url_api`, racines) avec le Bloc-
 ouvrir le Gestionnaire des tâches et terminer `gisuivi-agent.exe` : le service le relance avec
 la nouvelle configuration. Pas besoin de réinstaller.
 
+## Claude Desktop : brancher les outils GI-CONSEILS (pont MCP)
+
+Le kit installe aussi `pont-mcp.exe` à côté de l'agent (ADR 0016). Claude Desktop le lance ; il
+relaie vers `https://app.giconseils.local/mcp/` avec le ticket Kerberos de la session, sans mot de
+passe. Claude peut alors chercher des références, simuler un avis, lister les pièces manquantes
+et préparer une proposition d'avis ou un critère en brouillon, qu'une personne valide à l'écran.
+Lecture : direction, consultation et offres ; écriture : `GI-Direction` et `GI-Offres`.
+
+Pour chaque personne qui utilise Claude Desktop, **dans sa session** (pas en administrateur) :
+
+1. Ouvrir une invite de commandes et lancer :
+   ```
+   "C:\Program Files\GI-CONSEILS\GiSuivi\pont-mcp.exe" --claude
+   ```
+   Le pont s'ajoute à `%APPDATA%\Claude\claude_desktop_config.json` (entrée `gi-conseils`), sans
+   toucher au reste du fichier.
+2. Quitter Claude Desktop (menu Fichier → Quitter, pas seulement fermer la fenêtre) et le rouvrir.
+   Les outils GI-CONSEILS apparaissent dans le menu des outils de la conversation.
+
+À la main, ou si Claude Desktop range sa configuration ailleurs (Paramètres → Développeur →
+Modifier la configuration) : y recopier l'entrée de `claude_desktop_config.exemple.json`,
+installé à côté du pont.
+En cas de problème, le journal du pont est dans `%APPDATA%\Claude\logs\mcp-server-gi-conseils.log` :
+« 401 », la session n'est pas sur le domaine ou le ticket a expiré (`klist purge`, puis rouvrir la
+session) ; « injoignable », le réseau ou le certificat (même remède que pour l'agent).
+
 ## Mettre à jour l'agent
 
 Relancer `installer-poste.ps1` depuis le nouveau kit : il arrête proprement l'agent (les segments
-en attente sont conservés), remplace les fichiers et redémarre. La configuration existante est
-conservée si le kit n'en apporte pas.
+en attente sont conservés) et le pont MCP s'il est ouvert, remplace les fichiers et redémarre. La
+configuration existante est conservée si le kit n'en apporte pas.
 
 ## Désinstaller
 

@@ -56,6 +56,22 @@ jobs:
         # Code 5 = aucun test collecté : normal tant que le parcours e2e (phase 4) n'existe pas
         run: pytest -m e2e || [ $? -eq 5 ]
 
+  roues:
+    # Le serveur (Windows Server, Python 3.14) n'installe que des roues binaires et aucun
+    # compilateur (deploy/installer.ps1) : chaque dépendance doit en avoir une (ADR 0016, § 4).
+    name: Roues du serveur (Windows, Python 3.14)
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Installation comme sur le serveur
+        run: python -m pip install --only-binary=:all: -r deploy/requirements.txt
+      - name: Le serveur MCP et l'API Windows s'importent
+        run: python -c "from mcp.server.mcpserver import MCPServer; import win32security, uvicorn"
+
   agent:
     name: Agent (tests hors Windows)
     runs-on: ubuntu-latest

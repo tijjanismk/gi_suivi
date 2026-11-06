@@ -28,6 +28,9 @@ if (Get-Service $service -ErrorAction SilentlyContinue) {
 }
 . (Join-Path $PSScriptRoot 'arreter-agent.ps1')
 Stop-AgentProprement
+# Pont MCP de Claude Desktop (ADR 0016) : ouvert, il verrouillerait pont-mcp.exe pendant la copie.
+# Claude Desktop le relance a son prochain demarrage.
+Get-Process pont-mcp -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
 New-Item -ItemType Directory -Force $Cible | Out-Null
 & robocopy.exe $Source $Cible /MIR /NFL /NDL /NJH /NJS /NP | Out-Null

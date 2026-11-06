@@ -19,6 +19,7 @@ dependencies = [
     "environs>=11.0",
     "django-unfold~=0.108.0",  # interface (ADR 0005) ; versions mineures souvent incompatibles : figée
     "pywin32>=306; sys_platform == 'win32'",  # groupes AD par l'API Windows du serveur (ADR 0006)
+    "mcp>=2.3,<3",  # serveur MCP du module avis sous /mcp/ (ADR 0016) ; roues contrôlées en CI
 ]
 
 [project.optional-dependencies]
