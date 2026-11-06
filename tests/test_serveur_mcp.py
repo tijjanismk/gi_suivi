@@ -251,6 +251,15 @@ def test_consultation_seule_lit_sans_ecrire():
     assert not Proposition.objects.exists()
 
 
+def test_identite_dev_sans_ticket():
+    from django.conf import settings
+
+    utilisateur, jeton = serveur_mcp._identifier({}, "127.0.0.1")
+    reglage = (settings.IDENTITE_SOURCE, vars(settings).get("IDENTITE_SOURCE"))
+    assert utilisateur is not None and jeton is None, reglage
+    assert utilisateur.login_windows == "giconseils\\essai"
+
+
 def test_filtre_detaille_transmis_au_moteur():
     # mode « dev » des tests : utilisateur fictif de GI-Direction, sans ticket
     async def scenario(app):
