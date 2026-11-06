@@ -251,21 +251,22 @@ def test_consultation_seule_lit_sans_ecrire():
     assert not Proposition.objects.exists()
 
 
-def test_identite_dev_sans_ticket():
-    from django.conf import settings
-
+@override_settings(IDENTITE_SOURCE="dev", UTILISATEUR_DEV="GICONSEILS\\essai")
+def test_mode_dev_utilisateur_fictif_sans_ticket():
+    # le mode est posé ici : un module de tests précédent peut laisser « iis » derrière lui
     utilisateur, jeton = serveur_mcp._identifier({}, "127.0.0.1")
-    reglage = (settings.IDENTITE_SOURCE, vars(settings).get("IDENTITE_SOURCE"))
-    assert utilisateur is not None and jeton is None, reglage
-    assert utilisateur.login_windows == "giconseils\\essai"
+    assert (utilisateur.login_windows, jeton) == ("giconseils\\essai", None)
 
 
+@override_settings(**NEGOTIATE)
 def test_filtre_detaille_transmis_au_moteur():
-    # mode « dev » des tests : utilisateur fictif de GI-Direction, sans ticket
+    recherche = appel("rechercher_missions", {"annee_min": 2010})
+    invalide = appel("rechercher_missions", {"natures": ["XYZ"]})
+
     async def scenario(app):
         return [
-            await requete(app, appel("rechercher_missions", {"annee_min": 2010})),
-            await requete(app, appel("rechercher_missions", {"natures": ["XYZ"]})),
+            await requete(app, recherche, "TICKET-OFFRES"),
+            await requete(app, invalide, "TICKET-OFFRES"),
         ]
 
     trouve, refuse = (resultat(corps) for _, _, corps in jouer(scenario))
@@ -273,17 +274,19 @@ def test_filtre_detaille_transmis_au_moteur():
     assert refuse["erreur"].startswith("filtre : ")
 
 
+@override_settings(**NEGOTIATE)
 def test_page_web_et_nom_inconnu_refuses():
     async def scenario(app):
         return [
-            await requete(app, INITIALISER, origin="http://app.giconseils.local"),
-            await requete(app, INITIALISER, host="ailleurs.exemple"),
+            await requete(app, INITIALISER, "TICKET-OFFRES", origin="http://app.giconseils.local"),
+            await requete(app, INITIALISER, "TICKET-OFFRES", host="ailleurs.exemple"),
         ]
 
     (origine, _, _), (hote, _, _) = jouer(scenario)
     assert (origine, hote) == (403, 421)
 
 
+@override_settings(**NEGOTIATE)
 def test_protocole_2026_a_requete_autonome():
     """2026-07-28 : pas de poignée de main, la version et la méthode en en-têtes (le pont les
     recopie du message)."""
@@ -297,6 +300,7 @@ def test_protocole_2026_a_requete_autonome():
         return await requete(
             app,
             message,
+            "TICKET-OFFRES",
             mcp_protocol_version="2026-07-28",
             mcp_method="tools/call",
             mcp_name="lister_referentiel",
