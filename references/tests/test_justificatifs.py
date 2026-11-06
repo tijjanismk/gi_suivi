@@ -308,14 +308,14 @@ def test_ecran_justificatifs(client, dossier):
 
 
 @override_settings(**IIS)
-def test_ecran_justificatifs_partage_et_fichier_absents(client, dossier, settings):
+def test_ecran_justificatifs_partage_et_fichier_absents(client, dossier):
     p = js.rattacher(m(), fichier("GARDE.pdf"), "garde", None)
     (dossier / "GARDE.pdf").unlink()
     assert client.get(f"/references/piece/{p.pk}/fichier", **DIR).status_code == 404
     assert "introuvable" in html(client.get("/references/GIC-AEP-CTR-003/justificatifs", **DIR))
-    settings.PARTAGE_GIC = ""
-    assert client.get(f"/references/piece/{p.pk}/fichier", **DIR).status_code == 404
-    assert "pas configuré" in html(client.get(f"/references/{CODE}/justificatifs", **DIR))
+    with override_settings(PARTAGE_GIC=""):
+        assert client.get(f"/references/piece/{p.pk}/fichier", **DIR).status_code == 404
+        assert "pas configuré" in html(client.get(f"/references/{CODE}/justificatifs", **DIR))
 
 
 @override_settings(**IIS)

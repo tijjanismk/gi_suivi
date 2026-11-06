@@ -54,9 +54,9 @@ def test_registre_compteurs_filtres_et_droits(client, jeu):
 
 
 @override_settings(**IIS)
-def test_registre_partage_non_configure(client, db, settings):
-    settings.PARTAGE_GIC = ""
-    assert "pas configuré" in html(client.get(URL, **DIR))
+def test_registre_partage_non_configure(client, db):
+    with override_settings(PARTAGE_GIC=""):
+        assert "pas configuré" in html(client.get(URL, **DIR))
 
 
 @override_settings(**IIS)
@@ -74,14 +74,14 @@ def test_fiche_historique_et_fichier(client, jeu):
 
 
 @override_settings(**IIS)
-def test_fichier_absent_ou_partage_non_configure(client, jeu, partage, settings):
+def test_fichier_absent_ou_partage_non_configure(client, jeu, partage):
     v = PieceAdministrative.objects.get(pk=jeu["en_cours"])
     (partage / v.chemin.replace("\\", "/")).unlink()
     (partage / "ADMINISTRATIF/PIECES/QUITUS-FISCAL/Copie de Quitus DGI aout.pdf").unlink()
     assert client.get(URL + f"version/{v.pk}/fichier", **DIR).status_code == 404
-    settings.PARTAGE_GIC = ""
-    assert client.get(URL + f"version/{v.pk}/fichier", **DIR).status_code == 404
-    assert "pas configuré" in html(client.get(URL + "QUITUS-FISCAL/", **DIR))
+    with override_settings(PARTAGE_GIC=""):
+        assert client.get(URL + f"version/{v.pk}/fichier", **DIR).status_code == 404
+        assert "pas configuré" in html(client.get(URL + "QUITUS-FISCAL/", **DIR))
 
 
 @override_settings(**IIS)
@@ -157,7 +157,7 @@ def test_depot_proposer_puis_enregistrer(client, jeu):
 
 
 @override_settings(**IIS)
-def test_depot_refus_et_cas_particuliers(client, jeu, partage, settings):
+def test_depot_refus_et_cas_particuliers(client, jeu, partage):
     # fichier inconnu ou doublon : refusé
     r = client.post(
         URL + "deposer",
@@ -213,9 +213,9 @@ def test_depot_refus_et_cas_particuliers(client, jeu, partage, settings):
     # dossier absent, partage non configuré, droits
     (partage / "ADMINISTRATIF/PIECES/PATENTE").rmdir()
     assert "introuvable" in html(client.get(URL + "deposer?type=PATENTE", **DIR))
-    settings.PARTAGE_GIC = ""
-    assert "pas configuré" in html(client.get(URL + "deposer?type=NIF", **DIR))
-    assert client.get(URL + "deposer", **VUE).status_code == 403
+    with override_settings(PARTAGE_GIC=""):
+        assert "pas configuré" in html(client.get(URL + "deposer?type=NIF", **DIR))
+        assert client.get(URL + "deposer", **VUE).status_code == 403
 
 
 @override_settings(**IIS)
