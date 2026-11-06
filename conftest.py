@@ -15,6 +15,19 @@ PROJET_052 = r"\\AD-SERVEUR\GIC\MISSIONS_EN_COURS\GIC-HYD-ETU-052_Bargondaga"
 AVIS_SOMAPEP = r"\\AD-SERVEUR\GIC\AVIS\MALI\2026-10\2026-SOMAPEP-001_recharge-nappe"
 
 
+@pytest.fixture(autouse=True)
+def reglages_rendus():
+    """Chaque test rend les réglages de Django tels qu'il les a trouvés. Un `@override_settings`
+    mêlé, dans le corps du test, à une écriture dans la fixture `settings` de pytest-django se
+    défait dans le désordre et laisse son réglage à tous les tests suivants (IDENTITE_SOURCE
+    resté à « iis », 06/11/2026). Dans un test décoré : `with override_settings(...)`."""
+    from django.conf import settings
+
+    avant = settings._wrapped
+    yield
+    assert settings._wrapped is avant, "réglages non rendus (override_settings dans le désordre)"
+
+
 @pytest.fixture
 def racines(db):
     from suivi.models import Racine
