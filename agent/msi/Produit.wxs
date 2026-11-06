@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   MSI de l'agent GI-Suivi (G07), syntaxe WiX 3.
-  Construit par ..\construire-msi.ps1 : heat moissonne dist\gisuivi-agent\_internal (groupe FichiersInternes),
-  l'exécutable et le service sont décrits ici à la main.
+  Construit par ..\construire-msi.ps1 : heat moissonne dist\gisuivi-agent\_internal (groupe FichiersInternes)
+  et _pont (groupe FichiersPont, bibliothèques du pont MCP de Claude Desktop, ADR 0016) ; les exécutables et le
+  service sont décrits ici à la main.
 
   UpgradeCode : NE JAMAIS LE CHANGER. C'est lui qui fait qu'une nouvelle version remplace l'ancienne
   (MajorUpgrade) au lieu de s'installer à côté.
@@ -27,6 +28,7 @@
         <Directory Id="DossierEditeur" Name="GI-CONSEILS">
           <Directory Id="INSTALLFOLDER" Name="GiSuivi">
             <Directory Id="INTERNAL" Name="_internal" />
+            <Directory Id="PONT" Name="_pont" />
           </Directory>
         </Directory>
       </Directory>
@@ -52,11 +54,21 @@
              désinstallation : les autres valeurs de la clé viennent de la GPO. -->
         <RegistryValue Root="HKLM" Key="SOFTWARE\GI-CONSEILS\Suivi" Name="VersionAgent" Type="string" Value="$(var.Version)" />
       </Component>
+
+      <!-- Pont MCP de Claude Desktop (ADR 0016) : programme console lancé par Claude Desktop, jamais par
+           le MSI. Le MSI ne touche pas à la configuration de Claude Desktop : chaque personne lance
+           pont-mcp.exe avec l'option « claude » dans sa session (LISEZMOI-poste.md). -->
+      <Component Id="PontMcp" Guid="01CE427B-07CE-4749-B56C-EAAA3F943A6D" Win64="yes">
+        <File Id="PontExe" Source="$(var.Source)\pont-mcp.exe" KeyPath="yes" />
+        <File Id="ExempleClaude" Source="$(var.Source)\claude_desktop_config.exemple.json" />
+      </Component>
     </DirectoryRef>
 
     <Feature Id="Agent" Title="Agent GI-Suivi" Level="1">
       <ComponentRef Id="AgentEtService" />
       <ComponentGroupRef Id="FichiersInternes" />
+      <ComponentRef Id="PontMcp" />
+      <ComponentGroupRef Id="FichiersPont" />
     </Feature>
 
     <!-- Les agents en cours sont arrêtés avant la mise à jour des fichiers ; le service les relance
@@ -65,5 +77,10 @@
     <util:CloseApplication xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"
                            Id="FermerAgent" Target="gisuivi-agent.exe" EndSessionMessage="yes" CloseMessage="no"
                            Timeout="20" TerminateProcess="1" RebootPrompt="no" />
+    <!-- Un pont ouvert (Claude Desktop lancé) verrouillerait pont-mcp.exe : il n'a rien à enregistrer,
+         il est arrêté ; Claude Desktop le relance à son prochain démarrage. -->
+    <util:CloseApplication xmlns:util="http://schemas.microsoft.com/wix/UtilExtension"
+                           Id="FermerPont" Target="pont-mcp.exe" EndSessionMessage="no" CloseMessage="no"
+                           Timeout="1" TerminateProcess="1" RebootPrompt="no" />
   </Product>
 </Wix>
