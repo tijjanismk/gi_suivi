@@ -22,7 +22,7 @@ tampon SQLite, icône, résumé du jour) et en **mode connecté** dès que
 | `tests/test_fichiers.py` | 17 titres de fenêtres réels |
 | `construire.ps1` | PyInstaller `--onedir` → `dist\gisuivi-agent\`, avec `pont-mcp.exe` (console) et `_pont\` |
 | `installer-poste.ps1` / `desinstaller-poste.ps1` | Pilote sur un poste, avant le MSI : `Program Files` + service |
-| `construire-msi.ps1`, `msi/Produit.wxs` | MSI WiX 3 (G07), non signé tant qu'il n'y a pas de certificat |
+| `construire-msi.ps1`, `msi/Produit.wxs` | MSI WiX 3 (G07), non signé tant qu'il n'y a pas de certificat ; embarque le pont MCP (`pont-mcp.exe`, `_pont\` moissonné avec des identifiants préfixés par `msi/prefixer-pont.xslt`) |
 | `CONTROLE.md` | Les 10 vérifications manuelles avant chaque livraison |
 
 ## Essayer sur un poste Windows (sans rien installer sur le serveur)
