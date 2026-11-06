@@ -12,14 +12,41 @@ Principes :
   brouillons, jamais une mission vérifiée ni un avis validé.
 - **Réponses compactes.** Identifiant, code, libellé court, chiffres clés.
   Claude appelle un outil de détail s'il veut tout.
-- **Identité.** Chaque appel porte l'identité Windows transmise par le pont ;
-  les écritures sont attribuées à cette personne.
+- **Identité.** Chaque appel porte le ticket Kerberos de la session Windows, transmis par le
+  pont et validé par le serveur ; les écritures sont attribuées à cette personne.
 - **Mêmes fonctions que l'écran.** Chaque outil appelle le `services.py` de son
   application, qui appelle `moteur/`. Aucun calcul dans `outils_mcp.py`.
 
 ## Outils du MVP
 
-Écrits et testés le 27/10/2026 (AV09) comme fonctions de `avis/outils_mcp.py` ; leur montage sous `/mcp/` et le pont du poste attendent la décision de l'ADR 0016 (dépendance `mcp`). `enregistrer_brouillon_critere` crée un critère `brouillon`, qui ne compte pas dans la note avant qu'une personne l'enregistre à l'écran.
+Écrits et testés le 27/10/2026 (AV09) comme fonctions de `avis/outils_mcp.py`, montés sous `/mcp/` le 06/11/2026 (ADR 0016, voir « Montage et pont » ci-dessous). `enregistrer_brouillon_critere` crée un critère `brouillon`, qui ne compte pas dans la note avant qu'une personne l'enregistre à l'écran.
+
+## Montage et pont (ADR 0016)
+
+- **Serveur.** `config/serveur_mcp.py` enregistre les fonctions de `OUTILS` telles quelles (nom,
+  documentation, paramètres) dans le SDK `mcp` 2 (`MCPServer`, l'ancien `FastMCP`), servi en HTTP
+  « streamable » sous `/mcp/` par `config/asgi.py`, à côté de Django, dans le même processus
+  Uvicorn. Sans état et en réponses JSON : un message = une requête POST. Les fonctions sont
+  synchrones (ORM) et appelées par `sync_to_async`. `rechercher_missions` expose les clés du
+  filtre une à une. Les outils de lecture sont annoncés en lecture seule à Claude.
+- **Identité.** Celle des écrans (ADR 0007) : ticket Kerberos de l'en-tête
+  `Authorization: Negotiate`, validé par l'application ; sans ticket, 401. Une requête qui porte
+  un en-tête `Origin` (page web) ou un nom d'hôte absent d'`ALLOWED_HOSTS` est refusée.
+- **Droits.** Lecture : la consultation des écrans d'avis (`GI-Direction`, `GI-Offres`,
+  `GI-Direction-Lecture`) ; écriture (`creer_proposition`, `enregistrer_brouillon_critere`,
+  `proposer_terme`) : `GI-Direction` et `GI-Offres`. Un refus est rendu comme les autres erreurs,
+  `{"erreur": …}`. Les écritures sont attribuées au login du ticket : le paramètre `par` n'est pas
+  montré à Claude, et ignoré s'il l'envoie.
+- **Pont du poste.** `agent/pont-mcp.py` (`pont-mcp.exe`, installé avec l'agent dans
+  `C:\Program Files\GI-CONSEILS\GiSuivi\`) : Claude Desktop le lance en stdio ; il relaie chaque
+  message vers `UrlApi` de l'agent + `/mcp/` (`https://app.giconseils.local/mcp/`, ADR 0009) en
+  Negotiate (`requests-negotiate-sspi`), recopie les en-têtes du transport (version, méthode,
+  nom de l'outil) et rend une erreur JSON-RPC lisible si le serveur est injoignable ou refuse
+  l'identité. `pont-mcp.exe --claude` ajoute l'entrée `gi-conseils` à la configuration de Claude
+  Desktop de la session (`agent/LISEZMOI-poste.md`).
+- **Roues.** Le SDK et ses dépendances ont des roues binaires pour Python 3.14 sous Windows
+  (vérifié le 06/11/2026 sur PyPI : `mcp` 2.3.0 et toute sa chaîne) ; le travail « Roues du serveur »
+  de la CI les installe en `--only-binary=:all:` sur Windows à chaque envoi.
 
 ### `rechercher_missions`
 

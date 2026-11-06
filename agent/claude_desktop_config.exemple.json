@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gi-conseils": {
+      "command": "C:\\Program Files\\GI-CONSEILS\\GiSuivi\\pont-mcp.exe",
+      "args": []
+    }
+  }
+}

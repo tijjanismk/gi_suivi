@@ -11,6 +11,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils.module_loading import import_string
@@ -54,9 +56,15 @@ class IdentiteMiddleware:
 
 
 def login_de_la_requete(request) -> str | None:
+    return login_des_meta(request.META)
+
+
+def login_des_meta(meta: Mapping[str, str]) -> str | None:
+    """Modes « dev » et « iis » ; `meta` au format de `request.META` (aussi lu par le serveur MCP,
+    qui n'est pas une vue Django)."""
     if settings.IDENTITE_SOURCE == "dev":
         return settings.UTILISATEUR_DEV
-    login = request.META.get("REMOTE_USER")
-    if not login and request.META.get("REMOTE_ADDR") in settings.IDENTITE_PROXYS_DE_CONFIANCE:
-        login = request.META.get("HTTP_X_REMOTE_USER")
+    login = meta.get("REMOTE_USER")
+    if not login and meta.get("REMOTE_ADDR") in settings.IDENTITE_PROXYS_DE_CONFIANCE:
+        login = meta.get("HTTP_X_REMOTE_USER")
     return (login or "").strip() or None

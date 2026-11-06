@@ -5,8 +5,9 @@ libre, écriture bornée : seulement une proposition d'avis, un critère en brou
 proposé (ADR 0019), jamais un avis ni un terme validés (règle 3). Les réponses sont compactes ;
 `detail_mission` donne tout.
 
-Le montage sous `/mcp/` (SDK MCP officiel) et le pont du poste attendent la décision de l'ADR 0016
-(nouvelle dépendance) : ces fonctions s'y enregistrent telles quelles.
+Montées telles quelles sous `/mcp/` par `config/serveur_mcp.py` (ADR 0016), qui vérifie l'identité
+et les droits et pose `par` d'après le ticket Kerberos ; Claude Desktop y arrive par le pont du
+poste (`agent/pont-mcp.py`).
 """
 
 from __future__ import annotations
