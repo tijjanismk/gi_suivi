@@ -1,6 +1,6 @@
 # ADR 0016 — Serveur MCP du module avis et pont du poste
 
-- **Statut** : proposé le 27/10/2026 — à décider par le porteur (nouvelle dépendance)
+- **Statut** : accepté par le porteur le 06/11/2026, avec les deux ajustements du § 4 (proposé le 27/10/2026)
 - **Date** : 2026-10-27
 - **Décideur** : le porteur
 - **Remplace** : —
@@ -43,12 +43,21 @@ pour Python 3.14 vérifiées avant l'envoi.
 ### 3. Le pont du poste et l'identité
 
 `pont-mcp.py`, lancé par Claude Desktop en stdio, relaie vers
-`https://suivi-test.giconseils.local/mcp/` **en Negotiate**, avec le ticket Kerberos de la session
+`https://app.giconseils.local/mcp/` (ADR 0009) **en Negotiate**, avec le ticket Kerberos de la session
 Windows (`requests-negotiate-sspi`, déjà utilisé par l'agent) : le serveur vérifie l'identité comme
 pour les écrans (ADR 0007) ; on ne fait plus confiance à un en-tête posé par le poste (le « MVP »
 de `docs/design.md` § 3.3 est abandonné). Les outils d'écriture sont réservés à `GI-Direction` et
 `GI-Offres` ; la lecture suit la consultation des écrans. Le pont s'installe avec le kit des
 postes (fichier de configuration de Claude Desktop), par la GPO existante ou à la main.
+
+### 4. Ajustements du 06/11/2026 (décision du porteur)
+
+- Le pont vise `https://app.giconseils.local/mcp/`, nom de l'environnement test depuis l'ADR 0009 ;
+  `suivi-test` n'y reste qu'en alias, le temps de la transition.
+- Avant de fusionner le montage dans `main`, on vérifie depuis le poste que le SDK `mcp` et toutes
+  ses dépendances existent en roues binaires pour Python 3.14 (`deploy/requirements.txt`, construit
+  par `scripts/dev/exporter_dependances.py`) : le serveur n'installe rien d'autre. S'il en manque une,
+  la fusion attend et la décision revient au porteur.
 
 ## Justification
 
