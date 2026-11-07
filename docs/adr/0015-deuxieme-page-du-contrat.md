@@ -1,6 +1,6 @@
 # ADR 0015 — La deuxième page du contrat, quatrième justificatif exceptionnel
 
-- **Statut** : accepté par le porteur le 27/10/2026
+- **Statut** : accepté par le porteur le 27/10/2026 ; **remplacé en partie par l'ADR 0020** le 07/11/2026 (la pièce est la page des adresses des parties, pas la deuxième page ; on la repère pour tous les contrats)
 - **Date** : 2026-10-27
 - **Décideur** : le porteur, sur proposition de l'assistant
 - **Remplace** : —
