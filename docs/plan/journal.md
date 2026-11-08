@@ -176,3 +176,21 @@ n'ayant pas de début de carrière, les années se comptent depuis le premier di
 comme un plafond. Pièges de la journée : `Tout-en-un.ps1` lancé avec `*>&1` s'arrête sur un
 simple avis de `psql` ; un `*.csv` n'entre pas dans Git (`.gitignore`, « données ») ; ruff coupe
 les longues assertions à sa façon : passer par une variable.
+
+## 05 au 08/11/2026 — les références prêtes à vérifier (session sur le serveur)
+
+Session ouverte dans `C:\GIC` sur AD-SERVEUR, sans toucher au code : le dépôt ne reçoit que
+l'ADR 0020 (PR #4) et cette passation, chacun par une worktree à part, car une autre session
+travaille AV14 dans `C:\GIC\travail\gi_suivi`. Le gérant a scanné les contrats en entier
+(6 lots, 277 PDF) : ils ont servi à corriger le registre (montants de GIC-ENV-ETU-020 et 021
+croisés), à repérer la page des adresses (ADR 0020 : souvent la garde ou la page 2, pas une
+« deuxième page » fixe) et à trancher les doublons. Le porteur a confié l'arbitrage à
+l'assistant ; règle du code gardé : le plus de pièces, puis le contrat complet, puis le plus
+petit numéro. Plusieurs décisions du 29/10, prises sans pièces, étaient fausses et sont
+défaites. L'application ne sait ni annuler une absorption ni défaire une décision : le porteur
+a permis d'écrire dans la base de test, après `dumpdata` et en transaction. Résultat : 220
+références actives, registre et base identiques. Les champs du contrat ne sont remplis que
+d'une source sûre ; le rôle dans un groupement ne se lit pas par OCR, la formule « mandataire
+du groupement » figurant dans les modèles. En parallèle, des AMI réels (PISEN Niger, puis
+PATA-BF Burkina) ont été montés en simulation, hors application, sur le modèle des dossiers
+déposés par le bureau (`D:\AMI`) ; on y garde les variantes d'adresse du bureau, une par usage.
