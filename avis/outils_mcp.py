@@ -202,6 +202,47 @@ def pieces_manquantes(avis_id: int) -> dict:
     }
 
 
+def _page(numero: int, p) -> dict:
+    """Une page du plan, sans ses champs vides (réponse compacte)."""
+    page = {
+        "page": numero,
+        "genre": p.genre,
+        "rubrique": p.rubrique,
+        "titre": p.titre,
+        "etat": p.etat.value,
+        "chemin": p.chemin,
+        "motif": p.motif,
+        "reference": p.reference,
+        "paysage": p.paysage,
+        "lignes": sum(len(g.lignes) for g in p.groupes),
+    }
+    return {k: v for k, v in page.items() if v not in ("", 0, False)}
+
+
+def plan_dossier(avis_id: int) -> dict:
+    """Le dossier de réponse à un AMI, page par page, au modèle des dossiers du bureau (SOMAPEP) :
+    couverture, sommaire, intercalaires A à F, lettre, adresse, pièces administratives,
+    présentation, listes des références retenues (dernière simulation enregistrée), fiches et
+    pièces de chaque référence, organigramme, moyens. Pour chaque page : genre, rubrique, titre,
+    etat (redigee : composée par l'application ; a_inserer : un fichier du partage, avec son
+    chemin relatif ; perimee ; manquante, avec le motif). Rend aussi le sommaire, le nombre de
+    pages par état et l'adresse de la page à imprimer. Ne renvoie aucun fichier. AMI seulement."""
+    a = _avis(avis_id)
+    if a is None:
+        return {"erreur": f"avis inconnu : {avis_id}"}
+    if a.type != Avis.Type.AMI:
+        return {"erreur": f"le dossier ne se prépare que pour un AMI ({a.type} {a.reference})"}
+    d = services.plan_dossier(a)
+    rubriques = [r for r in d.rubriques if r.au_sommaire]
+    return {
+        "avis": f"{a.type} {a.reference}",
+        "adresse": f"/avis/{a.pk}/dossier",
+        "sommaire": [{"code": r.code, "libelle": r.libelle, "etat": r.etat} for r in rubriques],
+        "compte": d.compte,
+        "pages": [_page(i, p) for i, p in enumerate(d.pages, start=1)],
+    }
+
+
 def rechercher_experts(
     poste: str = "",
     niveau_min: str = "",
@@ -315,7 +356,8 @@ def enregistrer_brouillon_critere(avis_id: int, critere: dict) -> dict:
     """Prépare un critère du barème, marqué brouillon : il ne compte pas dans la note avant qu'une
     personne l'ouvre et l'enregistre. `critere` : code, libelle, mode (par_mission, anciennete,
     forfait, manuel), points_par_mission, plafond, nb_min_missions, annees_seuil, points_socle,
-    points_par_annee, filtre (format de `docs/schema-donnees.md`)."""
+    points_par_annee, filtre (format de `docs/schema-donnees.md`), experience (generale,
+    specifique ou hors : la rubrique D du dossier ; vide, elle se déduit du texte)."""
     a = _avis(avis_id)
     if a is None:
         return {"erreur": f"avis inconnu : {avis_id}"}
@@ -332,6 +374,7 @@ OUTILS = (
     lister_referentiel,
     simuler_avis,
     pieces_manquantes,
+    plan_dossier,
     rechercher_experts,
     proposer_filtre_critere,
     proposer_terme,

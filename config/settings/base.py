@@ -131,6 +131,35 @@ GROUPE_OFFRES = env.str("GROUPE_OFFRES", "GI-Offres")
 PARTAGE_GIC = env.str("PARTAGE_GIC", "")
 ENVIRONNEMENT = env.str("ENVIRONNEMENT", "")  # test ou prod sur le serveur, vide en développement
 
+# Identité du bureau, imprimée dans le dossier d'un AMI (AV14), telle qu'elle figure dans les
+# documents du bureau : le siège sur la lettre, l'adresse et la couverture ; le pied des listes de
+# références tel qu'il est dans les listes Word du bureau (autre adresse, autre boîte postale).
+# Le logo n'est pas ici : il se lit sur le partage, ADMINISTRATIF\LOGOS\LOGO.png.
+BUREAU = {
+    "raison_sociale": env.str("BUREAU_RAISON_SOCIALE", "GI-Conseils SARL"),
+    "nom_court": env.str("BUREAU_NOM_COURT", "GI-Conseils"),
+    "gerant": env.str("BUREAU_GERANT", "Oumar Almahamoudou DICKO"),
+    "titre_gerant": env.str("BUREAU_TITRE_GERANT", "Le Gérant"),
+    "adresse": env.str("BUREAU_ADRESSE", "Bacodjicoroni-ext sud, Rue : 839 Porte : 523"),
+    "boite_postale": env.str("BUREAU_BOITE_POSTALE", "BPE : 4853"),
+    "ville": env.str("BUREAU_VILLE", "Bamako"),
+    "pays": env.str("BUREAU_PAYS", "Mali"),
+    "telephones": env.list(
+        "BUREAU_TELEPHONES", ["(223) 20 28 02 10", "74 45 13 29", "90 46 35 20"]
+    ),
+    "courriels": env.list("BUREAU_COURRIELS", ["gi_conseil@yahoo.fr", "contact@gi-conseils.ml"]),
+    "listes_siege": env.str(
+        "BUREAU_LISTES_SIEGE", "Baco-djicoroni aci GOLF Rue : 414 Porte : 302 Bamako ; Mali"
+    ),
+    "listes_contact": env.str(
+        "BUREAU_LISTES_CONTACT",
+        "BP. E1773 – Tél. : 20 28 02 10/74 45 13 29/74 11 22 39/90 46 35 20",
+    ),
+    "listes_courriels": env.list(
+        "BUREAU_LISTES_COURRIELS", ["contact@gi-conseils.ml", "gi_conseil@yahoo.fr"]
+    ),
+}
+
 
 # --- Interface (Unfold, ADR 0005) -----------------------------------------------------
 def _version_fichier(chemin_statique: str) -> int:

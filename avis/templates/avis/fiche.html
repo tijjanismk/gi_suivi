@@ -9,7 +9,8 @@
 
 {% block actions %}
   {% if criteres %}<a href="{% url 'avis:simulation' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Simulation</a>{% endif %}
-  {% if sommaire %}<a href="{% url 'avis:intercalaires' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Intercalaires</a>{% endif %}
+  {% if sommaire %}<a href="{% url 'avis:dossier' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Dossier</a>
+  <a href="{% url 'avis:intercalaires' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Intercalaires</a>{% endif %}
   {% if peut_saisir %}
   <a href="{% url 'avis:modifier' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm border border-base-200 dark:border-base-700 text-important gic:hover:bg-gray-50">Modifier l'avis</a>
   <a href="{% url 'avis:critere_nouveau' a.pk %}" class="gic:rounded-md gic:px-3 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Ajouter un critère</a>
@@ -38,7 +39,7 @@
 
 {% if sommaire %}
 {% component "unfold/components/card.html" with title="Sommaire de la manifestation d'intérêt" %}
-  <p class="gic:mb-3 gic:text-sm text-subtle">Une ligne par intercalaire, dans l'ordre du dossier ; les rubriques de E sont les critères du barème. <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:intercalaires' a.pk %}">Imprimer le sommaire et les intercalaires</a></p>
+  <p class="gic:mb-3 gic:text-sm text-subtle">Une ligne par intercalaire, dans l'ordre du dossier : D.1 réunit les critères d'expérience générale, D.2 donne un intercalaire à chaque critère d'expérience spécifique, avec les références retenues de la dernière simulation enregistrée. <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:dossier' a.pk %}">Imprimer le dossier</a> · <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:intercalaires' a.pk %}">le sommaire et les intercalaires seuls</a></p>
   <ol class="gic:flex gic:flex-col gic:gap-1.5 gic:text-sm" id="sommaire">
     {% for r in sommaire %}
     <li class="gic:flex gic:items-baseline gic:gap-3{% if r.niveau == 2 %} gic:ml-8{% elif r.niveau == 3 %} gic:ml-16{% elif r.niveau > 3 %} gic:ml-24{% endif %}" data-rubrique="{{ r.code }}" data-niveau="{{ r.niveau }}">

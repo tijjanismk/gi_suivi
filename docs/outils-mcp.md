@@ -88,6 +88,25 @@ Paramètres : `avis_id` (ou `codes_missions`). Rend la liste des pièces
 absentes ou non vérifiées, classée par points en jeu décroissants, avec la
 mission, le type de pièce et où elle devrait se trouver.
 
+### `plan_dossier`
+
+Paramètre : `avis_id` (un AMI). Lecture seule, ajouté le 07/11/2026 (AV14). Rend le dossier de
+réponse page par page, au modèle des vrais dossiers du bureau (version électronique de SOMAPEP,
+reprise pour les AMI PISEN du Niger) : `sommaire` (les rubriques imprimées, A à F, avec ce que
+l'application sait de chacune), `compte` (pages par état) et `pages`, chacune
+`{page, genre, rubrique, titre, etat, chemin?, motif?, reference?, paysage?, lignes?}`.
+
+- `etat` : `redigee` (composée par l'application : couverture, sommaire, intercalaires, lettre,
+  adresse, listes, pages de famille, organigramme), `a_inserer` (un fichier du partage, `chemin`
+  relatif à `PARTAGE_GIC`), `perimee` (la version jointe ne vaut plus à la date limite) ou
+  `manquante` (avec le `motif`).
+- Les listes viennent de la dernière simulation enregistrée (`Selection.retenue`) ; D.1 réunit
+  les critères d'expérience générale, D.2.x un critère d'expérience spécifique chacun
+  (`Critere.experience`, sinon déduite du texte ou du mode). Les fiches de référence au format
+  Banque mondiale ne sont pas encore au registre : elles sont toutes `manquante`.
+- Le calcul est celui de la page « Dossier » (`/avis/<id>/dossier`) : `services.plan_dossier`,
+  puis `moteur.avis.sommaire.plan`. Aucun fichier n'est renvoyé.
+
 ### `rechercher_experts`
 
 Paramètres : `poste`, `domaines`, `niveau_min`, `annees_experience_min`,
@@ -133,7 +152,8 @@ l'humain relit d'un coup.
 
 ## Outils prévus après le MVP
 
-- `assembler_dossier(avis_id)` — produit le PDF paginé, signets, filigrane.
+- `assembler_dossier(avis_id)` — produit le PDF paginé, signets, filigrane, en suivant le plan
+  de `plan_dossier` (scans insérés à leur place ; ADR et bibliothèque PDF à décider).
 - `generer_cv(expert_id, avis_id)` — CV réordonné pour l'avis.
 - `proposer_normalisation_mission(code)` — assistance à l'assainissement.
 - `rechercher_offres_passees(...)` — bibliothèque des offres soumises.
