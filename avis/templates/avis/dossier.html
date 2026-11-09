@@ -148,7 +148,7 @@
 </div>
 
 {% for p in d.pages %}
-<section class="page {{ p.genre }}{% if p.paysage %} paysage{% endif %}" data-genre="{{ p.genre }}" data-rubrique="{{ p.rubrique }}" data-etat="{{ p.etat }}"{% if p.reference %} data-reference="{{ p.reference }}"{% endif %}>
+<section class="page page-{{ p.genre }}{% if p.paysage %} paysage{% endif %}" data-genre="{{ p.genre }}" data-rubrique="{{ p.rubrique }}" data-etat="{{ p.etat }}"{% if p.reference %} data-reference="{{ p.reference }}"{% endif %}>
   {% if p.entete %}<header class="hf-haut"><span>{{ b.raison_sociale }}</span><span>Manifestation d’Intérêt <small>n° {{ d.numero }}</small></span></header>{% endif %}
   {% if p.genre == "couverture" %}
   <div class="couverture">
@@ -259,7 +259,7 @@
 <script>
 // Listes : une page ne déborde jamais ; les lignes en trop passent sur une page identique
 // (bandeau, logo, pied), la ligne de groupe avec elles.
-document.querySelectorAll("section.liste").forEach(function (s) {
+document.querySelectorAll("section.page-liste").forEach(function (s) {
   for (var garde = 0; garde < 40; garde++) {
     var tb = s.querySelector("tbody"), lim = s.querySelector(".liste-pied").getBoundingClientRect().top - 6;
     if (tb.rows.length <= 1 || tb.rows[tb.rows.length - 1].getBoundingClientRect().bottom <= lim) break;
