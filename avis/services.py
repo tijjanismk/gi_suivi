@@ -428,7 +428,8 @@ def _criteres_du_dossier(avis: Avis) -> list[sommaire_moteur.Critere]:
 
 
 def _references_generales() -> list[sommaire_moteur.Reference]:
-    """D.1 : toutes les références du bureau, sauf les absorbées (on cite le code gardé)."""
+    """D.1 : toutes les références du bureau, sauf les absorbées (on cite le code gardé), avec
+    leurs pièces ; le moteur n'en garde que les justifiées (`sommaire.justifiee`)."""
     missions = Mission.objects.filter(absorbee_par__isnull=True).order_by("code")
     missions = missions.select_related("client", "bailleur").prefetch_related("pieces")
     return [_reference_du_dossier(m) for m in missions]
@@ -465,14 +466,13 @@ def sommaire(
     brouillon n'y entre pas tant qu'il n'est pas enregistré (règle 3)."""
     if controle is None:
         controle = controle_pieces(avis)
-    actives = Mission.objects.filter(absorbee_par__isnull=True).values_list("code", flat=True)
     return sommaire_moteur.sommaire(
         _criteres_du_dossier(avis),
         avis.groupement,
         _pieces_du_dossier(controle),
         _postes_du_dossier(avis),
         bureau(),
-        [sommaire_moteur.Reference(code, "") for code in actives],  # D.1 : le compte suffit
+        _references_generales(),  # avec leurs pièces : seules les justifiées comptent
     )
 
 

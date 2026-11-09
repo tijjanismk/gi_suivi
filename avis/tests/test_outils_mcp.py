@@ -126,8 +126,12 @@ def test_plan_du_dossier_apres_une_simulation(avis):
     chemin = "REFERENCES\\02_JUSTIFICATIFS\\GIC-HYD-ETU-033\\GARDE.pdf"
     assert {(p["etat"], p["chemin"]) for p in gardes} == {("a_inserer", chemin)}
     listes = [(p["rubrique"], p["lignes"], p["paysage"]) for p in pages if p["genre"] == "liste"]
-    # D.1 : toutes les références ; D.2.x : toutes celles qui répondent, même sans pièce
-    assert listes == [("D.1", 2, True), ("D.2.1", 1, True), ("D.2.2", 1, True)]
+    # D.1 et D.2.x : les références justifiées ; le contrôle des forages n'a aucune pièce
+    assert listes == [("D.1", 1, True), ("D.2.1", 1, True)]
+    etats = {r["code"]: r["etat"] for r in rendu["sommaire"]}
+    hors = "1 référence sans ses trois pièces, hors du dossier"
+    assert etats["D.1"] == f"1 référence du bureau ; {hors}"
+    assert etats["D.2.2"] == f"aucune référence justifiée ; {hors}"
     assert all(p.get("motif") for p in pages if p["etat"] == "manquante")
     assert outils.plan_dossier(999999) == {"erreur": "avis inconnu : 999999"}
 

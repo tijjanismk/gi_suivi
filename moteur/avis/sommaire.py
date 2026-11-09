@@ -10,7 +10,10 @@ PISEN du Niger (novembre 2026) et validée page par page par le porteur :
 - D expériences : D.1 l'expérience générale, toutes les références du bureau en une liste,
   même sans critère général ; D.2 les expériences spécifiques, un D.2.x par critère
   spécifique, son libellé tel quel, avec toutes les références qui y répondent, sans s'arrêter
-  au nombre demandé (règle du porteur, 09/11/2026, comme dans SOMAPEP) ;
+  au nombre demandé (règle du porteur, 09/11/2026, comme dans SOMAPEP). En D.1 comme en D.2,
+  seulement les références justifiées : page de garde, page de signature et attestation (le
+  porteur, 09/11/2026 : « oui pour le moment », à revoir après l'étude d'autres AMI) ; le
+  sommaire dit combien sont laissées hors du dossier ;
 - E organigramme avec les experts clés ; F moyens matériels et logistiques.
 
 Le sommaire imprimé montre les rubriques de premier niveau et celles de D ; chaque rubrique a son
@@ -55,6 +58,7 @@ PAYS = {
 }
 SANS_REFERENCE = "aucune référence ne répond (ou simulation à enregistrer)"
 SANS_REGISTRE = "aucune référence au registre"
+SANS_JUSTIFIEE = "aucune référence justifiée (page de garde, page de signature et attestation)"
 _GENERALE = re.compile(r"\bexperiences? generales?\b")
 _SPECIFIQUE = re.compile(r"\bexperiences? specifiques?\b")
 
@@ -288,20 +292,49 @@ def _etat_postes(postes: list[Poste]) -> tuple[str, bool | None]:
     return f"{n} poste{_s(n)}, un expert retenu pour chacun", False
 
 
+def justifiee(r: Reference) -> bool:
+    """La référence a sa page de garde, sa page de signature et son attestation (un PV de
+    réception rattaché comme attestation compte). Seule une référence justifiée entre au dossier,
+    comme dans SOMAPEP (le porteur, 09/11/2026 : « oui pour le moment »)."""
+    types = {j.type for j in r.justificatifs}
+    return all(t in types for t, _ in JUSTIFICATIFS)
+
+
+def _trier(references: Iterable[Reference]) -> tuple[list[Reference], int]:
+    """Les références justifiées, sans doublon, et le nombre de celles laissées hors du dossier."""
+    uniques = {r.code: r for r in references}
+    gardees = [r for r in uniques.values() if justifiee(r)]
+    return gardees, len(uniques) - len(gardees)
+
+
+def _justifiees(c: Critere) -> Critere:
+    if c.retenues is None:
+        return c
+    return replace(c, retenues=tuple(_trier(c.retenues)[0]))
+
+
+def _etat_references(
+    references: Iterable[Reference], vide: str, suffixe: str = ""
+) -> tuple[str, bool | None]:
+    """Combien de références entrent au dossier et combien en sont laissées, faute de pièces."""
+    gardees, hors = _trier(references)
+    pronom = "ses" if hors == 1 else "leurs"
+    laissees = f"{hors} référence{_s(hors)} sans {pronom} trois pièces, hors du dossier"
+    if not gardees:
+        return (f"aucune référence justifiée ; {laissees}" if hors else vide), True
+    n = len(gardees)
+    etat = f"{n} référence{_s(n)}{suffixe}"
+    return (f"{etat} ; {laissees}" if hors else etat), None
+
+
 def _etat_retenues(c: Critere) -> tuple[str, bool | None]:
     if c.retenues is None:
         return "simulation non enregistrée", True
-    n = len({r.code for r in c.retenues})
-    if not n:
-        return "aucune référence ne répond", True
-    return f"{n} référence{_s(n)}", None
+    return _etat_references(c.retenues, "aucune référence ne répond")
 
 
 def _etat_generale(references: list[Reference]) -> tuple[str, bool | None]:
-    n = len({r.code for r in references})
-    if not n:
-        return SANS_REGISTRE, True
-    return f"{n} référence{_s(n)} du bureau", None
+    return _etat_references(references, SANS_REGISTRE, " du bureau")
 
 
 def sommaire(
@@ -450,11 +483,14 @@ def _toutes(references: list[Reference]) -> Critere:
     return Critere("D.1", "", Experience.GENERALE, retenues=tuple(references))
 
 
-def _experience_generale(references: list[Reference], numeros: dict[str, int]) -> list[Page]:
-    """Toutes les références du bureau en une seule liste, puis la fiche et les pièces de
-    chacune, sans page de famille : l'intercalaire D.1 la précède."""
+def _experience_generale(
+    references: list[Reference], numeros: dict[str, int], laissees: int = 0
+) -> list[Page]:
+    """Toutes les références justifiées du bureau en une seule liste, puis la fiche et les
+    pièces de chacune, sans page de famille : l'intercalaire D.1 la précède."""
     if not references:
-        return [_manque("D.1", "Expérience générale", SANS_REGISTRE)]
+        motif = SANS_JUSTIFIEE if laissees else SANS_REGISTRE
+        return [_manque("D.1", "Expérience générale", motif)]
     tout = _toutes(references)
     pages = [_liste("D.1", "LISTE DES EXPERIENCES GÉNÉRALES", [_groupe(tout, numeros)])]
     for r in _retenues(tout, numeros):
@@ -463,9 +499,13 @@ def _experience_generale(references: list[Reference], numeros: dict[str, int]) -
 
 
 def _experience_specifique(code: str, c: Critere, numeros: dict[str, int]) -> list[Page]:
-    """Comme dans SOMAPEP, chaque rubrique spécifique reprend ses propres fiches."""
+    """Comme dans SOMAPEP, chaque rubrique spécifique reprend ses propres fiches, celles des
+    références justifiées."""
     if not c.retenues:
         return [_manque(code, premiere_ligne(c.libelle), SANS_REFERENCE)]
+    c = _justifiees(c)
+    if not c.retenues:
+        return [_manque(code, premiere_ligne(c.libelle), SANS_JUSTIFIEE)]
     liste = _liste(code, "LISTE DES EXPERIENCES SPECIFIQUES", [_groupe(c, numeros)])
     return [liste, *_references(code, c, numeros)]
 
@@ -492,13 +532,15 @@ def plan(
 ) -> list[Page]:
     """Le dossier page par page : couverture, sommaire, puis chaque intercalaire suivi de ses
     pages. `pieces` dans l'ordre où le dossier les joint ; `references` : toutes les références
-    du bureau, pour D.1. Aucune fiche de référence n'est encore au registre : elles sont toutes
-    « manquantes » jusqu'à ce qu'elles y entrent."""
+    du bureau, pour D.1. Seules les références justifiées entrent au dossier (`justifiee`).
+    Aucune fiche de référence n'est encore au registre : elles sont toutes « manquantes »
+    jusqu'à ce qu'elles y entrent."""
     criteres, pieces, postes = list(criteres), list(pieces), list(postes)
     references = list(references)
     rubriques = sommaire(criteres, groupement, pieces, postes, bureau, references)
     _, specifiques = _par_rang(criteres)
-    numeros = numeroter([_toutes(references), *specifiques])
+    references, laissees = _trier(references)
+    numeros = numeroter([_toutes(references), *(_justifiees(c) for c in specifiques)])
     par_code = {p.code: p for p in pieces}
     administratives = [_page_piece("B", p) for p in pieces if p.code not in PIECES_A_PART]
     if not administratives:
@@ -508,7 +550,7 @@ def plan(
         **_contenu_lettres(groupement),
         "B": administratives,
         "C": [_page_a_part("C", par_code, "PRESENTATION")],
-        "D.1": _experience_generale(references, numeros),
+        "D.1": _experience_generale(references, numeros, laissees),
         "E": [organigramme],
         "F": [_page_a_part("F", par_code, "MOYENS")],
     }
