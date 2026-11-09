@@ -114,6 +114,22 @@ def test_simuler_et_pieces_manquantes(avis):
     assert outils.simuler_avis(999999) == {"erreur": "avis inconnu : 999999"}
 
 
+def test_plan_du_dossier_apres_une_simulation(avis):
+    services.enregistrer_simulation(avis, services.calculer(avis))
+    rendu = outils.plan_dossier(avis.pk)
+    assert rendu["avis"] == "AMI AMI-ESSAI" and rendu["adresse"] == f"/avis/{avis.pk}/dossier"
+    codes = [r["code"] for r in rendu["sommaire"]]
+    assert codes == ["A", "B", "C", "D", "D.1", "D.2", "D.2.1", "D.2.2", "E", "F"]
+    pages = rendu["pages"]
+    garde = next(p for p in pages if p.get("titre") == "Page de garde · GIC-HYD-ETU-033")
+    assert (garde["etat"], garde["rubrique"]) == ("a_inserer", "D.2.1")
+    assert garde["chemin"] == "REFERENCES\\02_JUSTIFICATIFS\\GIC-HYD-ETU-033\\GARDE.pdf"
+    listes = [(p["rubrique"], p["lignes"], p["paysage"]) for p in pages if p["genre"] == "liste"]
+    assert listes == [("D.2.1", 1, True)]  # le contrôle des forages n'a aucune pièce
+    assert all(p.get("motif") for p in pages if p["etat"] == "manquante")
+    assert outils.plan_dossier(999999) == {"erreur": "avis inconnu : 999999"}
+
+
 def test_rechercher_experts():
     e = Expert.objects.create(nom="TOGOLA", prenoms="Youssouf", specialite="Hydrogéologie")
     Diplome.objects.create(expert=e, intitule="Ingénieur des mines", niveau="bac+5", annee=1996)

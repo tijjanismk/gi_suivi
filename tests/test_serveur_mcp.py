@@ -161,6 +161,9 @@ def test_les_outils_sont_enregistres_tels_quels():
         assert outil.description == fonction.__doc__
         assert "ctx" not in outil.input_schema["properties"]
         assert outil.annotations.read_only_hint is (fonction.__name__ not in serveur_mcp.ECRITURES)
+    # le plan du dossier d'un AMI (AV14) : en lecture, un seul paramètre
+    assert outils["plan_dossier"].annotations.read_only_hint is True
+    assert set(outils["plan_dossier"].input_schema["properties"]) == {"avis_id"}
     # écritures attribuées par le serveur, jamais par Claude
     assert "par" not in outils["creer_proposition"].input_schema["properties"]
     assert "par" not in outils["proposer_terme"].input_schema["properties"]
