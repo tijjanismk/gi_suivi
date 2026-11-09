@@ -68,7 +68,7 @@ def test_la_fiche_d_un_ami_donne_son_sommaire(client, fier_ii):
 
 def test_les_intercalaires_une_feuille_par_ligne_du_plan(client, fier_ii):
     page = html(client.get(f"/avis/{fier_ii.pk}/intercalaires", **VUE))
-    assert page.count('class="page intercalaire"') == 14  # 5 A, B, C, 4 D, E, F
+    assert page.count('class="page intercalaire"') == 13  # 5 A, B, C, 4 D, E, F
     assert page.count("<li class=") == 9  # au sommaire, les A.x n'ont pas de ligne
     assert "SOMMAIRE DE LA MANIFESTATION D’INTERET" in page
     titre = "D.2.1. Expériences spécifiques dans les études hydroagricoles"
@@ -83,7 +83,7 @@ def test_dossier_entete_pied_et_logo_lu_sur_le_partage(client, fier_ii, settings
     settings.PARTAGE_GIC = str(tmp_path)
     page = html(client.get(f"/avis/{fier_ii.pk}/intercalaires", **DIR))
     pied = '<footer class="hf-bas">Études techniques et contrôle'
-    assert page.count('<header class="hf-haut">') == page.count(pied) == 15
+    assert page.count('<header class="hf-haut">') == page.count(pied) == 14  # le sommaire et 13 intercalaires
     url = f"/avis/{fier_ii.pk}/dossier"
     page = html(client.get(url, **DIR))
     assert 'data-genre="lettre"' in page and 'data-genre="organigramme"' in page
