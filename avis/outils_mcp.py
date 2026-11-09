@@ -222,7 +222,8 @@ def _page(numero: int, p) -> dict:
 def plan_dossier(avis_id: int) -> dict:
     """Le dossier de réponse à un AMI, page par page, au modèle des dossiers du bureau (SOMAPEP) :
     couverture, sommaire, intercalaires A à F, lettre, adresse, pièces administratives,
-    présentation, listes des références retenues (dernière simulation enregistrée), fiches et
+    présentation, listes des références (D.1 : toutes celles du bureau ; D.2.x : toutes celles
+    qui répondent au critère d'après la dernière simulation enregistrée), fiches et
     pièces de chaque référence, organigramme, moyens. Pour chaque page : genre, rubrique, titre,
     etat (redigee : composée par l'application ; a_inserer : un fichier du partage, avec son
     chemin relatif ; perimee ; manquante, avec le motif). Rend aussi le sommaire, le nombre de

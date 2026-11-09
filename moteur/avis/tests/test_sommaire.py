@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 
 from moteur.avis.sommaire import (
+    SANS_JUSTIFIEE,
     Bureau,
     Critere,
     Etat,
@@ -15,6 +16,7 @@ from moteur.avis.sommaire import (
     Poste,
     Reference,
     classer,
+    justifiee,
     ligne,
     pays,
     plan,
@@ -27,10 +29,11 @@ SAHEL = "Une expérience dans des zones sahéliennes ou semi-arides constitue un
 QUATRE = ["fiche", "piece", "piece", "piece"]  # la fiche, la garde, la signature, l'attestation
 
 
+DOSSIER = "REFERENCES\\02_JUSTIFICATIFS\\"
+
+
 def reference(code: str, annee: int, *types: str) -> Reference:
-    justificatifs = tuple(
-        Justificatif(t, f"REFERENCES\\02_JUSTIFICATIFS\\{code}\\{t.upper()}.pdf") for t in types
-    )
+    justificatifs = tuple(Justificatif(t, f"{DOSSIER}{code}\\{t.upper()}.pdf") for t in types)
     return Reference(
         code,
         f"Mission {code}",
@@ -127,25 +130,29 @@ def test_criteres_generaux_et_specifiques():
 
 def test_ce_que_l_application_sait_de_chaque_rubrique():
     postes = [Poste("Chef de mission", "TRAORE Awa"), Poste("Spécialiste QHSE")]
-    etats = {x.code: (x.etat, x.a_regler) for x in sommaire(PISEN, pieces=PIECES, postes=postes)}
+    toutes = [R1, R2, R3]
+    lignes = sommaire(PISEN, pieces=PIECES, postes=postes, references=toutes)
+    etats = {x.code: (x.etat, x.a_regler) for x in lignes}
     assert etats["B"] == ("2 pièces sur 3 à régler à la date limite", True)  # sans C ni F
     assert etats["C"] == ("présentation du bureau non cochée dans les pièces exigées", True)
     assert etats["F"] == ("liste des moyens : valide · 30 j de marge", False)
-    assert etats["D.1"] == ("3 références retenues", None)  # sans compter deux fois R1
-    assert etats["D.2.1"] == ("2 références retenues", None)
-    assert etats["D.2.2"] == ("aucune référence retenue", True)
+    d1 = "2 références du bureau ; 1 référence sans ses trois pièces, hors du dossier"  # R2
+    assert etats["D.1"] == (d1, None)  # toutes les justifiées, pas celles d'un critère
+    assert etats["D.2.1"] == ("2 références", None)
+    assert etats["D.2.2"] == ("aucune référence ne répond", True)
     assert etats["D.2.3"] == ("simulation non enregistrée", True)
     assert etats["E"] == ("1 poste sur 2 sans expert retenu", True)
     assert etats["A"] == ("", None)
     vide = {x.code: x.etat for x in sommaire([])}
     assert vide["D"] == "aucun critère au barème"
-    assert vide["D.1"] == "aucun critère d'expérience générale"
+    assert vide["D.1"] == "aucune référence au registre"
     assert vide["D.2"] == "aucun critère d'expérience spécifique"
     assert (vide["B"], vide["E"]) == ("aucune pièce exigée", "aucun poste saisi")
 
 
 def test_le_plan_page_par_page():
-    pages = plan(PISEN, pieces=PIECES, postes=[Poste("Chef de mission", "TRAORE Awa")])
+    postes = [Poste("Chef de mission", "TRAORE Awa")]
+    pages = plan(PISEN, pieces=PIECES, postes=postes, references=[R1, R2, R3])
     debut = [(p.genre, p.rubrique) for p in pages[:7]]
     assert debut == [
         ("couverture", ""),
@@ -166,47 +173,40 @@ def test_le_plan_page_par_page():
     assert c == [("intercalaire", Etat.REDIGEE), ("piece", Etat.MANQUANTE)]
 
     d1 = [p for p in pages if p.rubrique == "D.1"]
-    attendu = ["intercalaire", "liste", "famille", *QUATRE, *QUATRE, "famille", *QUATRE]
+    attendu = ["intercalaire", "liste", *QUATRE, *QUATRE]  # sans page de famille, sans R2
     assert [p.genre for p in d1] == attendu
     liste = d1[1]
     assert liste.paysage and not liste.entete
     assert liste.titre == "LISTE DES EXPERIENCES GÉNÉRALES"
     numeros = [(g.libelle, [x.numero for x in g.lignes]) for g in liste.groupes]
-    assert numeros == [  # R2 (2024) avant R1 (2020) ; R1 garde son numéro au critère 3
-        ("Au moins cinq (5) études environnementales", [1, 2]),
-        ("Trois (3) missions de bailleurs internationaux", [2, 3]),
-        ("Au moins deux (2) études d'infrastructures rurales", []),
-    ]
+    assert numeros == [("", [1, 2])]  # une seule liste, la plus récente d'abord
     premiere = Ligne(
         1,
-        "Mission GIC-ENV-ETU-002",
+        "Mission GIC-ENV-ETU-001",
         "Welthungerhilfe",
         "Mali",
         "12 500 000 F CFA",
         "Banque mondiale",
-        "2024",
+        "2020",
     )
     assert liste.groupes[0].lignes[0] == premiere
     fiches = [(p.numero, p.reference, p.etat) for p in d1 if p.genre == "fiche"]
     assert fiches == [  # chaque référence une fois en D.1 ; aucune fiche encore au registre
-        (1, "GIC-ENV-ETU-002", Etat.MANQUANTE),
-        (2, "GIC-ENV-ETU-001", Etat.MANQUANTE),
-        (3, "GIC-HYD-ETU-003", Etat.MANQUANTE),
+        (1, "GIC-ENV-ETU-001", Etat.MANQUANTE),
+        (2, "GIC-HYD-ETU-003", Etat.MANQUANTE),
     ]
-    r2 = [(p.titre, p.etat, p.chemin) for p in d1 if p.reference == "GIC-ENV-ETU-002"][1:]
-    assert r2 == [
-        (
-            "Page de garde · GIC-ENV-ETU-002",
-            Etat.A_INSERER,
-            "REFERENCES\\02_JUSTIFICATIFS\\GIC-ENV-ETU-002\\GARDE.pdf",
-        ),
-        ("Page de signature · GIC-ENV-ETU-002", Etat.MANQUANTE, ""),
-        ("Attestation · GIC-ENV-ETU-002", Etat.MANQUANTE, ""),
+    r1 = [(p.titre, p.etat) for p in d1 if p.reference == "GIC-ENV-ETU-001"][1:]
+    assert r1 == [
+        ("Page de garde · GIC-ENV-ETU-001", Etat.A_INSERER),
+        ("Page de signature · GIC-ENV-ETU-001", Etat.A_INSERER),
+        ("Attestation · GIC-ENV-ETU-001", Etat.A_INSERER),
     ]
+    assert d1[3].chemin == f"{DOSSIER}GIC-ENV-ETU-001\\GARDE.pdf"
+    assert all(p.reference != "GIC-ENV-ETU-002" for p in pages)  # R2 n'a que sa garde
 
     d21 = [p for p in pages if p.rubrique == "D.2.1"]
     assert [p.genre for p in d21] == ["intercalaire", "liste", "famille", *QUATRE, *QUATRE]
-    assert [p.numero for p in d21 if p.genre == "fiche"] == [2, 3]  # ses propres fiches
+    assert [p.numero for p in d21 if p.genre == "fiche"] == [1, 2]  # ses propres fiches
     for code in ("D.2.2", "D.2.3"):
         assert [(p.genre, p.etat) for p in pages if p.rubrique == code] == [
             ("intercalaire", Etat.REDIGEE),
@@ -223,6 +223,26 @@ def test_le_plan_page_par_page():
     ]
     assert {p.genre for p in pages if p.entete} == {"sommaire", "intercalaire", "organigramme"}
     assert {p.genre for p in pages if p.paysage} == {"liste", "organigramme"}
+
+
+def test_d1_et_d2_sans_plafond_avec_les_seules_references_justifiees():
+    """Règles du porteur (09/11/2026), comme dans SOMAPEP : D.1 donne toutes les références du
+    bureau, même sans critère d'expérience générale ; D.2.x toutes celles qui répondent ; en D.1
+    comme en D.2, seulement les justifiées (garde, signature et attestation)."""
+    assert justifiee(R1) and justifiee(R3) and not justifiee(R2)
+    criteres = [Critere("5", EIES, mode=MODE, retenues=(R3, R1, R2))]
+    pages = plan(criteres, references=[R3, R1, R2])
+    d1 = [(p.numero, p.reference) for p in pages if p.rubrique == "D.1" and p.genre == "fiche"]
+    assert d1 == [(1, "GIC-ENV-ETU-001"), (2, "GIC-HYD-ETU-003")]
+    d21 = [p.numero for p in pages if p.rubrique == "D.2.1" and p.genre == "fiche"]
+    assert d21 == [1, 2]  # chaque référence garde son numéro de D.1
+    etat = {x.code: x.etat for x in sommaire(criteres)}["D.2.1"]
+    assert etat == "2 références ; 1 référence sans ses trois pièces, hors du dossier"
+    seule_r2 = plan([Critere("5", EIES, mode=MODE, retenues=(R2,))], references=[R2])
+    vides = [(p.rubrique, p.motif) for p in seule_r2 if p.genre == "vide" and p.rubrique != "B"]
+    assert vides == [("D.1", SANS_JUSTIFIEE), ("D.2.1", SANS_JUSTIFIEE)]
+    vide = [(p.genre, p.motif) for p in plan([]) if p.rubrique == "D.1"]
+    assert vide == [("intercalaire", ""), ("vide", "aucune référence au registre")]
 
 
 def test_colonnes_des_listes_et_pays():
