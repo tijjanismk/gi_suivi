@@ -80,6 +80,8 @@ class FormulaireAvis(forms.ModelForm):
             "mode_depot",
             "lieu_depot",
             "courriel_depot",
+            "destinataire",
+            "formule_appel",
             "methode_selection",
             "seuil_eligibilite",
             "note_maximale",
@@ -193,6 +195,7 @@ class FormulaireCritere(forms.ModelForm):
             "libelle",
             "reference_avis",
             "ordre",
+            "experience",
             "mode",
             "points_par_mission",
             "plafond",
@@ -249,7 +252,7 @@ class FormulaireCritere(forms.ModelForm):
     def groupes(self) -> list[tuple[str, list[forms.BoundField]]]:
         """Les champs par bloc, dans l'ordre de l'écran."""
         noms = [
-            ("Le critère", ["code", "ordre", "reference_avis", "libelle"]),
+            ("Le critère", ["code", "ordre", "reference_avis", "experience", "libelle"]),
             (
                 "Le calcul",
                 [

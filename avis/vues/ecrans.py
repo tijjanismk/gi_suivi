@@ -28,7 +28,14 @@ from suivi.services import journaliser
 SAISIE = (settings.GROUPE_DIRECTION, settings.GROUPE_OFFRES)
 CONSULTATION = (*SAISIE, settings.GROUPE_DIRECTION_LECTURE)
 FICHIERS = {"avis": ("Avis", "fichier_avis_chemin"), "tdr": ("TDR", "fichier_tdr_chemin")}
-LARGES = {"objet", "observations", "lieu_depot", "fichier_avis_chemin", "fichier_tdr_chemin"}
+LARGES = {
+    "objet",
+    "observations",
+    "lieu_depot",
+    "destinataire",
+    "fichier_avis_chemin",
+    "fichier_tdr_chemin",
+}
 ECHEANCES = (("a_venir", "à venir"), ("passes", "passés"))
 
 
@@ -122,10 +129,7 @@ def fiche(request, avis_id: int):
     types = TypePiece.objects.filter(Q(actif=True) | Q(pk__in=list(exigees)))
     controle = services.controle_pieces(a)
     postes = services.experts_pour(a, references) if besoins else []
-    sommaire = []
-    if a.type == Avis.Type.AMI:
-        apercus = {ligne["c"].pk: ligne["apercu"] for ligne in lignes}
-        sommaire = services.sommaire(a, controle, postes, apercus)
+    sommaire = services.sommaire(a, controle) if a.type == Avis.Type.AMI else []
     return render(
         request,
         "avis/fiche.html",
@@ -147,34 +151,37 @@ def fiche(request, avis_id: int):
     )
 
 
+def _dossier(request, avis_id: int, intercalaires_seulement: bool):
+    a = get_object_or_404(
+        Avis.objects.select_related("maitre_ouvrage", "bailleur"), pk=avis_id, type=Avis.Type.AMI
+    )
+    quoi = "intercalaires" if intercalaires_seulement else "dossier"
+    journaliser(request, "consulter:avis", f"{a.pk} {quoi}")
+    d = services.plan_dossier(a, intercalaires_seulement)
+    return render(request, "avis/dossier.html", {"a": a, "d": d, "quoi": quoi})
+
+
+@groupe_requis(*CONSULTATION)
+def dossier(request, avis_id: int):
+    """La réponse à un AMI, page par page, à imprimer depuis le navigateur (AV14) : couverture,
+    sommaire, intercalaires, lettre, listes de références, organigramme ; les pièces du partage
+    et les pages manquantes sont marquées à leur place. AMI seulement."""
+    return _dossier(request, avis_id, intercalaires_seulement=False)
+
+
 @groupe_requis(*CONSULTATION)
 def intercalaires(request, avis_id: int):
-    """Le sommaire puis un intercalaire par page A4, à imprimer depuis le navigateur (en PDF au
-    besoin) : la même liste que la carte « Sommaire » de la fiche. AMI seulement."""
-    a = get_object_or_404(
-        Avis.objects.select_related("maitre_ouvrage"), pk=avis_id, type=Avis.Type.AMI
-    )
-    journaliser(request, "consulter:avis", f"{a.pk} intercalaires")
-    images = {quoi: services.image_intercalaire(a, quoi) is not None for quoi in services.IMAGES}
-    return render(
-        request,
-        "avis/intercalaires.html",
-        {
-            "a": a,
-            "rubriques": services.sommaire(a),
-            **images,
-            "pied_du_bureau": services.PIED_DU_BUREAU,
-        },
-    )
+    """Le sommaire puis un intercalaire par page A4, tirés du même plan que le dossier, pour les
+    imprimer à part (sur papier de couleur, par exemple). AMI seulement."""
+    return _dossier(request, avis_id, intercalaires_seulement=True)
 
 
 @groupe_requis(*CONSULTATION)
-def image_intercalaire(request, avis_id: int, quoi: str):
-    """L'en-tête ou le pied des feuilles d'intercalaires, lu sur le partage (jamais écrit)."""
-    a = get_object_or_404(Avis, pk=avis_id, type=Avis.Type.AMI)
-    chemin = services.image_intercalaire(a, quoi) if quoi in services.IMAGES else None
+def logo(request):
+    """Le logo du bureau, lu sur le partage (jamais écrit) : `LOGO.png` dans `services.LOGOS`."""
+    chemin = services.logo_du_bureau()
     if chemin is None:
-        raise Http404("pas d'image")
+        raise Http404("pas de logo")
     type_mime = mimetypes.guess_type(chemin.name)[0] or "application/octet-stream"
     return FileResponse(chemin.open("rb"), content_type=type_mime)
 

@@ -4,14 +4,16 @@ outils MCP) passent par ici ; le calcul reste dans `moteur/avis/`."""
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
-from pathlib import Path, PureWindowsPath
+from pathlib import Path
 from urllib.parse import urlencode
 
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -360,56 +362,176 @@ def experts_pour(avis: Avis, references: list[Reference] | None = None) -> list[
     return lignes
 
 
-# -- sommaire et intercalaires d'un AMI ------------------------------------------------------------
-IMAGES = {"entete": "ENTETE", "pied": "PIED"}  # nom du fichier, en png ou en jpg
-PIED_DU_BUREAU = "ADMINISTRATIF\\LOGOS"  # le pied commun, que le dossier d'un avis peut remplacer
+# -- dossier d'un AMI (AV11, AV14) ----------------------------------------------------------------
+LOGOS = "ADMINISTRATIF\\LOGOS"  # le logo du bureau, LOGO.png (ou .jpg), y est lu
 
 
-def image_intercalaire(avis: Avis, quoi: str) -> Path | None:
-    """L'en-tête ou le pied des feuilles d'intercalaires, lu sur le partage (règle 4) : `ENTETE`
-    ou `PIED` dans le dossier de l'avis, à côté de son fichier ; pour le pied, à défaut, celui du
-    bureau. None : pas d'image, ou partage injoignable (la feuille garde alors l'en-tête texte)."""
-    dossiers = []
-    if avis.fichier_avis_chemin:
-        parent = str(PureWindowsPath(avis.fichier_avis_chemin).parent)
-        dossiers.append("" if parent == "." else parent)
-    if quoi == "pied":
-        dossiers.append(PIED_DU_BUREAU)
-    for dossier in dossiers:
-        for extension in (".png", ".jpg", ".jpeg"):
-            try:
-                chemin = chemin_absolu(f"{dossier}\\{IMAGES[quoi]}{extension}")
-                if chemin.is_file():
-                    return chemin
-            except PartageIndisponibleError:
-                return None
-            except (ValueError, OSError):
-                continue
+def logo_du_bureau() -> Path | None:
+    """Le logo du bureau, lu sur le partage (règle 4). None : pas de logo, ou partage injoignable
+    (le dossier imprime alors le nom du bureau en texte)."""
+    for extension in (".png", ".jpg", ".jpeg"):
+        try:
+            chemin = chemin_absolu(f"{LOGOS}\\LOGO{extension}")
+            if chemin.is_file():
+                return chemin
+        except PartageIndisponibleError:
+            return None
+        except (ValueError, OSError):
+            continue
     return None
 
 
-def sommaire(
-    avis: Avis,
-    controle: Iterable[LigneControle] = (),
-    postes: Iterable[dict] = (),
-    apercus: dict[int, Apercu | None] | None = None,
-) -> list[sommaire_moteur.Rubrique]:
-    """Les intercalaires de la réponse (`moteur.avis.sommaire`) et, pour la fiche, ce qu'on sait
-    de chacun : `controle` (pièces exigées), `postes` (lignes d'`experts_pour`), `apercus` (par
-    critère). Un critère en brouillon n'y entre pas tant qu'il n'est pas enregistré (règle 3)."""
-    apercus = apercus or {}
-    criteres = [
-        sommaire_moteur.Critere(
-            c.code, c.libelle, apercus[c.pk].total if apercus.get(c.pk) else None
-        )
-        for c in avis.criteres.filter(brouillon=False)
-    ]
-    return sommaire_moteur.sommaire(
-        criteres,
-        avis.groupement,
-        [sommaire_moteur.Piece(x.type.code, x.libelle_etat, x.a_regler) for x in controle],
-        [x["retenu"] is not None for x in postes],
+def bureau() -> sommaire_moteur.Bureau:
+    identite = settings.BUREAU
+    return sommaire_moteur.Bureau(identite["raison_sociale"], identite["nom_court"])
+
+
+def _reference_du_dossier(m: Mission) -> sommaire_moteur.Reference:
+    """Une référence retenue, avec les sept colonnes des listes et ses pièces sur le partage."""
+    pieces = tuple(sommaire_moteur.Justificatif(p.type, p.chemin) for p in m.pieces.all())
+    bailleur = (m.bailleur.sigle or m.bailleur.nom) if m.bailleur else ""
+    return sommaire_moteur.Reference(
+        code=m.code,
+        titre=m.intitule,
+        client=m.client.nom if m.client else "",
+        pays=m.pays,
+        montant=m.montant,
+        devise=m.devise,
+        source=bailleur,
+        annee=m.annee,
+        debut=m.date_debut,
+        fin=m.date_fin,
+        justificatifs=pieces,
     )
+
+
+def _criteres_du_dossier(avis: Avis) -> list[sommaire_moteur.Critere]:
+    """Les critères validés de l'avis et leurs références retenues (`Selection.retenue`) : None
+    tant qu'aucune simulation n'est enregistrée et qu'aucune personne n'en a forcé une."""
+    retenues: dict[int, list[sommaire_moteur.Reference]] = {}
+    selections = Selection.objects.filter(critere__avis=avis, retenue=True)
+    selections = selections.select_related("mission__client", "mission__bailleur")
+    for s in selections.prefetch_related("mission__pieces").order_by("critere", "rang"):
+        retenues.setdefault(s.critere_id, []).append(_reference_du_dossier(s.mission))
+    criteres = []
+    for c in avis.criteres.filter(brouillon=False):
+        trouvees = retenues.get(c.pk)
+        if trouvees is None and avis.simulee_le is None:
+            liste = None
+        else:
+            liste = tuple(trouvees or ())
+        criteres.append(sommaire_moteur.Critere(c.code, c.libelle, c.experience, c.mode, liste))
+    return criteres
+
+
+def _pieces_du_dossier(controle: Iterable[LigneControle]) -> list[sommaire_moteur.Piece]:
+    """Les pièces exigées, dans l'ordre du registre des types, avec la version qu'on joindrait."""
+    return [
+        sommaire_moteur.Piece(
+            x.type.code,
+            x.libelle_etat,
+            x.a_regler,
+            x.type.libelle,
+            x.version.chemin if x.version else "",
+        )
+        for x in sorted(controle, key=lambda x: (x.type.ordre, x.type.libelle))
+    ]
+
+
+def _postes_du_dossier(avis: Avis) -> list[sommaire_moteur.Poste]:
+    postes = []
+    for b in avis.besoins.select_related("expert_retenu"):
+        e = b.expert_retenu
+        nom = f"{e.nom} {e.prenoms}".strip() if e else ""
+        postes.append(sommaire_moteur.Poste(b.poste, nom))
+    return postes
+
+
+def sommaire(
+    avis: Avis, controle: Iterable[LigneControle] | None = None
+) -> list[sommaire_moteur.Rubrique]:
+    """Les intercalaires de la réponse (`moteur.avis.sommaire`) et ce qu'on sait de chacun, pour
+    la carte de la fiche. `controle` : les pièces exigées, s'il est déjà calculé. Un critère en
+    brouillon n'y entre pas tant qu'il n'est pas enregistré (règle 3)."""
+    if controle is None:
+        controle = controle_pieces(avis)
+    return sommaire_moteur.sommaire(
+        _criteres_du_dossier(avis),
+        avis.groupement,
+        _pieces_du_dossier(controle),
+        _postes_du_dossier(avis),
+        bureau(),
+    )
+
+
+@dataclass(frozen=True)
+class Dossier:
+    """Le dossier de réponse à un AMI, tel que la page à imprimer et l'outil MCP le montrent."""
+
+    avis: Avis
+    rubriques: list[sommaire_moteur.Rubrique]
+    pages: list[sommaire_moteur.Page]
+    postes: list[sommaire_moteur.Poste]
+    bureau: dict
+    logo: bool  # le logo est sur le partage ; sinon, le nom du bureau en texte
+
+    @property
+    def numero(self) -> str:
+        """La référence de l'avis sans le « N° » qui la précède parfois : l'en-tête l'écrit."""
+        return re.sub(r"^\s*n\s*°\s*", "", self.avis.reference, flags=re.IGNORECASE)
+
+    @property
+    def pays(self) -> tuple[str, str]:
+        return sommaire_moteur.pays(self.avis.pays)
+
+    @property
+    def mois(self) -> str:
+        return sommaire_moteur.mois_annee(self.avis.date_limite)
+
+    @property
+    def attention(self) -> str:
+        """À qui s'adresse la lettre : le destinataire saisi, sinon le maître d'ouvrage."""
+        if self.avis.destinataire:
+            return f"L’attention de {self.avis.destinataire}"
+        mo = self.avis.maitre_ouvrage
+        return mo.nom if mo else ""
+
+    @property
+    def formule_appel(self) -> str:
+        return self.avis.formule_appel or "Madame, Monsieur"
+
+    @property
+    def experts(self) -> list[sommaire_moteur.Poste]:
+        """Les postes qui ont un expert retenu : ils s'ajoutent à l'organigramme."""
+        return [p for p in self.postes if p.expert]
+
+    @property
+    def a_regler(self) -> list[sommaire_moteur.Page]:
+        """Les pages manquantes ou périmées, dans l'ordre du dossier."""
+        etats = (sommaire_moteur.Etat.MANQUANTE, sommaire_moteur.Etat.PERIMEE)
+        return [p for p in self.pages if p.etat in etats]
+
+    @property
+    def compte(self) -> dict[str, int]:
+        """Le nombre de pages par état : rédigées, à insérer, périmées, manquantes."""
+        compte = Counter(p.etat.value for p in self.pages)
+        return {e.value: compte[e.value] for e in sommaire_moteur.Etat}
+
+
+def plan_dossier(avis: Avis, intercalaires_seulement: bool = False) -> Dossier:
+    """Le dossier de réponse à un AMI, page par page (`moteur.avis.sommaire.plan`) : ce que
+    l'application rédige, les fichiers du partage à insérer (chemins relatifs) et ce qui manque.
+    `intercalaires_seulement` : le sommaire et les intercalaires, pour les imprimer à part."""
+    criteres = _criteres_du_dossier(avis)
+    pieces = _pieces_du_dossier(controle_pieces(avis))
+    postes = _postes_du_dossier(avis)
+    b = bureau()
+    rubriques = sommaire_moteur.sommaire(criteres, avis.groupement, pieces, postes, b)
+    pages = sommaire_moteur.plan(criteres, avis.groupement, pieces, postes, b)
+    if intercalaires_seulement:
+        pages = [p for p in pages if p.genre in ("sommaire", "intercalaire")]
+    logo = logo_du_bureau() is not None
+    return Dossier(avis, rubriques, pages, postes, settings.BUREAU, logo)
 
 
 # -- propositions à valider (AV08) ---------------------------------------------------------------
@@ -602,6 +724,7 @@ CHAMPS_CRITERE = (
     "libelle",
     "reference_avis",
     "mode",
+    "experience",
     "points_par_mission",
     "plafond",
     "nb_min_missions",

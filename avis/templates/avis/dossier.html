@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+{% comment %} Le dossier de réponse à un AMI (AV14), page par page, à imprimer depuis le navigateur. Modèle : la version électronique de SOMAPEP (octobre 2026), reprise pour les AMI PISEN du Niger. En-tête et pied du dossier sur le sommaire, les intercalaires et l'organigramme seulement ; pas de numéro de page. Paramètres : a (l'avis), d (services.Dossier), quoi (« dossier » ou « intercalaires »). {% endcomment %}
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% if quoi == "intercalaires" %}Intercalaires{% else %}Dossier{% endif %} · {{ a.reference }}</title>
+<style>
+  @page { size: A4; margin: 0; }
+  @page paysage { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  html, body { margin: 0; padding: 0; color: #000; font-family: Arial, Helvetica, sans-serif; }
+  body { background: #e5e7eb; }
+  .page { position: relative; width: 210mm; height: 297mm; margin: 6mm auto; overflow: hidden; background: #fff; box-shadow: 0 1px 4px rgb(0 0 0 / 0.25); break-after: page; }
+  .page:last-of-type { break-after: auto; }
+  .page.paysage { page: paysage; width: 297mm; height: 210mm; }
+  .lien { color: #0563c1; text-decoration: underline; }
+  .outils { max-width: 210mm; margin: 6mm auto 0; font-size: 0.9rem; line-height: 1.5; }
+  .outils a { color: #1d4ed8; }
+  .outils code { font-size: 0.85em; }
+
+  /* en-tête et pied du dossier (sommaire, intercalaires, organigramme) */
+  .hf-haut { position: absolute; left: 19mm; right: 36mm; top: 13mm; display: flex; justify-content: space-between; padding: 0 4mm 1mm; border-bottom: 2.2pt dashed #000; font-size: 10pt; }
+  .hf-haut small { font-size: 6.5pt; }
+  .hf-bas { position: absolute; left: 22mm; right: 22mm; bottom: 15mm; padding-top: 1.5mm; border-top: 2.2pt dashed #000; text-align: center; font-size: 9.5pt; line-height: 1.3; }
+  .corps { position: absolute; inset: 30mm 20mm 32mm; display: flex; align-items: center; justify-content: center; }
+  .banniere { width: 100%; margin: 0; padding: 2.4mm 6mm; background: #a6a6a6; border: 0.8pt solid #333; border-radius: 2mm; text-align: center; font-family: "Arial Black", Arial, sans-serif; font-size: 12.5pt; font-weight: 900; line-height: 1.35; }
+  .famille { margin: 0; padding: 6mm 9mm; background: #4f7a28; color: #fff; font-size: 8.5pt; text-align: center; max-width: 120mm; }
+
+  /* sommaire */
+  .zone-sommaire { position: absolute; inset: 22mm 0 36mm; overflow: hidden; font-size: 10.5pt; }
+  .titre-sommaire { margin: 5mm 21mm 0; padding: 3.5mm; background: #b4c7e7; text-align: center; font-family: "Arial Black", Arial, sans-serif; font-size: 17pt; font-style: italic; font-weight: 900; text-shadow: 0.5pt 0.6pt 0 #7f7f7f; }
+  .trait { margin: 5mm 24mm 0 28mm; border-top: 1.6pt solid #2f5496; }
+  ol.sommaire { list-style: none; margin: 9mm 23mm 0 22mm; padding: 0; }
+  ol.sommaire li { display: flex; align-items: flex-start; gap: 3mm; min-height: 9mm; margin: 0 0 3.2mm; background: linear-gradient(#fff 0 52%, #f2f2f2 52% 100%); font-weight: bold; }
+  ol.sommaire .case { flex: none; min-width: 13mm; padding: 1.6mm 2mm; background: #2f5496; color: #fff; text-align: center; font-family: "Times New Roman", serif; font-size: 1.24em; font-weight: normal; }
+  ol.sommaire .lib { padding-top: 2.6mm; }
+  ol.sommaire li.n2 { margin-left: 5mm; }
+  ol.sommaire li.n3 { margin-left: 5mm; font-weight: normal; font-size: 0.95em; }
+  ol.sommaire li.n3 .lib { padding-top: 1mm; }
+
+  /* lettre sur papier à en-tête */
+  .lettre { position: absolute; inset: 9mm 19mm 12mm 18mm; overflow: hidden; font-size: 11pt; line-height: 1.32; }
+  .lettre .papier { margin: 0 0 6mm; padding-bottom: 2mm; border-bottom: 1pt solid #2f5496; text-align: center; }
+  .lettre .papier img { display: block; max-width: 131mm; max-height: 30mm; margin: 0 auto; }
+  .lettre .papier .nom-bureau { margin: 0; color: #2f5496; font-family: "Arial Black", Arial, sans-serif; font-size: 18pt; text-align: center; }
+  .lettre .papier .adresse-bureau { margin: 1mm 0 0; font-size: 8.5pt; text-align: center; }
+  .lettre h1 { margin: 0 0 10mm; text-align: center; font-size: 11.5pt; text-decoration: underline; }
+  .lettre p { margin: 0 0 4.5mm; text-align: justify; }
+  .lettre .date { text-align: right; margin: 0 14mm 10mm 0; }
+  .lettre .mot-objet { font-size: 1.27em; font-weight: bold; text-decoration: underline; }
+  .lettre .a { text-align: center; font-weight: bold; font-size: 1.1em; margin: 0 0 4mm; }
+  .lettre .attention { margin-left: 50mm; font-weight: bold; text-align: left; }
+  .lettre .serre { margin-bottom: 0; }
+  .lettre ol.contenu { margin: 0 0 6mm 15mm; padding-left: 7mm; list-style: decimal; }
+  .lettre ol.contenu li::marker { content: counter(list-item) ")  "; }
+  .lettre .signature { margin: 4mm 0 0 112mm; font-family: "Times New Roman", serif; font-size: 1.05em; }
+  .lettre .signature p { margin: 0; text-align: left; }
+  .lettre .signature .place { height: 30mm; }
+
+  /* adresse et contact (sans en-tête) */
+  .adresse { position: absolute; inset: 22mm 22mm; font-size: 10.5pt; }
+  .adresse h1 { margin: 0 0 20mm; text-align: center; font-size: 12.5pt; text-decoration: underline; }
+  .adresse .bureau { margin: 0 0 4mm 5mm; line-height: 1.35; }
+  .adresse .lignes { margin-left: 24mm; font-size: 9.5pt; font-weight: bold; }
+  .adresse .lignes p { margin: 0 0 2.2mm; }
+
+  /* listes des références retenues (paysage) */
+  .logo-liste { position: absolute; right: 12mm; top: 4mm; width: 40mm; height: 15mm; border: 0.8pt solid #0070c0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .logo-liste img { max-width: 100%; max-height: 100%; }
+  .logo-liste span { color: #0070c0; font-weight: bold; font-size: 10pt; text-align: center; }
+  .bandeau-liste { position: absolute; left: 12mm; right: 53mm; top: 13.5mm; margin: 0; padding: 0.6mm; background: #0070c0; color: #fff; text-align: center; font-size: 11pt; }
+  .zone-liste { position: absolute; left: 12mm; right: 12mm; top: 23mm; }
+  table.liste { width: 100%; border-collapse: collapse; font-size: 10pt; line-height: 1.18; }
+  table.liste th, table.liste td { border: 0.8pt solid #000; padding: 0.5mm 1.2mm; text-align: center; vertical-align: middle; }
+  table.liste th { background: #5b9bd5; color: #fff; font-weight: bold; }
+  table.liste td.j { text-align: justify; }
+  table.liste th:nth-child(1) { width: 9mm; }
+  table.liste th:nth-child(2) { width: 112mm; }
+  table.liste tr.groupe td { font-weight: bold; text-align: center; }
+  .liste-pied { position: absolute; left: 12mm; right: 12mm; bottom: 10mm; padding-top: 1mm; border-top: 0.8pt solid #000; text-align: center; font-family: Cambria, Georgia, serif; font-size: 10.5pt; font-weight: bold; font-style: italic; }
+  .liste-pied p { margin: 0 0 0.6mm; }
+  .liste-pied .lien { font-weight: normal; }
+
+  /* organigramme (repris de la plaquette du bureau, page 5) */
+  .organi { position: absolute; inset: 22mm 14mm 31mm; display: flex; flex-direction: column; align-items: center; }
+  .organi h1 { margin: 2mm 0 8mm; padding: 1.5mm 9mm; border: 1.1mm solid #383f80; border-radius: 3mm; color: #383f80; font-family: "Arial Black", Arial, sans-serif; font-size: 20pt; letter-spacing: 0.5pt; }
+  .organi h1 span { color: #1e8bc3; }
+  .boite-o { position: relative; background: #383f80; color: #fff; border-radius: 2.5mm; padding: 2.6mm 3mm; text-align: center; font-family: "Arial Narrow", Arial, sans-serif; font-weight: bold; font-size: 11pt; line-height: 1.25; }
+  .boite-o small { display: block; margin-top: 0.8mm; font-weight: normal; font-size: 9pt; }
+  .boite-o.dg { padding: 3.4mm 14mm; font-size: 14pt; letter-spacing: 0.4pt; }
+  .arbre { position: relative; display: flex; justify-content: space-around; width: 100%; margin-top: 12mm; }
+  .arbre::before { content: ""; position: absolute; top: -12mm; left: 50%; height: 6mm; border-left: 0.8mm solid #1e8bc3; }
+  .arbre::after { content: ""; position: absolute; top: -6mm; left: 16.67%; right: 16.67%; border-top: 0.8mm solid #1e8bc3; }
+  .col { position: relative; width: 30%; display: flex; flex-direction: column; align-items: center; }
+  .col::before { content: ""; position: absolute; top: -6mm; left: 50%; height: 6mm; border-left: 0.8mm solid #1e8bc3; }
+  .boite-o.dep { width: 100%; padding: 3.6mm 3mm; font-size: 12.5pt; }
+  .boite-o.sous { width: 86%; margin-top: 7mm; background: #454d9c; }
+  .boite-o.sous::before { content: ""; position: absolute; top: -7mm; left: 50%; height: 7mm; border-left: 0.8mm solid #1e8bc3; }
+  .organi.avec-experts h1 { margin-bottom: 4mm; }
+  .organi.avec-experts .boite-o.sous { margin-top: 4mm; padding: 1.6mm 2mm; font-size: 9.5pt; }
+  .organi.avec-experts .boite-o.sous::before { top: -4mm; height: 4mm; }
+  .experts { width: 100%; margin-top: 5mm; padding-top: 2mm; border-top: 0.6mm solid #1e8bc3; text-align: center; }
+  .experts h2 { margin: 0 0 2mm; color: #383f80; font-size: 10.5pt; }
+  .experts ul { display: flex; flex-wrap: wrap; justify-content: center; gap: 2mm; margin: 0; padding: 0; list-style: none; }
+  .experts li { padding: 1.2mm 2.5mm; border-radius: 2mm; background: #1e8bc3; color: #fff; font-size: 8.5pt; line-height: 1.2; }
+  .experts li b { display: block; }
+  .organi .source { margin: auto 0 0; font-size: 7.5pt; font-style: italic; color: #555; }
+
+  /* pièces à insérer, périmées ou manquantes */
+  .marque { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4mm; padding: 20mm; text-align: center; }
+  .marque p { margin: 0; }
+  .marque .gros { padding: 10mm 16mm; border: 2px dashed currentColor; font-size: 28pt; font-weight: bold; letter-spacing: 2pt; }
+  .marque .quoi { font-size: 12pt; font-weight: bold; color: #111827; }
+  .marque .motif { font-size: 10pt; color: #374151; }
+  .marque .chemin { font-family: Consolas, "Courier New", monospace; font-size: 9pt; color: #374151; word-break: break-all; }
+  .marque.manquante { color: #b91c1c; }
+  .marque.perimee { color: #c2410c; }
+  .marque.a_inserer { color: #1d4ed8; }
+
+  /* couverture */
+  .couverture { position: absolute; inset: 8mm; padding: 14mm 14mm 10mm; border: 4mm double #1f3864; display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .couverture .pays { margin: 0 0 6mm; font-size: 13pt; font-weight: bold; }
+  .couverture .devise { margin: -5mm 0 6mm; font-size: 10pt; font-style: italic; }
+  .couverture .mo { margin: 0 0 8mm; font-size: 11pt; font-weight: bold; color: #1f3864; }
+  .couverture .boite { padding: 5mm 7mm; background: #dbe5f1; border: 1.5px solid #1f3864; border-radius: 3mm; font-size: 11pt; font-weight: bold; line-height: 1.4; }
+  .couverture .boite p { margin: 0 0 2mm; }
+  .couverture .boite .num { color: #1f3864; }
+  .couverture .reponse { margin: 14mm 0 8mm; font-size: 15pt; font-weight: bold; color: #2f75b5; }
+  .couverture .soumis { margin: 0 0 2mm; font-size: 13pt; font-weight: bold; text-decoration: underline; }
+  .couverture .adr { margin: 0; font-size: 9.5pt; line-height: 1.5; font-family: "Times New Roman", serif; }
+  .couverture .mois { margin-top: auto; font-size: 14pt; font-weight: bold; color: #2f75b5; }
+
+  @media print {
+    body { background: none; }
+    .outils { display: none; }
+    .page { margin: 0; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+{% with b=d.bureau %}
+<div class="outils">
+  <p><a href="{% url 'avis:fiche' a.pk %}">Retour à la fiche de l'avis</a> · {% if quoi == "intercalaires" %}<a href="{% url 'avis:dossier' a.pk %}">Dossier complet</a>{% else %}<a href="{% url 'avis:intercalaires' a.pk %}">Sommaire et intercalaires seuls</a>{% endif %}</p>
+  <p id="compte">{{ d.pages|length }} pages : {{ d.compte.redigee }} composées par l'application, {{ d.compte.a_inserer }} pièce{{ d.compte.a_inserer|pluralize }} à insérer depuis le partage, {{ d.compte.perimee }} périmée{{ d.compte.perimee|pluralize }}, {{ d.compte.manquante }} manquante{{ d.compte.manquante|pluralize }}. Imprimer : Ctrl+P, marges « Aucune », cocher « Graphiques d'arrière-plan ». Les listes trop longues continuent sur une page identique.</p>
+  <p>Logo : {% if d.logo %}<code>LOGO</code> lu dans <code>ADMINISTRATIF\LOGOS</code>{% else %}absent, le nom du bureau est écrit à sa place (déposer <code>LOGO.png</code> dans <code>ADMINISTRATIF\LOGOS</code>){% endif %}. Les pièces à insérer sont marquées à leur place, avec leur chemin sur le partage ; l'assemblage des scans en un seul PDF viendra ensuite.</p>
+  {% if d.a_regler %}<details id="a-regler"><summary>Pages à régler : {{ d.a_regler|length }}</summary><ol>{% for p in d.a_regler %}<li>{{ p.rubrique }} · {{ p.titre }} : {{ p.motif }}</li>{% endfor %}</ol></details>{% endif %}
+</div>
+
+{% for p in d.pages %}
+<section class="page {{ p.genre }}{% if p.paysage %} paysage{% endif %}" data-genre="{{ p.genre }}" data-rubrique="{{ p.rubrique }}" data-etat="{{ p.etat }}"{% if p.reference %} data-reference="{{ p.reference }}"{% endif %}>
+  {% if p.entete %}<header class="hf-haut"><span>{{ b.raison_sociale }}</span><span>Manifestation d’Intérêt <small>n° {{ d.numero }}</small></span></header>{% endif %}
+  {% if p.genre == "couverture" %}
+  <div class="couverture">
+    <p class="pays">{{ d.pays.0 }}</p>
+    {% if d.pays.1 %}<p class="devise">{{ d.pays.1 }}</p>{% endif %}
+    {% if a.maitre_ouvrage %}<p class="mo">{{ a.maitre_ouvrage.nom|upper }}</p>{% endif %}
+    <div class="boite"><p class="num">Avis à manifestation d'intérêt n° {{ d.numero }}</p><p>{{ a.objet }}</p></div>
+    <p class="reponse">RÉPONSE À L'AVIS DE MANIFESTATION D'INTÉRÊT</p>
+    <p class="soumis">SOUMISE PAR : {{ b.raison_sociale }}</p>
+    <p class="adr">Siège : {{ b.adresse }}, {{ b.boite_postale }}, {{ b.ville }} – {{ b.pays }}<br>Tél. : {{ b.telephones|join:" / " }} · {{ b.courriels|join:" / " }}</p>
+    <p class="mois">{{ d.mois|upper }}</p>
+  </div>
+  {% elif p.genre == "sommaire" %}
+  <div class="zone-sommaire">
+    <h1 class="titre-sommaire">SOMMAIRE DE LA MANIFESTATION D’INTERET</h1>
+    <div class="trait"></div>
+    <ol class="sommaire">
+      {% for r in d.rubriques %}{% if r.au_sommaire %}<li class="n{{ r.niveau }}" data-rubrique="{{ r.code }}"><span class="case">{{ r.code }}{% if r.niveau == 1 %}.{% endif %}</span><span class="lib">{{ r.libelle }}</span></li>{% endif %}{% endfor %}
+    </ol>
+  </div>
+  {% elif p.genre == "intercalaire" %}
+  <div class="corps"><h2 class="banniere">{{ p.rubrique }}. {{ p.titre }}</h2></div>
+  {% elif p.genre == "lettre" %}
+  <div class="lettre">
+    <div class="papier">
+      {% if d.logo %}<img src="{% url 'avis:logo' %}" alt="{{ b.raison_sociale }}">{% else %}<p class="nom-bureau">{{ b.raison_sociale }}</p>{% endif %}
+      <p class="adresse-bureau">{{ b.adresse }} – {{ b.boite_postale }} – {{ b.ville }} ({{ b.pays }}) · Tél. : {{ b.telephones|join:" / " }} · {{ b.courriels|join:" / " }}</p>
+    </div>
+    <h1>LETTRE DE MANIFESTATION D’INTERET</h1>
+    <p class="date">{{ b.ville }}, le ____ {{ d.mois }}</p>
+    <p class="objet"><span class="mot-objet">Objet</span> : <b>Réponse à l’avis à manifestation d’intérêt n° {{ d.numero }} : {{ a.objet }}</b></p>
+    <p class="a">A</p>
+    <p class="attention">{{ d.attention }}</p>
+    <p>{{ d.formule_appel }},</p>
+    <p>Après avoir examiné le dossier de manifestation d’intérêt, nous vous soumettons notre candidature pour la mission suivante : « <b>{{ a.objet }}</b> ».</p>
+    <p class="serre">Notre dossier de candidature comprend :</p>
+    <ol class="contenu">
+      <li>la lettre de manifestation d’intérêt</li>
+      {% if a.groupement %}<li>l’accord de groupement et la procuration de signature</li>{% endif %}
+      <li>l’adresse du consultant</li>
+      <li>les pièces administratives de {{ b.raison_sociale }}</li>
+      <li>la présentation de {{ b.raison_sociale }}</li>
+      <li>les expériences du bureau {{ b.nom_court }}</li>
+      <li>l’organigramme des experts clés</li>
+      <li>les moyens matériels et logistiques</li>
+    </ol>
+    <p>Veuillez agréer, {{ d.formule_appel }}, l'assurance de notre considération distinguée.</p>
+    <div class="signature"><p>{{ b.titre_gerant }}</p><p class="place"></p><p>{{ b.gerant }}</p></div>
+  </div>
+  {% elif p.genre == "adresse" %}
+  <div class="adresse">
+    <h1>ADRESSE ET CONTACT DU CONSULTANT</h1>
+    <p class="bureau"><b>BUREAU {{ b.nom_court }}</b><br><b><u>Siège {{ b.ville }}</u> :</b></p>
+    <div class="lignes">
+      <p>{{ b.adresse }} ;</p>
+      <p>{{ b.ville }} {{ b.pays }} {{ b.boite_postale }}</p>
+      <p>Tél. : {{ b.telephones|join:" / " }}</p>
+      <p>E-mail : {% for c in b.courriels %}<span class="lien">{{ c }}</span>{% if not forloop.last %}/{% endif %}{% endfor %}</p>
+    </div>
+  </div>
+  {% elif p.genre == "liste" %}
+  <div class="logo-liste">{% if d.logo %}<img src="{% url 'avis:logo' %}" alt="{{ b.raison_sociale }}">{% else %}<span>{{ b.raison_sociale }}</span>{% endif %}</div>
+  <h1 class="bandeau-liste">{{ p.titre }}</h1>
+  <div class="zone-liste">
+    <table class="liste">
+      <thead><tr><th>N°</th><th>TITRE DU MARCHE</th><th>CLIENT</th><th>PAYS</th><th>MONTANT DU MARCHE</th><th>SOURCE DE FINANCEMENT</th><th>PERIODE D’EXECUTION</th></tr></thead>
+      <tbody>
+        {% for g in p.groupes %}<tr class="groupe"><td colspan="7">{{ g.libelle|upper }}</td></tr>
+        {% for x in g.lignes %}<tr><td>{{ x.numero|stringformat:"02d" }}</td><td class="j">{{ x.titre }}</td><td>{{ x.client }}</td><td>{{ x.pays }}</td><td>{{ x.montant }}</td><td>{{ x.source }}</td><td>{{ x.periode }}</td></tr>
+        {% endfor %}{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <footer class="liste-pied"><p><u>Siege social</u> : {{ b.listes_siege }}</p><p><u>Contact :</u> {{ b.listes_contact }} – Email : {% for c in b.listes_courriels %}<span class="lien">{{ c }}</span>{% if not forloop.last %}/{% endif %}{% endfor %}</p></footer>
+  {% elif p.genre == "famille" %}
+  <div class="corps"><p class="famille">{{ p.titre }}</p></div>
+  {% elif p.genre == "organigramme" %}
+  <div class="organi{% if d.experts %} avec-experts{% endif %}">
+    <h1>ORGANIGRAMME <span>GI-CONSEILS</span></h1>
+    <div class="boite-o dg">DIRECTION GÉNÉRALE</div>
+    <div class="arbre">
+      <div class="col"><div class="boite-o dep">DÉPARTEMENT TECHNIQUE</div>
+        <div class="boite-o sous">ÉTUDES ET SUIVI DES PROJETS<small>Planification et organisation des missions d’études et de contrôle</small></div>
+        <div class="boite-o sous">DESSINATEURS</div>
+        <div class="boite-o sous">RAPPORTAGE<small>Élaboration et impression des rapports</small></div></div>
+      <div class="col"><div class="boite-o dep">DÉPARTEMENT ACQUISITION DES MARCHÉS</div>
+        <div class="boite-o sous">RELATION EXTÉRIEURE</div>
+        <div class="boite-o sous">MONTAGE DES DOSSIERS D’APPELS D’OFFRES</div></div>
+      <div class="col"><div class="boite-o dep">ADMINISTRATION ET FINANCE</div>
+        <div class="boite-o sous">GESTION DES RESSOURCES HUMAINES<small>et des marchés administratifs du bureau</small></div>
+        <div class="boite-o sous">FISCALISTE – COMPTABILITÉ<small>Gestion des contrats</small></div>
+        <div class="boite-o sous">SUIVI DES CLIENTS</div></div>
+    </div>
+    {% if d.experts %}<div class="experts"><h2>EXPERTS CLÉS DE LA MISSION</h2><ul>{% for x in d.experts %}<li><b>{{ x.poste }}</b>{{ x.expert }}</li>{% endfor %}</ul></div>{% endif %}
+    <p class="source">Source : plaquette de présentation de {{ b.raison_sociale }}, page 5.</p>
+  </div>
+  {% elif p.etat == "a_inserer" %}
+  <div class="marque a_inserer"><p class="gros">PIÈCE À INSÉRER</p><p class="quoi">{{ p.titre }}</p><p class="chemin">{{ p.chemin }}</p></div>
+  {% elif p.etat == "perimee" %}
+  <div class="marque perimee"><p class="gros">PIÈCE PÉRIMÉE</p><p class="quoi">{{ p.titre }}</p><p class="motif">{{ p.motif }}</p><p class="chemin">{{ p.chemin }}</p></div>
+  {% else %}
+  <div class="marque manquante"><p class="gros">PAGE MANQUANTE</p><p class="quoi">{{ p.titre }}</p><p class="motif">{{ p.motif }}</p></div>
+  {% endif %}
+  {% if p.entete %}<footer class="hf-bas">{{ a.objet }}</footer>{% endif %}
+</section>
+{% endfor %}
+{% endwith %}
+<script>
+// Listes : une page ne déborde jamais ; les lignes en trop passent sur une page identique
+// (bandeau, logo, pied), la ligne de groupe avec elles.
+document.querySelectorAll("section.liste").forEach(function (s) {
+  for (var garde = 0; garde < 40; garde++) {
+    var tb = s.querySelector("tbody"), lim = s.querySelector(".liste-pied").getBoundingClientRect().top - 6;
+    if (tb.rows.length <= 1 || tb.rows[tb.rows.length - 1].getBoundingClientRect().bottom <= lim) break;
+    var suite = s.cloneNode(true), tb2 = suite.querySelector("tbody");
+    tb2.innerHTML = "";
+    while (tb.rows.length > 1 && tb.rows[tb.rows.length - 1].getBoundingClientRect().bottom > lim)
+      tb2.insertBefore(tb.rows[tb.rows.length - 1], tb2.firstChild);
+    if (tb.rows.length > 1 && tb.rows[tb.rows.length - 1].className === "groupe")
+      tb2.insertBefore(tb.rows[tb.rows.length - 1], tb2.firstChild);
+    s.after(suite);
+    s = suite;
+  }
+});
+// Lettre et sommaire : réduire la police tant que le contenu ne tient pas sur la page.
+document.querySelectorAll(".lettre, .zone-sommaire").forEach(function (z) {
+  for (var t = 10.5; z.scrollHeight > z.clientHeight + 1 && t > 6.5; t -= 0.25) z.style.fontSize = t + "pt";
+});
+</script>
+</body>
+</html>

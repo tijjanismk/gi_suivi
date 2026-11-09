@@ -183,4 +183,4 @@ def test_brouillon_de_critere_ne_compte_pas(avis):
     assert "existe déjà" in outils.enregistrer_brouillon_critere(avis.pk, brouillon)["erreur"]
     faux = {**brouillon, "code": "4", "filtre": {"nature": ["CTR"]}}
     assert "filtre" in outils.enregistrer_brouillon_critere(avis.pk, faux)["erreur"]
-    assert len(outils.OUTILS) == 10
+    assert len(outils.OUTILS) == 11

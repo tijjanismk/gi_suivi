@@ -71,6 +71,20 @@ class Avis(models.Model):
     )
     lieu_depot = models.CharField("lieu ou plateforme de dépôt", max_length=300, blank=True)
     courriel_depot = models.EmailField("courriel de dépôt", blank=True)
+    # La lettre de manifestation d'intérêt du dossier (AV14) : à qui elle s'adresse
+    destinataire = models.CharField(
+        "destinataire de la lettre",
+        max_length=300,
+        blank=True,
+        help_text="Après « L'attention de », ex. Monsieur le Coordonnateur National de l'Unité "
+        "de gestion du projet, Niamey ; vide : le maître d'ouvrage",
+    )
+    formule_appel = models.CharField(
+        "formule d'appel",
+        max_length=150,
+        blank=True,
+        help_text="Ex. Monsieur le Coordonnateur National ; vide : Madame, Monsieur",
+    )
     methode_selection = models.CharField(
         "méthode de sélection", max_length=20, blank=True, help_text="QC, SFQC, SMC, SQC…"
     )
@@ -143,6 +157,13 @@ class Critere(models.Model):
         FORFAIT = "forfait", "forfait"
         MANUEL = "manuel", "note saisie à la main"
 
+    class Experience(models.TextChoices):
+        """La rubrique D du dossier où vont ses références (`moteur.avis.sommaire.Experience`)."""
+
+        GENERALE = "generale", "expérience générale (liste de D.1)"
+        SPECIFIQUE = "specifique", "expérience spécifique (un D.2 à lui)"
+        HORS = "hors", "hors des expériences (pas de liste)"
+
     avis = models.ForeignKey(Avis, on_delete=models.CASCADE, related_name="criteres")
     code = models.CharField(max_length=20, help_text="Numérotation du barème : 1, 2.1, E.1…")
     reference_avis = models.CharField(
@@ -151,6 +172,14 @@ class Critere(models.Model):
     libelle = models.TextField("texte du critère")
     ordre = models.PositiveSmallIntegerField(default=0)
     mode = models.CharField(max_length=12, choices=Mode.choices)
+    experience = models.CharField(
+        "rubrique du dossier",
+        max_length=10,
+        choices=Experience.choices,
+        blank=True,
+        help_text="Vide : d'après le texte (« expériences générales », « spécifiques ») ou le "
+        "critère parent, sinon spécifique pour des points par référence",
+    )
     points_par_mission = models.DecimalField(
         "points par référence", max_digits=6, decimal_places=2, default=0
     )

@@ -1,6 +1,0 @@
-{% comment %} En-tête d'une feuille d'intercalaires : l'image ENTETE du dossier de l'avis (le bandeau des TDR, logos compris), sinon le maître d'ouvrage et l'objet de l'avis. Paramètres : a (l'avis), entete. {% endcomment %}
-<header class="entete">
-  {% if entete %}<img class="entete-image" src="{% url 'avis:image_intercalaire' a.pk 'entete' %}" alt="{{ a.maitre_ouvrage.nom|default:a.objet }}">
-  {% else %}{% if a.maitre_ouvrage %}<p class="mo">{{ a.maitre_ouvrage.nom }}</p>{% endif %}
-  <p class="objet">{{ a.objet }}</p>{% endif %}
-</header>
