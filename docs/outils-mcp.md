@@ -137,11 +137,18 @@ terme.**
 
 ### `creer_proposition`
 
-Paramètres : `origine` (toujours `claude` depuis le MCP), `champs` (objet :
-reference, objet, type, maitre_ouvrage, bailleur, date_limite, pays,
-localites, criteres pressentis), `source_url`, `fichier_chemin`. Crée une
-`Proposition` à valider. Rend son identifiant et l'adresse de l'écran de
-validation. **Ne crée jamais un `Avis`.**
+Paramètres : `champs` (objet : reference, objet, type, maitre_ouvrage,
+bailleur, date_limite, pays, localites, criteres pressentis), `source_url`,
+`fichier_chemin`, `origine` (`claude` par défaut, `veille` pour la veille des
+avis, VE02), `forcer`. Crée une `Proposition` à valider. Rend son identifiant
+et l'adresse de l'écran de validation. **Ne crée jamais un `Avis`.**
+
+Avant de créer, cherche un avis ou une proposition (même rejetée) qui porte
+la même référence, écrite au signe près (« AMI n° 004/2026 » = « ami
+N°004-2026 »), dans le même pays quand les deux le disent, ou le même lien.
+S'il en trouve un, ne crée rien et rend `deja_connu` (identifiant, adresse,
+objet, statut d'une proposition). `forcer=True` crée quand même : seulement
+quand l'objet montre un autre avis sous la même référence.
 
 ### `enregistrer_brouillon_critere`
 

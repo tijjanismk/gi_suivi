@@ -339,14 +339,27 @@ def proposer_terme(
 
 
 def creer_proposition(
-    champs: dict, source_url: str = "", fichier_chemin: str = "", par: str = ""
+    champs: dict,
+    source_url: str = "",
+    fichier_chemin: str = "",
+    origine: str = "claude",
+    forcer: bool = False,
+    par: str = "",
 ) -> dict:
     """Crée une proposition d'avis à valider (jamais un avis). `champs` : reference, objet, type
     (AMI, DP, AO), date_limite (28/10/2026), maitre_ouvrage, bailleur, pays, lieu_depot,
-    methode_selection… tels que lus dans l'avis. Rend l'identifiant et l'adresse de l'écran de
-    validation."""
+    methode_selection… tels que lus dans l'avis. `origine` : « claude » (demande faite dans la
+    conversation) ou « veille » (la veille des avis). Rend l'identifiant et l'adresse de l'écran de
+    validation. Si la référence (même pays) ou le lien est déjà connu, avis ou proposition même
+    rejetée, rien n'est créé et `deja_connu` dit lequel ; `forcer=True` seulement quand l'objet
+    montre que c'est un autre avis sous la même référence."""
+    if origine not in ("claude", "veille"):
+        return {"erreur": f"origine « {origine} » : « claude » ou « veille » seulement"}
+    connu = None if forcer else services.deja_connu(champs, source_url)
+    if connu:
+        return {"deja_connu": connu}
     try:
-        p = services.creer_proposition("claude", champs, source_url, fichier_chemin, par)
+        p = services.creer_proposition(origine, champs, source_url, fichier_chemin, par)
     except ValueError as e:
         return {"erreur": str(e)}
     return {"proposition_id": p.pk, "adresse": f"/avis/propositions/{p.pk}"}

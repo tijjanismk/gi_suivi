@@ -167,6 +167,26 @@ def test_creer_proposition_jamais_un_avis():
     assert "erreur" in outils.creer_proposition(["pas", "un", "objet"])
 
 
+def test_la_veille_ne_propose_pas_deux_fois_le_meme_avis(avis):
+    lien = "https://www.afdb.org/fr/documents/ami-essai"
+    champs = {"reference": "AMI n° 004/2026", "type": "AMI", "pays": "Niger"}
+    r = outils.creer_proposition(champs, source_url=lien, origine="veille", par="veille")
+    p = Proposition.objects.get(pk=r["proposition_id"])
+    assert p.origine == "veille" and p.source_url == lien
+    meme = outils.creer_proposition({"reference": "ami N°004-2026", "pays": "Niger"})
+    assert meme["deja_connu"]["proposition_id"] == p.pk
+    assert meme["deja_connu"]["statut"] == "à valider"
+    par_le_lien = outils.creer_proposition({"reference": "autre"}, source_url=lien)
+    assert par_le_lien["deja_connu"]["proposition_id"] == p.pk
+    ailleurs = outils.creer_proposition({"reference": "AMI n° 004/2026", "pays": "Mali"})
+    assert "proposition_id" in ailleurs  # même numéro, autre pays : un autre avis
+    connu = outils.creer_proposition({"reference": "ami essai"}, origine="veille")["deja_connu"]
+    assert connu == {"avis_id": avis.pk, "adresse": f"/avis/{avis.pk}/", "objet": "Essai"}
+    assert "proposition_id" in outils.creer_proposition({"reference": "ami essai"}, forcer=True)
+    assert Proposition.objects.count() == 3 and Avis.objects.count() == 1
+    assert "erreur" in outils.creer_proposition({"reference": "x"}, origine="saisie")
+
+
 def test_brouillon_de_critere_ne_compte_pas(avis):
     brouillon = {
         "code": "3",

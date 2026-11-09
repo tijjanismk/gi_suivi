@@ -573,6 +573,46 @@ def creer_proposition(
     )
 
 
+def _cle_reference(texte) -> str:
+    """« AMI n° 004/2026 » et « ami N°004-2026 » donnent la même clé."""
+    return re.sub(r"[\W_]", "", str(texte or "").casefold())
+
+
+def _meme_pays(a, b) -> bool:
+    a, b = str(a or "").strip().casefold(), str(b or "").strip().casefold()
+    return not a or not b or a == b
+
+
+def deja_connu(champs, source_url: str = "") -> dict | None:
+    """L'avis ou la proposition qui porte déjà cette référence (dans le même pays, quand les deux
+    le disent) ou ce lien ; une proposition rejetée compte, pour ne pas la reproposer. Rien si
+    l'avis est nouveau. Sert à la veille, qui relit les mêmes listes chaque jour."""
+    extraits = champs if isinstance(champs, dict) else {}
+    cle, pays = _cle_reference(extraits.get("reference")), extraits.get("pays")
+    lien = (source_url or "").strip()
+    if cle:
+        for pk, reference, objet, pays_avis in Avis.objects.values_list(
+            "pk", "reference", "objet", "pays"
+        ):
+            if _cle_reference(reference) == cle and _meme_pays(pays, pays_avis):
+                return {"avis_id": pk, "adresse": f"/avis/{pk}/", "objet": objet[:200]}
+    if not cle and not lien:
+        return None
+    for pk, connus, url, statut in Proposition.objects.values_list(
+        "pk", "champs_extraits", "source_url", "statut"
+    ):
+        connus = connus or {}
+        meme_reference = cle and _cle_reference(connus.get("reference")) == cle
+        if (lien and url == lien) or (meme_reference and _meme_pays(pays, connus.get("pays"))):
+            return {
+                "proposition_id": pk,
+                "adresse": f"/avis/propositions/{pk}",
+                "statut": Proposition.Statut(statut).label,
+                "objet": str(connus.get("objet", ""))[:200],
+            }
+    return None
+
+
 def initiaux(p: Proposition) -> dict:
     """Les champs extraits, prêts pour le formulaire de l'avis. Un maître d'ouvrage ou un
     bailleur absent du référentiel est noté dans les observations, pour être choisi à la main."""
