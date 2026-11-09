@@ -9,6 +9,7 @@ from decimal import Decimal
 from html import unescape
 
 import pytest
+from django.contrib.auth import get_user_model
 from django.test import override_settings
 from django.utils import timezone
 from freezegun import freeze_time
@@ -16,6 +17,7 @@ from freezegun import freeze_time
 from administratif.models import PieceAdministrative, TypePiece
 from administratif.tests.conftest import AWA, DIR, IIS, VUE
 from avis import outils_mcp as outils
+from avis import services
 from avis.models import Avis, Critere, Selection
 from references.models import Mission, PieceJustificative
 from referentiel.models import Client, Domaine
@@ -172,7 +174,8 @@ def pisen():
 
 @pytest.fixture
 def retenues(pisen):
-    """La simulation enregistrée : deux références au critère général, une au critère 5."""
+    """La simulation enregistrée : deux références au critère général, deux au critère 5 (une
+    seule y porte les points)."""
     hyd = Domaine.objects.get(code="HYD")
     eies = Mission.objects.create(
         code="GIC-HYD-ETU-033",
@@ -191,7 +194,8 @@ def retenues(pisen):
     c2, c5 = pisen.criteres.get(code="2"), pisen.criteres.get(code="5")
     for rang, (c, m) in enumerate(((c2, par), (c2, eies), (c5, eies)), start=1):
         Selection.objects.create(critere=c, mission=m, rang=rang, preuve="a_auditer", retenue=True)
-    Selection.objects.create(critere=c5, mission=par, rang=9, preuve="manquante")  # écartée
+    # sans pièce ni points, mais elle répond au critère : jointe en D.2.1 (règle du 09/11/2026)
+    Selection.objects.create(critere=c5, mission=par, rang=9, preuve="manquante")
     PieceAdministrative.objects.create(
         type=TypePiece.objects.get(code="NIF"),
         chemin=NIF,
@@ -210,8 +214,8 @@ def test_la_fiche_compte_les_references_retenues(client, pisen, retenues):
     assert 'data-rubrique="A.3"' not in page  # sans groupement : ni accord ni procuration
     assert 'data-rubrique="D.2.3"' not in page  # le critère 7 est en brouillon
     assert f"{EIES}<" in page  # le libellé tel quel, sans capitales
-    assert "2 références retenues" in page  # D.1, de la simulation enregistrée
-    assert "aucune référence retenue" in page  # D.2.2
+    assert "2 références du bureau" in page  # D.1 : toutes les références
+    assert "aucune référence ne répond" in page  # D.2.2
 
 
 def test_le_dossier_page_par_page(client, pisen, retenues):
@@ -219,7 +223,7 @@ def test_le_dossier_page_par_page(client, pisen, retenues):
     assert "<title>Dossier · N°005/MEHA/PISEN/2026</title>" in page
     assert page.count('data-genre="intercalaire"') == len(INTERCALAIRES)
     assert page.count('data-genre="liste"') == 2  # D.1 et D.2.1 ; D.2.2 n'a rien de retenu
-    assert page.count('data-genre="fiche"') == 3  # deux en D.1, une reprise en D.2.1
+    assert page.count('data-genre="fiche"') == 4  # les deux en D.1, puis les deux en D.2.1
     assert page.count('<section class="page page-couverture"') == 1  # un seul cadre
     # en-tête et pied du dossier : sommaire, intercalaires et organigramme, pas ailleurs
     entetes = 1 + len(INTERCALAIRES) + 1
@@ -244,6 +248,30 @@ def test_le_dossier_page_par_page(client, pisen, retenues):
     assert page.count(GARDE) == 2 and NIF in page
     assert "PIÈCE À INSÉRER" in page and "PAGE MANQUANTE" in page
     assert "fiche au format Banque mondiale pas encore au registre" in page
+
+
+def test_d1_toutes_les_references_d2_sans_celles_qu_une_personne_exclut(pisen, retenues):
+    """Règle du porteur (09/11/2026), comme dans SOMAPEP : D.1 donne toutes les références du
+    bureau, sauf les absorbées ; D.2.x toutes celles qui répondent, sauf les exclues."""
+    eies, par = retenues
+    hyd = Domaine.objects.get(code="HYD")
+    Mission.objects.create(
+        code="GIC-HYD-CTR-001", domaine=hyd, nature="CTR", annee=2012, intitule="Contrôle"
+    )
+    Mission.objects.create(
+        code="GIC-HYD-ETU-041", domaine=hyd, nature="ETU", annee=2016, absorbee_par=eies
+    )
+
+    def fiches(rubrique: str) -> list[str]:
+        pages = services.plan_dossier(pisen).pages
+        return [p.reference for p in pages if p.rubrique == rubrique and p.genre == "fiche"]
+
+    assert fiches("D.1") == ["GIC-HYD-ETU-040", "GIC-HYD-ETU-033", "GIC-HYD-CTR-001"]
+    assert fiches("D.2.1") == ["GIC-HYD-ETU-040", "GIC-HYD-ETU-033"]
+    dicko = get_user_model().objects.create_user("GICONSEILS\\dicko")
+    services.choisir(pisen.criteres.get(code="5"), par, "exclure", "hors sujet", dicko)
+    assert fiches("D.2.1") == ["GIC-HYD-ETU-033"]
+    assert "GIC-HYD-ETU-040" in fiches("D.1")  # exclue d'un critère, pas du bureau
 
 
 def test_la_lettre_et_la_rubrique_se_saisissent(client, pisen):

@@ -406,10 +406,13 @@ def _reference_du_dossier(m: Mission) -> sommaire_moteur.Reference:
 
 
 def _criteres_du_dossier(avis: Avis) -> list[sommaire_moteur.Critere]:
-    """Les critères validés de l'avis et leurs références retenues (`Selection.retenue`) : None
-    tant qu'aucune simulation n'est enregistrée et qu'aucune personne n'en a forcé une."""
+    """Les critères validés de l'avis et les références jointes à chacun : toutes celles qui
+    répondent (`Selection`), pas seulement celles qui portent les points, sauf celles qu'une
+    personne a exclues (règle du porteur, 09/11/2026). None tant qu'aucune simulation n'est
+    enregistrée et qu'aucune personne n'en a forcé une."""
     retenues: dict[int, list[sommaire_moteur.Reference]] = {}
-    selections = Selection.objects.filter(critere__avis=avis, retenue=True)
+    selections = Selection.objects.filter(critere__avis=avis)
+    selections = selections.exclude(retenue=False, retenue_par__isnull=False)
     selections = selections.select_related("mission__client", "mission__bailleur")
     for s in selections.prefetch_related("mission__pieces").order_by("critere", "rang"):
         retenues.setdefault(s.critere_id, []).append(_reference_du_dossier(s.mission))
@@ -422,6 +425,13 @@ def _criteres_du_dossier(avis: Avis) -> list[sommaire_moteur.Critere]:
             liste = tuple(trouvees or ())
         criteres.append(sommaire_moteur.Critere(c.code, c.libelle, c.experience, c.mode, liste))
     return criteres
+
+
+def _references_generales() -> list[sommaire_moteur.Reference]:
+    """D.1 : toutes les références du bureau, sauf les absorbées (on cite le code gardé)."""
+    missions = Mission.objects.filter(absorbee_par__isnull=True).order_by("code")
+    missions = missions.select_related("client", "bailleur").prefetch_related("pieces")
+    return [_reference_du_dossier(m) for m in missions]
 
 
 def _pieces_du_dossier(controle: Iterable[LigneControle]) -> list[sommaire_moteur.Piece]:
@@ -455,12 +465,14 @@ def sommaire(
     brouillon n'y entre pas tant qu'il n'est pas enregistré (règle 3)."""
     if controle is None:
         controle = controle_pieces(avis)
+    actives = Mission.objects.filter(absorbee_par__isnull=True).values_list("code", flat=True)
     return sommaire_moteur.sommaire(
         _criteres_du_dossier(avis),
         avis.groupement,
         _pieces_du_dossier(controle),
         _postes_du_dossier(avis),
         bureau(),
+        [sommaire_moteur.Reference(code, "") for code in actives],  # D.1 : le compte suffit
     )
 
 
@@ -526,8 +538,9 @@ def plan_dossier(avis: Avis, intercalaires_seulement: bool = False) -> Dossier:
     pieces = _pieces_du_dossier(controle_pieces(avis))
     postes = _postes_du_dossier(avis)
     b = bureau()
-    rubriques = sommaire_moteur.sommaire(criteres, avis.groupement, pieces, postes, b)
-    pages = sommaire_moteur.plan(criteres, avis.groupement, pieces, postes, b)
+    toutes = _references_generales()
+    rubriques = sommaire_moteur.sommaire(criteres, avis.groupement, pieces, postes, b, toutes)
+    pages = sommaire_moteur.plan(criteres, avis.groupement, pieces, postes, b, toutes)
     if intercalaires_seulement:
         pages = [p for p in pages if p.genre in ("sommaire", "intercalaire")]
     logo = logo_du_bureau() is not None

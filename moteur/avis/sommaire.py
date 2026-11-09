@@ -7,8 +7,10 @@ PISEN du Niger (novembre 2026) et validée page par page par le porteur :
   groupement et la procuration ; puis les adresses et contacts du consultant ;
 - B pièces administratives du bureau, hors présentation et liste des moyens ;
 - C présentation du bureau ;
-- D expériences : D.1 l'expérience générale (tous les critères généraux, une seule liste),
-  D.2 les expériences spécifiques, un D.2.x par critère spécifique, son libellé tel quel ;
+- D expériences : D.1 l'expérience générale, toutes les références du bureau en une liste,
+  même sans critère général ; D.2 les expériences spécifiques, un D.2.x par critère
+  spécifique, son libellé tel quel, avec toutes les références qui y répondent, sans s'arrêter
+  au nombre demandé (règle du porteur, 09/11/2026, comme dans SOMAPEP) ;
 - E organigramme avec les experts clés ; F moyens matériels et logistiques.
 
 Le sommaire imprimé montre les rubriques de premier niveau et celles de D ; chaque rubrique a son
@@ -51,7 +53,8 @@ PAYS = {
     "cameroun": ("RÉPUBLIQUE DU CAMEROUN", "Paix – Travail – Patrie"),
     "burkina faso": ("BURKINA FASO", ""),
 }
-SANS_REFERENCE = "aucune référence retenue (simulation à enregistrer)"
+SANS_REFERENCE = "aucune référence ne répond (ou simulation à enregistrer)"
+SANS_REGISTRE = "aucune référence au registre"
 _GENERALE = re.compile(r"\bexperiences? generales?\b")
 _SPECIFIQUE = re.compile(r"\bexperiences? specifiques?\b")
 
@@ -122,7 +125,9 @@ class Critere:
     libelle: str
     experience: str = ""  # une `Experience` ; vide : déduite (voir `classer`)
     mode: str = ""  # celui de `moteur.avis.notation.Mode`
-    retenues: tuple[Reference, ...] | None = None  # None : sélection jamais enregistrée
+    # Les références jointes au dossier : toutes celles qui répondent au critère, sauf celles
+    # qu'une personne a exclues. None : sélection jamais enregistrée.
+    retenues: tuple[Reference, ...] | None = None
 
 
 @dataclass(frozen=True)
@@ -283,15 +288,20 @@ def _etat_postes(postes: list[Poste]) -> tuple[str, bool | None]:
     return f"{n} poste{_s(n)}, un expert retenu pour chacun", False
 
 
-def _etat_retenues(criteres: list[Critere], aucun: str = "") -> tuple[str, bool | None]:
-    if not criteres:
-        return aucun, None
-    if all(c.retenues is None for c in criteres):
+def _etat_retenues(c: Critere) -> tuple[str, bool | None]:
+    if c.retenues is None:
         return "simulation non enregistrée", True
-    n = len({r.code for c in criteres for r in c.retenues or ()})
+    n = len({r.code for r in c.retenues})
     if not n:
-        return "aucune référence retenue", True
-    return f"{n} référence{_s(n)} retenue{_s(n)}", None
+        return "aucune référence ne répond", True
+    return f"{n} référence{_s(n)}", None
+
+
+def _etat_generale(references: list[Reference]) -> tuple[str, bool | None]:
+    n = len({r.code for r in references})
+    if not n:
+        return SANS_REGISTRE, True
+    return f"{n} référence{_s(n)} du bureau", None
 
 
 def sommaire(
@@ -300,28 +310,29 @@ def sommaire(
     pieces: Iterable[Piece] = (),
     postes: Iterable[Poste] = (),
     bureau: Bureau = BUREAU,
+    references: Iterable[Reference] = (),
 ) -> list[Rubrique]:
-    """Les intercalaires dans l'ordre du dossier, avec ce que l'application sait de chacun."""
+    """Les intercalaires dans l'ordre du dossier, avec ce que l'application sait de chacun.
+    `references` : toutes les références du bureau, pour D.1."""
     criteres, postes = list(criteres), list(postes)
     pieces = {p.code: p for p in pieces}
-    generaux, specifiques = _par_rang(criteres)
+    _, specifiques = _par_rang(criteres)
     b = [p for code, p in pieces.items() if code not in PIECES_A_PART]
     rubriques = [Rubrique("A", "LETTRES", 1)]
     for i, (_, libelle) in enumerate(_lettres(groupement), 1):
         rubriques.append(Rubrique(f"A.{i}", libelle, 2, au_sommaire=False))
     sans_bareme = "" if criteres else "aucun critère au barème"
     sans_specifique = "" if specifiques else "aucun critère d'expérience spécifique"
-    sans_generale = "aucun critère d'expérience générale"
     etat_c, regler_c = _etat_piece(pieces, "PRESENTATION")
     rubriques += [
         Rubrique("B", f"PIÈCES ADMINISTRATIVES DE {bureau.raison_sociale}", 1, *_etat_pieces(b)),
         Rubrique("C", f"PRESENTATION DU BUREAU {bureau.nom_court}", 1, etat_c, regler_c),
         Rubrique("D", f"EXPÉRIENCES DU BUREAU {bureau.raison_sociale}", 1, sans_bareme),
-        Rubrique("D.1", "EXPÉRIENCE GÉNÉRALE", 2, *_etat_retenues(generaux, sans_generale)),
+        Rubrique("D.1", "EXPÉRIENCE GÉNÉRALE", 2, *_etat_generale(list(references))),
         Rubrique("D.2", "EXPÉRIENCES SPÉCIFIQUES", 2, sans_specifique),
     ]
     for i, c in enumerate(specifiques, 1):
-        etat, a_regler = _etat_retenues([c])
+        etat, a_regler = _etat_retenues(c)
         rubriques.append(Rubrique(f"D.2.{i}", premiere_ligne(c.libelle), 3, etat, a_regler))
     organigramme = "ORGANIGRAMME AVEC L'ENSEMBLE DES EXPERTS CLES"
     moyens = "MOYENS MATERIELS ET LOGISTIQUES"
@@ -410,19 +421,14 @@ def _pages_reference(rubrique: str, r: Reference, numero: int) -> list[Page]:
     return [replace(p, reference=r.code, numero=numero) for p in pages]
 
 
-def _references(
-    rubrique: str, c: Critere, numeros: dict[str, int], deja: set[str] | None = None
-) -> list[Page]:
-    """La page de famille du critère, puis les pages de ses références, sauf celles de `deja`
-    (déjà jointes plus haut dans la même rubrique)."""
-    retenues = [r for r in _retenues(c, numeros) if deja is None or r.code not in deja]
+def _references(rubrique: str, c: Critere, numeros: dict[str, int]) -> list[Page]:
+    """La page de famille du critère, puis les pages de ses références."""
+    retenues = _retenues(c, numeros)
     if not retenues:
         return []
     pages = [Page("famille", rubrique, premiere_ligne(c.libelle).upper())]
     for r in retenues:
         pages += _pages_reference(rubrique, r, numeros[r.code])
-        if deja is not None:
-            deja.add(r.code)
     return pages
 
 
@@ -439,16 +445,20 @@ def _manque(rubrique: str, titre: str, motif: str) -> Page:
     return Page("vide", rubrique, titre, Etat.MANQUANTE, motif=motif)
 
 
-def _experience_generale(generaux: list[Critere], numeros: dict[str, int]) -> list[Page]:
-    if not generaux:
-        return [_manque("D.1", "Expérience générale", "aucun critère d'expérience générale")]
-    if not any(c.retenues for c in generaux):
-        return [_manque("D.1", "Expérience générale", SANS_REFERENCE)]
-    groupes = [_groupe(c, numeros) for c in generaux]
-    pages = [_liste("D.1", "LISTE DES EXPERIENCES GÉNÉRALES", groupes)]
-    deja: set[str] = set()
-    for c in generaux:
-        pages += _references("D.1", c, numeros, deja)
+def _toutes(references: list[Reference]) -> Critere:
+    """D.1 vu comme un critère qui retient toutes les références du bureau, sans libellé."""
+    return Critere("D.1", "", Experience.GENERALE, retenues=tuple(references))
+
+
+def _experience_generale(references: list[Reference], numeros: dict[str, int]) -> list[Page]:
+    """Toutes les références du bureau en une seule liste, puis la fiche et les pièces de
+    chacune, sans page de famille : l'intercalaire D.1 la précède."""
+    if not references:
+        return [_manque("D.1", "Expérience générale", SANS_REGISTRE)]
+    tout = _toutes(references)
+    pages = [_liste("D.1", "LISTE DES EXPERIENCES GÉNÉRALES", [_groupe(tout, numeros)])]
+    for r in _retenues(tout, numeros):
+        pages += _pages_reference("D.1", r, numeros[r.code])
     return pages
 
 
@@ -478,14 +488,17 @@ def plan(
     pieces: Iterable[Piece] = (),
     postes: Iterable[Poste] = (),
     bureau: Bureau = BUREAU,
+    references: Iterable[Reference] = (),
 ) -> list[Page]:
     """Le dossier page par page : couverture, sommaire, puis chaque intercalaire suivi de ses
-    pages. `pieces` dans l'ordre où le dossier les joint. Aucune fiche de référence n'est encore
-    au registre : elles sont toutes « manquantes » jusqu'à ce qu'elles y entrent."""
+    pages. `pieces` dans l'ordre où le dossier les joint ; `references` : toutes les références
+    du bureau, pour D.1. Aucune fiche de référence n'est encore au registre : elles sont toutes
+    « manquantes » jusqu'à ce qu'elles y entrent."""
     criteres, pieces, postes = list(criteres), list(pieces), list(postes)
-    rubriques = sommaire(criteres, groupement, pieces, postes, bureau)
-    generaux, specifiques = _par_rang(criteres)
-    numeros = numeroter([*generaux, *specifiques])
+    references = list(references)
+    rubriques = sommaire(criteres, groupement, pieces, postes, bureau, references)
+    _, specifiques = _par_rang(criteres)
+    numeros = numeroter([_toutes(references), *specifiques])
     par_code = {p.code: p for p in pieces}
     administratives = [_page_piece("B", p) for p in pieces if p.code not in PIECES_A_PART]
     if not administratives:
@@ -495,7 +508,7 @@ def plan(
         **_contenu_lettres(groupement),
         "B": administratives,
         "C": [_page_a_part("C", par_code, "PRESENTATION")],
-        "D.1": _experience_generale(generaux, numeros),
+        "D.1": _experience_generale(references, numeros),
         "E": [organigramme],
         "F": [_page_a_part("F", par_code, "MOYENS")],
     }

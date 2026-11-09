@@ -127,25 +127,28 @@ def test_criteres_generaux_et_specifiques():
 
 def test_ce_que_l_application_sait_de_chaque_rubrique():
     postes = [Poste("Chef de mission", "TRAORE Awa"), Poste("Spécialiste QHSE")]
-    etats = {x.code: (x.etat, x.a_regler) for x in sommaire(PISEN, pieces=PIECES, postes=postes)}
+    toutes = [R1, R2, R3]
+    lignes = sommaire(PISEN, pieces=PIECES, postes=postes, references=toutes)
+    etats = {x.code: (x.etat, x.a_regler) for x in lignes}
     assert etats["B"] == ("2 pièces sur 3 à régler à la date limite", True)  # sans C ni F
     assert etats["C"] == ("présentation du bureau non cochée dans les pièces exigées", True)
     assert etats["F"] == ("liste des moyens : valide · 30 j de marge", False)
-    assert etats["D.1"] == ("3 références retenues", None)  # sans compter deux fois R1
-    assert etats["D.2.1"] == ("2 références retenues", None)
-    assert etats["D.2.2"] == ("aucune référence retenue", True)
+    assert etats["D.1"] == ("3 références du bureau", None)  # toutes, pas celles d'un critère
+    assert etats["D.2.1"] == ("2 références", None)
+    assert etats["D.2.2"] == ("aucune référence ne répond", True)
     assert etats["D.2.3"] == ("simulation non enregistrée", True)
     assert etats["E"] == ("1 poste sur 2 sans expert retenu", True)
     assert etats["A"] == ("", None)
     vide = {x.code: x.etat for x in sommaire([])}
     assert vide["D"] == "aucun critère au barème"
-    assert vide["D.1"] == "aucun critère d'expérience générale"
+    assert vide["D.1"] == "aucune référence au registre"
     assert vide["D.2"] == "aucun critère d'expérience spécifique"
     assert (vide["B"], vide["E"]) == ("aucune pièce exigée", "aucun poste saisi")
 
 
 def test_le_plan_page_par_page():
-    pages = plan(PISEN, pieces=PIECES, postes=[Poste("Chef de mission", "TRAORE Awa")])
+    postes = [Poste("Chef de mission", "TRAORE Awa")]
+    pages = plan(PISEN, pieces=PIECES, postes=postes, references=[R1, R2, R3])
     debut = [(p.genre, p.rubrique) for p in pages[:7]]
     assert debut == [
         ("couverture", ""),
@@ -166,17 +169,13 @@ def test_le_plan_page_par_page():
     assert c == [("intercalaire", Etat.REDIGEE), ("piece", Etat.MANQUANTE)]
 
     d1 = [p for p in pages if p.rubrique == "D.1"]
-    attendu = ["intercalaire", "liste", "famille", *QUATRE, *QUATRE, "famille", *QUATRE]
+    attendu = ["intercalaire", "liste", *QUATRE, *QUATRE, *QUATRE]  # sans page de famille
     assert [p.genre for p in d1] == attendu
     liste = d1[1]
     assert liste.paysage and not liste.entete
     assert liste.titre == "LISTE DES EXPERIENCES GÉNÉRALES"
     numeros = [(g.libelle, [x.numero for x in g.lignes]) for g in liste.groupes]
-    assert numeros == [  # R2 (2024) avant R1 (2020) ; R1 garde son numéro au critère 3
-        ("Au moins cinq (5) études environnementales", [1, 2]),
-        ("Trois (3) missions de bailleurs internationaux", [2, 3]),
-        ("Au moins deux (2) études d'infrastructures rurales", []),
-    ]
+    assert numeros == [("", [1, 2, 3])]  # une seule liste, la plus récente d'abord
     premiere = Ligne(
         1,
         "Mission GIC-ENV-ETU-002",
@@ -223,6 +222,20 @@ def test_le_plan_page_par_page():
     ]
     assert {p.genre for p in pages if p.entete} == {"sommaire", "intercalaire", "organigramme"}
     assert {p.genre for p in pages if p.paysage} == {"liste", "organigramme"}
+
+
+def test_d1_toutes_les_references_d2_toutes_celles_qui_repondent():
+    """Règle du porteur (09/11/2026), comme dans SOMAPEP : D.1 donne toutes les références du
+    bureau, même sans critère d'expérience générale ; D.2.x toutes celles qui répondent."""
+    criteres = [Critere("5", EIES, mode=MODE, retenues=(R3, R1, R2))]  # plus que les 3 demandées
+    pages = plan(criteres, references=[R3, R1, R2])
+    d1 = [(p.numero, p.reference) for p in pages if p.rubrique == "D.1" and p.genre == "fiche"]
+    assert d1 == [(1, "GIC-ENV-ETU-002"), (2, "GIC-ENV-ETU-001"), (3, "GIC-HYD-ETU-003")]
+    d21 = [p.numero for p in pages if p.rubrique == "D.2.1" and p.genre == "fiche"]
+    assert d21 == [1, 2, 3]  # chaque référence garde son numéro de D.1
+    assert {x.code: x.etat for x in sommaire(criteres)}["D.2.1"] == "3 références"
+    vide = [(p.genre, p.motif) for p in plan([]) if p.rubrique == "D.1"]
+    assert vide == [("intercalaire", ""), ("vide", "aucune référence au registre")]
 
 
 def test_colonnes_des_listes_et_pays():

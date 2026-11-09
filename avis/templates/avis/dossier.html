@@ -66,7 +66,7 @@
   .adresse .lignes { margin-left: 24mm; font-size: 9.5pt; font-weight: bold; }
   .adresse .lignes p { margin: 0 0 2.2mm; }
 
-  /* listes des références retenues (paysage) */
+  /* listes des références : toutes en D.1, toutes celles qui répondent en D.2.x (paysage) */
   .logo-liste { position: absolute; right: 12mm; top: 4mm; width: 40mm; height: 15mm; border: 0.8pt solid #0070c0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
   .logo-liste img { max-width: 100%; max-height: 100%; }
   .logo-liste span { color: #0070c0; font-weight: bold; font-size: 10pt; text-align: center; }
@@ -219,7 +219,7 @@
     <table class="liste">
       <thead><tr><th>N°</th><th>TITRE DU MARCHE</th><th>CLIENT</th><th>PAYS</th><th>MONTANT DU MARCHE</th><th>SOURCE DE FINANCEMENT</th><th>PERIODE D’EXECUTION</th></tr></thead>
       <tbody>
-        {% for g in p.groupes %}<tr class="groupe"><td colspan="7">{{ g.libelle|upper }}</td></tr>
+        {% for g in p.groupes %}{% if g.libelle %}<tr class="groupe"><td colspan="7">{{ g.libelle|upper }}</td></tr>{% endif %}
         {% for x in g.lignes %}<tr><td>{{ x.numero|stringformat:"02d" }}</td><td class="j">{{ x.titre }}</td><td>{{ x.client }}</td><td>{{ x.pays }}</td><td>{{ x.montant }}</td><td>{{ x.source }}</td><td>{{ x.periode }}</td></tr>
         {% endfor %}{% endfor %}
       </tbody>

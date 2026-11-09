@@ -100,9 +100,11 @@ l'application sait de chacune), `compte` (pages par état) et `pages`, chacune
   adresse, listes, pages de famille, organigramme), `a_inserer` (un fichier du partage, `chemin`
   relatif à `PARTAGE_GIC`), `perimee` (la version jointe ne vaut plus à la date limite) ou
   `manquante` (avec le `motif`).
-- Les listes viennent de la dernière simulation enregistrée (`Selection.retenue`) ; D.1 réunit
-  les critères d'expérience générale, D.2.x un critère d'expérience spécifique chacun
-  (`Critere.experience`, sinon déduite du texte ou du mode). Les fiches de référence au format
+- D.1 donne toutes les références du bureau, sauf les absorbées, même sans critère d'expérience
+  générale. D.2.x donne un critère d'expérience spécifique chacun (`Critere.experience`, sinon
+  déduite du texte ou du mode), avec toutes les références qui y répondent d'après la dernière
+  simulation enregistrée (`Selection`), pas seulement celles qui portent les points, sauf celles
+  qu'une personne a exclues (règle du porteur, 09/11/2026). Les fiches de référence au format
   Banque mondiale ne sont pas encore au registre : elles sont toutes `manquante`.
 - Le calcul est celui de la page « Dossier » (`/avis/<id>/dossier`) : `services.plan_dossier`,
   puis `moteur.avis.sommaire.plan`. Aucun fichier n'est renvoyé.

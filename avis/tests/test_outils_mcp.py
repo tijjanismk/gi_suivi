@@ -121,11 +121,13 @@ def test_plan_du_dossier_apres_une_simulation(avis):
     codes = [r["code"] for r in rendu["sommaire"]]
     assert codes == ["A", "B", "C", "D", "D.1", "D.2", "D.2.1", "D.2.2", "E", "F"]
     pages = rendu["pages"]
-    garde = next(p for p in pages if p.get("titre") == "Page de garde · GIC-HYD-ETU-033")
-    assert (garde["etat"], garde["rubrique"]) == ("a_inserer", "D.2.1")
-    assert garde["chemin"] == "REFERENCES\\02_JUSTIFICATIFS\\GIC-HYD-ETU-033\\GARDE.pdf"
+    gardes = [p for p in pages if p.get("titre") == "Page de garde · GIC-HYD-ETU-033"]
+    assert [p["rubrique"] for p in gardes] == ["D.1", "D.2.1"]  # en D.1 et sous son critère
+    chemin = "REFERENCES\\02_JUSTIFICATIFS\\GIC-HYD-ETU-033\\GARDE.pdf"
+    assert {(p["etat"], p["chemin"]) for p in gardes} == {("a_inserer", chemin)}
     listes = [(p["rubrique"], p["lignes"], p["paysage"]) for p in pages if p["genre"] == "liste"]
-    assert listes == [("D.2.1", 1, True)]  # le contrôle des forages n'a aucune pièce
+    # D.1 : toutes les références ; D.2.x : toutes celles qui répondent, même sans pièce
+    assert listes == [("D.1", 2, True), ("D.2.1", 1, True), ("D.2.2", 1, True)]
     assert all(p.get("motif") for p in pages if p["etat"] == "manquante")
     assert outils.plan_dossier(999999) == {"erreur": "avis inconnu : 999999"}
 
