@@ -1,5 +1,7 @@
 # Réglages de Claude Code propres à ce poste (port du serveur de développement…)
-.claude/
+.claude/*
+# sauf les skills du projet, partagés (la veille des avis, VE01)
+!.claude/skills/
 
 # Secrets et configuration locale
 .env
