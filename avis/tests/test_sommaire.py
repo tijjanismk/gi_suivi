@@ -83,7 +83,7 @@ def test_dossier_entete_pied_et_logo_lu_sur_le_partage(client, fier_ii, settings
     settings.PARTAGE_GIC = str(tmp_path)
     page = html(client.get(f"/avis/{fier_ii.pk}/intercalaires", **DIR))
     pied = '<footer class="hf-bas">Études techniques et contrôle'
-    assert page.count('<header class="hf-haut">') == page.count(pied) == 14  # le sommaire et 13 intercalaires
+    assert page.count('<header class="hf-haut">') == page.count(pied) == 14  # sommaire + 13
     url = f"/avis/{fier_ii.pk}/dossier"
     page = html(client.get(url, **DIR))
     assert 'data-genre="lettre"' in page and 'data-genre="organigramme"' in page
