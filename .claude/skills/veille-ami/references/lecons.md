@@ -29,3 +29,20 @@ Chaque point ci-dessous a coûté du temps ou failli faire manquer un AMI. Les r
   est quand même proposé : le dire dans le compte rendu, la veille précédente a pu le manquer.
 - Ni Excel ni e-mail (décision du porteur, 09/11/2026) : le compte rendu reste dans la
   conversation, les avis arrivent sur l'écran « Propositions ».
+
+## Exécution du 09/11/2026 (première veille vers l'application)
+- **Navigateur intégré** : l'API Banque mondiale se lit en `fetch` depuis une page de
+  projects.worldbank.org (12 pays en un appel) ; les listes BAD se lisent en `fetch` +
+  `DOMParser` depuis une page d'afdb.org (même origine), lots de 6 à 15 requêtes espacées de
+  2 s : aucun blocage.
+- **PDF de la BAD** : WebFetch reçoit 403 sur `sites/default/files/...pdf`. Les lire depuis le
+  lecteur du site (`/sites/all/libraries/pdf.js/web/viewer.html?file=...`) : `fetch` du PDF
+  en `Uint8Array`, puis `PDFViewerApplication.open(octets)` et `getTextContent()` page par
+  page (`open(url)` échoue : « Réponse inattendue du serveur »).
+- **HCOP du Niger** : lisibles en entier avec pdf.js chargé depuis cdnjs (`import()` du
+  module) sur une page d'arcop.ne ; le n°554 (09-15/11) n'avait aucun AMI de bureau d'études
+  dans ses appels à concurrence.
+- **DGMP Mali** : `?q=node/66` affiche toujours la CENTIF ; **DGCMEF Burkina** : aucun
+  quotidien depuis le n°4514 du 21/10/2026.
+- **Avis déjà traités hors de l'application** (PATA-BF, PISEN, décision du porteur du
+  07/11) : ne pas en faire des propositions ; les citer dans le compte rendu.

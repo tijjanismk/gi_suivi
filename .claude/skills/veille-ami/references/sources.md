@@ -47,7 +47,7 @@ Page d'un avis : `https://www.afdb.org/fr/documents/<slug>` ; l'URL directe du P
 `https://www.dgmp.gouv.ml/?q=node/66` (tableau des AMI ; fichiers .docx/.pdf). Le 09/11/2026 l'URL redirigeait en 302 vers `https://centif.ml/?q=node%2F66` (site de la CENTIF, sans tableau) : si cela se reproduit, signaler la source comme non accessible.
 
 ## 4. Niger – ARCOP
-- Liste des HCOP : `https://www.arcop.ne/documents/hcop` ; PDF : `https://www.arcop.ne/documents/download/<n>` (n°553 = 238, n°552 = 237, n°551 = 236 ; +1 par semaine en général). Les AMI sont en début de numéro, les décisions du CRD à la fin ; le sommaire donne la pagination.
+- Liste des HCOP : `https://www.arcop.ne/documents/hcop` ; PDF : `https://www.arcop.ne/documents/download/<n>` (n°554 = 239, n°553 = 238, n°552 = 237 ; +1 par semaine en général). Les AMI sont en début de numéro, les décisions du CRD à la fin ; le sommaire donne la pagination.
 - Appels à candidatures de l'ARCOP elle-même : `https://www.arcop.ne/commande-publique/avis-appels-offres` (PDF via `commande-publique/download/<n>`).
 
 ## 5. Burkina Faso – DGCMEF
