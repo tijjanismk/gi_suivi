@@ -41,8 +41,9 @@
 
   /* lettre sur papier à en-tête */
   .lettre { position: absolute; inset: 9mm 19mm 12mm 18mm; overflow: hidden; font-size: 11pt; line-height: 1.32; }
-  .lettre .papier { margin: 0 0 6mm; padding-bottom: 2mm; border-bottom: 1pt solid #2f5496; text-align: center; }
-  .lettre .papier img { display: block; max-width: 131mm; max-height: 30mm; margin: 0 auto; }
+  .lettre .papier { margin: 0 0 6mm; text-align: center; }
+  .lettre .papier.texte { padding-bottom: 2mm; border-bottom: 1pt solid #2f5496; }
+  .lettre .papier img { display: block; width: 131mm; max-width: 100%; margin: 0 auto; }
   .lettre .papier .nom-bureau { margin: 0; color: #2f5496; font-family: "Arial Black", Arial, sans-serif; font-size: 18pt; text-align: center; }
   .lettre .papier .adresse-bureau { margin: 1mm 0 0; font-size: 8.5pt; text-align: center; }
   .lettre h1 { margin: 0 0 10mm; text-align: center; font-size: 11.5pt; text-decoration: underline; }
@@ -158,7 +159,7 @@
     <div class="boite"><p class="num">Avis à manifestation d'intérêt n° {{ d.numero }}</p><p>{{ a.objet }}</p></div>
     <p class="reponse">RÉPONSE À L'AVIS DE MANIFESTATION D'INTÉRÊT</p>
     <p class="soumis">SOUMISE PAR : {{ b.raison_sociale }}</p>
-    <p class="adr">Siège : {{ b.adresse }}, {{ b.boite_postale }}, {{ b.ville }} – {{ b.pays }}<br>Tél. : {{ b.telephones|join:" / " }} · {{ b.courriels|join:" / " }}</p>
+    <p class="adr">Siège social : {{ b.couverture_siege }} ;<br>Contact : {{ b.couverture_contact }}</p>
     <p class="mois">{{ d.mois|upper }}</p>
   </div>
   {% elif p.genre == "sommaire" %}
@@ -173,10 +174,12 @@
   <div class="corps"><h2 class="banniere">{{ p.rubrique }}. {{ p.titre }}</h2></div>
   {% elif p.genre == "lettre" %}
   <div class="lettre">
-    <div class="papier">
-      {% if d.logo %}<img src="{% url 'avis:logo' %}" alt="{{ b.raison_sociale }}">{% else %}<p class="nom-bureau">{{ b.raison_sociale }}</p>{% endif %}
+    {% comment %} Le papier à en-tête : le logo entier, qui porte déjà l'adresse ext sud (13,1 cm comme dans le Word) ; sans logo, le nom et l'adresse en texte. {% endcomment %}
+    {% if d.logo %}<div class="papier"><img src="{% url 'avis:logo' %}" alt="{{ b.raison_sociale }}"></div>
+    {% else %}<div class="papier texte">
+      <p class="nom-bureau">{{ b.raison_sociale }}</p>
       <p class="adresse-bureau">{{ b.adresse }} – {{ b.boite_postale }} – {{ b.ville }} ({{ b.pays }}) · Tél. : {{ b.telephones|join:" / " }} · {{ b.courriels|join:" / " }}</p>
-    </div>
+    </div>{% endif %}
     <h1>LETTRE DE MANIFESTATION D’INTERET</h1>
     <p class="date">{{ b.ville }}, le ____ {{ d.mois }}</p>
     <p class="objet"><span class="mot-objet">Objet</span> : <b>Réponse à l’avis à manifestation d’intérêt n° {{ d.numero }} : {{ a.objet }}</b></p>

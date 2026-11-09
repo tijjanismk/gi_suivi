@@ -132,9 +132,13 @@ PARTAGE_GIC = env.str("PARTAGE_GIC", "")
 ENVIRONNEMENT = env.str("ENVIRONNEMENT", "")  # test ou prod sur le serveur, vide en développement
 
 # Identité du bureau, imprimée dans le dossier d'un AMI (AV14), telle qu'elle figure dans les
-# documents du bureau : le siège sur la lettre, l'adresse et la couverture ; le pied des listes de
-# références tel qu'il est dans les listes Word du bureau (autre adresse, autre boîte postale).
-# Le logo n'est pas ici : il se lit sur le partage, ADMINISTRATIF\LOGOS\LOGO.png.
+# vrais dossiers du bureau : une variante par usage, pas d'adresse unique (décision du porteur,
+# 07/11/2026 : « pour les adresses et raison sociale on laisse ces incoherences »). Le siège
+# « ext sud » sur la page d'adresse (et sur le logo, qui le porte) ; ACI Golf sur la couverture
+# et au pied des listes de références, comme dans les listes Word du bureau. Un contrôle de
+# concordance ne doit pas signaler ces différences. Sortir l'identité des réglages (un modèle)
+# demanderait un ADR. Le logo n'est pas ici : il se lit sur le partage,
+# ADMINISTRATIF\LOGOS\LOGO.png.
 BUREAU = {
     "raison_sociale": env.str("BUREAU_RAISON_SOCIALE", "GI-Conseils SARL"),
     "nom_court": env.str("BUREAU_NOM_COURT", "GI-Conseils"),
@@ -148,6 +152,12 @@ BUREAU = {
         "BUREAU_TELEPHONES", ["(223) 20 28 02 10", "74 45 13 29", "90 46 35 20"]
     ),
     "courriels": env.list("BUREAU_COURRIELS", ["gi_conseil@yahoo.fr", "contact@gi-conseils.ml"]),
+    "couverture_siege": env.str(
+        "BUREAU_COUVERTURE_SIEGE", "Baco-djicoroni ACI GOLF Rue : 414 Porte : 302 Bamako"
+    ),
+    "couverture_contact": env.str(
+        "BUREAU_COUVERTURE_CONTACT", "BP. E1773 – Tél. : 20 28 02 10/74 45 13 29"
+    ),
     "listes_siege": env.str(
         "BUREAU_LISTES_SIEGE", "Baco-djicoroni aci GOLF Rue : 414 Porte : 302 Bamako ; Mali"
     ),

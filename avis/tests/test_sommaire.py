@@ -100,12 +100,15 @@ def test_dossier_entete_pied_et_logo_lu_sur_le_partage(client, fier_ii, settings
     page = html(client.get(url, **DIR))
     assert 'data-genre="lettre"' in page and 'data-genre="organigramme"' in page
     assert 'src="/avis/logo"' not in page and "le nom du bureau est écrit à sa place" in page
+    assert 'class="adresse-bureau"' in page  # sans logo, l'adresse en texte sous le nom
     assert client.get("/avis/logo", **VUE).status_code == 404
     assert JournalAcces.objects.filter(cible=f"{fier_ii.pk} dossier").exists()
 
     (tmp_path / "ADMINISTRATIF" / "LOGOS").mkdir(parents=True)
     (tmp_path / "ADMINISTRATIF" / "LOGOS" / "LOGO.png").write_bytes(b"\x89PNG\r\n\x1a\nlogo")
-    assert 'src="/avis/logo"' in html(client.get(url, **DIR))
+    page = html(client.get(url, **DIR))
+    assert 'src="/avis/logo"' in page
+    assert 'class="adresse-bureau"' not in page  # le logo porte déjà l'adresse ext sud
     r = client.get("/avis/logo", **VUE)
     assert r.status_code == 200 and r["Content-Type"] == "image/png"
     assert client.get("/avis/logo", **AWA).status_code == 403
@@ -224,6 +227,10 @@ def test_le_dossier_page_par_page(client, pisen, retenues):
     assert page.count("Manifestation d’Intérêt <small>n° 005/MEHA/PISEN/2026</small>") == entetes
     assert page.count(f'<footer class="hf-bas">{OBJET}</footer>') == entetes
     assert "RÉPUBLIQUE DU NIGER" in page and "Fraternité – Travail – Progrès" in page
+    # une adresse par usage, comme dans les vrais dossiers (décision du porteur, 07/11/2026)
+    siege = "Siège social : Baco-djicoroni ACI GOLF Rue : 414 Porte : 302 Bamako ;"
+    assert f"{siege}<br>Contact : BP. E1773 – Tél. : 20 28 02 10/74 45 13 29</p>" in page
+    assert "Bacodjicoroni-ext sud, Rue : 839 Porte : 523 ;" in page  # la page d'adresse
     assert "L’attention de Monsieur le Coordonnateur National du PISEN, Niamey" in page
     assert "Veuillez agréer, Monsieur le Coordonnateur National, l'assurance" in page
     assert "Bamako, le ____ novembre 2026" in page and "Oumar Almahamoudou DICKO" in page
