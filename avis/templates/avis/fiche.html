@@ -37,6 +37,49 @@
   </dl>
 {% endcomponent %}
 
+{% component "unfold/components/card.html" with title="Décision : on répond ou pas" %}
+<div class="gic:flex gic:flex-col gic:gap-3 gic:text-sm" id="decision">
+  {% with d=decisions.0 %}{% if d %}
+  <div class="gic:flex gic:flex-col gic:gap-1" id="decision-en-cours" data-decision="{{ d.decision }}">
+    <p class="text-important"><span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if d.decision == 'go' %}gic:bg-green-100 gic:text-green-900{% else %}gic:bg-gray-100 gic:text-gray-700{% endif %}">{{ d.get_decision_display|capfirst }}</span>
+      décision du {{ d.le|date:"d/m/Y à H:i" }}, par {{ d.par.nom_affiche|default:d.par.login_windows }} <span class="text-subtle">({{ d.get_qualite_display }})</span></p>
+    <p class="text-important">{{ d.motif|linebreaksbr }}</p>
+    <p class="text-subtle gic:tabular-nums">{% if d.simulee_le %}Note à ce moment : sûre {{ d.note_sure|floatformat:"-2" }}, possible {{ d.note_possible|floatformat:"-2" }} (simulation du {{ d.simulee_le|date:"d/m/Y H:i" }}).{% else %}Pas de simulation à la date de la décision.{% endif %}</p>
+  </div>
+  {% else %}
+  <p class="text-subtle">Pas encore de décision.{% if not peut_decider %} La direction ou sa délégation décide ici, avec un motif.{% endif %}</p>
+  {% endif %}{% endwith %}
+  {% if decisions|length > 1 %}
+  <details id="decisions-precedentes">
+    <summary class="text-primary-600">Décisions précédentes ({{ decisions|length|add:"-1" }})</summary>
+    <ul class="gic:mt-1 gic:flex gic:flex-col gic:gap-1">
+      {% for p in decisions|slice:"1:" %}<li class="gic:border-b border-base-200 dark:border-base-800 gic:pb-1.5" data-decision="{{ p.decision }}"><span class="text-important">{{ p.get_decision_display|capfirst }}</span> <span class="text-subtle">— {{ p.le|date:"d/m/Y H:i" }}, {{ p.par.nom_affiche|default:p.par.login_windows }} ({{ p.get_qualite_display }}){% if p.simulee_le %}, note sûre {{ p.note_sure|floatformat:"-2" }}, possible {{ p.note_possible|floatformat:"-2" }}{% endif %}</span><br>{{ p.motif|linebreaksbr }}</li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  {% if peut_decider %}
+  <form method="post" action="{% url 'avis:decider' a.pk %}" class="gic:flex gic:flex-col gic:gap-2 gic:max-w-5xl" id="form-decision" novalidate>
+    {% csrf_token %}
+    {% for e in formulaire_decision.non_field_errors %}<p class="gic:rounded-md gic:px-4 gic:py-2 gic:bg-red-100 gic:text-red-900">{{ e }}</p>{% endfor %}
+    <fieldset>
+      <legend class="gic:text-xs text-subtle">{% if decisions %}Revoir la décision{% else %}Décider{% endif %}</legend>
+      <div class="gic:mt-1 gic:flex gic:flex-wrap gic:gap-3">
+        {% for choix in formulaire_decision.decision %}<label class="gic:flex gic:items-center gic:gap-2 text-important" for="{{ choix.id_for_label }}">{{ choix.tag }} {{ choix.choice_label|capfirst }}</label>{% endfor %}
+      </div>
+      {% for e in formulaire_decision.decision.errors %}<p class="gic:mt-1 gic:text-xs gic:text-red-700">{{ e }}</p>{% endfor %}
+    </fieldset>
+    <div>
+      <label class="gic:text-xs text-subtle" for="{{ formulaire_decision.motif.id_for_label }}">Motif</label>
+      {{ formulaire_decision.motif }}
+      <p class="gic:mt-1 gic:text-xs text-subtle">{{ formulaire_decision.motif.help_text }}</p>
+      {% for e in formulaire_decision.motif.errors %}<p class="gic:mt-1 gic:text-xs gic:text-red-700">{{ e }}</p>{% endfor %}
+    </div>
+    <div><button type="submit" class="gic:rounded-md gic:px-4 gic:py-1.5 gic:text-sm gic:font-medium gic:text-white bg-primary-600 gic:hover:opacity-90">Enregistrer la décision</button></div>
+  </form>
+  {% endif %}
+</div>
+{% endcomponent %}
+
 {% if sommaire %}
 {% component "unfold/components/card.html" with title="Sommaire de la manifestation d'intérêt" %}
   <p class="gic:mb-3 gic:text-sm text-subtle">Une ligne par intercalaire, dans l'ordre du dossier : D.1 donne toutes les références du bureau ; D.2 donne un intercalaire à chaque critère d'expérience spécifique, avec toutes les références qui y répondent d'après la dernière simulation enregistrée, sauf celles qu'une personne a exclues. Seules les références justifiées (page de garde, page de signature et attestation) entrent au dossier ; les autres sont comptées à part. <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:dossier' a.pk %}">Imprimer le dossier</a> · <a class="text-primary-600 gic:hover:underline" href="{% url 'avis:intercalaires' a.pk %}">le sommaire et les intercalaires seuls</a></p>

@@ -11,6 +11,7 @@ urlpatterns = [
     path("logo", ecrans.logo, name="logo"),
     path("<int:avis_id>/", ecrans.fiche, name="fiche"),
     path("<int:avis_id>/modifier", ecrans.modifier, name="modifier"),
+    path("<int:avis_id>/decider", ecrans.decider, name="decider"),
     path("<int:avis_id>/fichier/<str:quoi>", ecrans.fichier, name="fichier"),
     path("<int:avis_id>/dossier", ecrans.dossier, name="dossier"),
     path("<int:avis_id>/intercalaires", ecrans.intercalaires, name="intercalaires"),

@@ -1,5 +1,6 @@
-"""Formulaires du module avis : l'avis, et le critère dont le filtre se saisit en champs (cases,
-années, mots-clés) puis se compose en JSON pour le moteur (ADR 0013, § 3)."""
+"""Formulaires du module avis : l'avis, la décision « on répond ou pas » (ADR 0021), et le critère
+dont le filtre se saisit en champs (cases, années, mots-clés) puis se compose en JSON pour le
+moteur (ADR 0013, § 3)."""
 
 from __future__ import annotations
 
@@ -8,7 +9,8 @@ from decimal import Decimal
 
 from django import forms
 
-from avis.models import Avis, BesoinExpert, Critere
+from avis.models import Avis, BesoinExpert, Critere, DecisionAvis
+from moteur.avis import decision as decision_moteur
 from moteur.avis.filtres import FiltreInvalideError, lire_filtre
 from references.models import Mission
 from referentiel.models import Domaine, TypeOuvrage, TypeQuantite
@@ -62,7 +64,20 @@ def relatif_au_partage(texte: str) -> str:
     return _PREFIXE_PARTAGE.sub("", t).lstrip("\\")
 
 
-class FormulaireAvis(forms.ModelForm):
+class StatutSansDecision:
+    """Le statut ne passe à « on répond » ou « on ne répond pas » que par une décision motivée
+    (ADR 0021) : ni le formulaire de l'avis ni l'administration ne le posent."""
+
+    def clean_statut(self) -> str:
+        nouveau = self.cleaned_data["statut"]
+        ancien = self.instance.statut if self.instance.pk else None
+        refus = decision_moteur.changement_de_statut(ancien, nouveau)
+        if refus:
+            raise forms.ValidationError(refus)
+        return nouveau
+
+
+class FormulaireAvis(StatutSansDecision, forms.ModelForm):
     class Meta:
         model = Avis
         fields = [
@@ -100,6 +115,9 @@ class FormulaireAvis(forms.ModelForm):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         _habiller(self, "avis")
+        self.fields[
+            "statut"
+        ].help_text = "« On répond » et « on ne répond pas » se décident depuis la fiche de l'avis."
 
     def _chemin(self, nom: str) -> str:
         texte = relatif_au_partage(self.cleaned_data.get(nom, ""))
@@ -122,6 +140,29 @@ class FormulaireAvis(forms.ModelForm):
         if publie and limite and limite < publie:
             self.add_error("date_limite", "La date limite précède la publication.")
         return donnees
+
+
+class FormulaireDecision(forms.Form):
+    """« On répond » ou « on ne répond pas », avec son motif ; le contrôle est celui du moteur."""
+
+    decision = forms.ChoiceField(
+        label="Décision",
+        choices=DecisionAvis.Decision.choices,
+        widget=forms.RadioSelect,
+        error_messages={"required": "Choisissez « on répond » ou « on ne répond pas »."},
+    )
+    motif = forms.CharField(
+        label="Motif",
+        max_length=decision_moteur.MOTIF_MAX,
+        widget=forms.Textarea(attrs={"rows": 3}),
+        help_text="Pourquoi : métier, références, experts, exigences financières, délai…",
+        error_messages={"required": "Indiquez pourquoi vous décidez de répondre ou non."},
+    )
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields["motif"].widget.attrs["class"] = CHAMP
+        self.fields["motif"].strip = False  # le moteur nettoie et juge le motif
 
 
 def _choix_pieces(filtre: dict) -> str:
