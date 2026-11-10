@@ -30,6 +30,7 @@ from experts.models import Expert
 from moteur.avis import experts as experts_moteur
 from moteur.avis import notation
 from moteur.avis import sommaire as sommaire_moteur
+from moteur.avis import termes as termes_moteur
 from moteur.avis.filtres import (
     PIECES_PAR_DEFAUT,
     Piece,
@@ -107,14 +108,23 @@ class Apercu:
     a_auditer: int
     manquantes: int
     codes: tuple[str, ...]  # les premières, dans l'ordre du classement
+    par_termes: int = 0  # retenues par un terme équivalent d'un mot-clé (ADR 0019)
 
 
-def apercu(filtre: dict, references: list[Reference] | None = None) -> Apercu:
+def apercu(
+    filtre: dict,
+    references: list[Reference] | None = None,
+    pays_avis: str = "",
+    termes: tuple[termes_moteur.Terme, ...] | None = None,
+) -> Apercu:
     """Les références qu'un filtre retient. Lève `FiltreInvalideError` si le filtre ne se lit
-    pas. `references` : la liste déjà lue, pour éviter de la relire à chaque critère."""
+    pas. `references` et `termes` : déjà lus, pour ne pas les relire à chaque critère ;
+    `pays_avis` choisit les termes qui valent pour l'avis (ADR 0019)."""
     if references is None:
         references = references_du_bureau()
-    candidates = selectionner(lire_filtre(filtre), references)
+    if termes is None:
+        termes = lexique()
+    candidates = selectionner(lire_filtre(filtre, termes, pays_avis), references)
     compte = Counter(c.preuve for c in candidates)
     return Apercu(
         total=len(candidates),
@@ -122,6 +132,7 @@ def apercu(filtre: dict, references: list[Reference] | None = None) -> Apercu:
         a_auditer=compte[Preuve.A_AUDITER],
         manquantes=compte[Preuve.MANQUANTE],
         codes=tuple(c.reference.code for c in candidates[:CODES_EN_APERCU]),
+        par_termes=sum(1 for c in candidates if c.par_termes),
     )
 
 
@@ -182,9 +193,31 @@ def regler_pieces(avis: Avis, codes: Iterable[str]) -> tuple[int, int]:
     return len(voulues - actuelles), retirees
 
 
+# -- termes des types d'ouvrages (ADR 0019, AV15) -------------------------------------------------
+def lexique() -> tuple[termes_moteur.Terme, ...]:
+    """Les termes qui mènent à chaque type d'ouvrage actif : son libellé sans la parenthèse, son
+    sigle entre parenthèses, et ses termes validés, avec leur pays et leur portée. Un terme
+    proposé ou rejeté ne compte pas (règle 3) : il attend la décision d'une personne."""
+    termes = []
+    for o in TypeOuvrage.objects.filter(actif=True):
+        libelle = re.sub(r"\s*\(.*?\)", "", o.libelle).strip()
+        if libelle:
+            termes.append(termes_moteur.Terme(libelle, o.cle))
+        sigle = re.search(r"\(([^)]+)\)", o.libelle)
+        if sigle:
+            termes.append(termes_moteur.Terme(sigle.group(1).strip(), o.cle))
+    valides = Terme.objects.filter(statut=Terme.Statut.VALIDE, type_ouvrage__actif=True)
+    for t in valides.select_related("type_ouvrage").order_by("type_ouvrage__ordre", "terme"):
+        termes.append(termes_moteur.Terme(t.terme, t.type_ouvrage.cle, t.pays, t.portee))
+    return tuple(termes)
+
+
 # -- simulation (AV04) --------------------------------------------------------------------------
-def critere_moteur(c: Critere) -> notation.Critere:
-    """Un critère enregistré, tel que le moteur le calcule."""
+def critere_moteur(
+    c: Critere, termes: tuple[termes_moteur.Terme, ...] = (), pays_avis: str = ""
+) -> notation.Critere:
+    """Un critère enregistré, tel que le moteur le calcule : ses mots-clés trouvent aussi les
+    termes équivalents valables dans le pays de l'avis (ADR 0019)."""
     return notation.Critere(
         code=c.code,
         mode=c.mode,
@@ -195,7 +228,7 @@ def critere_moteur(c: Critere) -> notation.Critere:
         points_socle=c.points_socle,
         points_par_annee=c.points_par_annee,
         note_manuelle=c.note_manuelle,
-        filtre=lire_filtre(c.filtre),
+        filtre=lire_filtre(c.filtre, termes, pays_avis),
     )
 
 
@@ -213,7 +246,8 @@ def calculer(avis: Avis, references: list[Reference] | None = None) -> notation.
     lit plus. L'ancienneté se compte jusqu'à l'année de la date limite."""
     if references is None:
         references = references_du_bureau()
-    criteres = [critere_moteur(c) for c in avis.criteres.filter(brouillon=False)]
+    termes = lexique()
+    criteres = [critere_moteur(c, termes, avis.pays) for c in avis.criteres.filter(brouillon=False)]
     return notation.noter(
         criteres, references, avis.date_limite.year, avis.seuil_eligibilite, choix_de(avis)
     )
@@ -705,10 +739,12 @@ def rechercher(
 ) -> tuple[int, list]:
     """Les références qui répondent au filtre d'un critère et au texte libre (tous ses mots dans
     l'intitulé), classées comme pour un critère. `pieces_completes_requises` à vrai ne garde que
-    les références prouvées. Rend (nombre total, les premières)."""
+    les références prouvées. Les mots-clés trouvent aussi leurs termes équivalents valables
+    sans pays (le pays de l'avis n'est pas connu ici, ADR 0019). Rend (nombre total, les
+    premières)."""
     if references is None:
         references = references_du_bureau()
-    candidates = selectionner(lire_filtre(filtre), references)
+    candidates = selectionner(lire_filtre(filtre, lexique()), references)
     if filtre.get("pieces_completes_requises") is True:
         candidates = [c for c in candidates if c.preuve == Preuve.PROUVEE]
     if texte.strip():

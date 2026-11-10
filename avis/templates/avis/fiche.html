@@ -94,7 +94,7 @@
           </td>
           <td class="gic:py-2 gic:pr-3">
             {% if ligne.erreur %}<span class="gic:text-red-700">Filtre : {{ ligne.erreur }}</span>
-            {% elif ligne.apercu %}<span class="text-important gic:tabular-nums">{{ ligne.apercu.total }}</span> <span class="text-subtle">({{ ligne.apercu.prouvees }} prouvée{{ ligne.apercu.prouvees|pluralize }}, {{ ligne.apercu.a_auditer }} à auditer, {{ ligne.apercu.manquantes }} sans pièce)</span>
+            {% elif ligne.apercu %}<span class="text-important gic:tabular-nums">{{ ligne.apercu.total }}</span> <span class="text-subtle">({{ ligne.apercu.prouvees }} prouvée{{ ligne.apercu.prouvees|pluralize }}, {{ ligne.apercu.a_auditer }} à auditer, {{ ligne.apercu.manquantes }} sans pièce)</span>{% if ligne.apercu.par_termes %} <span class="gic:text-xs text-subtle">dont {{ ligne.apercu.par_termes }} par un terme équivalent</span>{% endif %}
             {% else %}<span class="text-subtle">noté à la main</span>{% endif %}
           </td>
           {% if peut_saisir %}

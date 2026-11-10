@@ -47,7 +47,7 @@
           <tr class="gic:border-b border-base-200 dark:border-base-800 gic:align-top" data-code="{{ l.x.reference.code }}">
             <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ forloop.counter }}</td>
             <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><a class="text-primary-600 gic:font-mono gic:text-xs gic:hover:underline" href="{% url 'references:fiche' l.x.reference.code %}">{{ l.x.reference.code }}</a></td>
-            <td class="gic:py-2 gic:pr-3 text-important">{{ l.libelle|truncatechars:140 }}</td>
+            <td class="gic:py-2 gic:pr-3 text-important">{{ l.libelle|truncatechars:140 }}{% if l.x.par_termes %}<div class="gic:mt-1 gic:text-xs text-subtle" data-par-termes>trouvée par le terme {% for t in l.x.par_termes %}« {{ t }} »{% if not forloop.last %}, {% endif %}{% endfor %}, équivalent du mot-clé</div>{% endif %}</td>
             <td class="gic:py-2 gic:pr-3 gic:tabular-nums">{{ l.x.reference.annee|default:"—" }}</td>
             <td class="gic:py-2 gic:pr-3 gic:whitespace-nowrap"><span class="gic:rounded-full gic:px-2 gic:py-0.5 gic:text-xs gic:font-medium {% if l.x.preuve == 'prouvee' %}gic:bg-green-100 gic:text-green-900{% elif l.x.preuve == 'a_auditer' %}gic:bg-amber-100 gic:text-amber-900{% else %}gic:bg-red-100 gic:text-red-900{% endif %}">{% if l.x.preuve == 'prouvee' %}prouvée{% elif l.x.preuve == 'a_auditer' %}à auditer{% else %}pièce manquante{% endif %}</span></td>
             <td class="gic:py-2 gic:pr-3">{% if l.retenue %}oui{% else %}<span class="text-subtle">non</span>{% endif %}{% if l.x.forcee %} <span class="text-subtle">(forcée)</span>{% endif %}</td>

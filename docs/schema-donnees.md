@@ -93,7 +93,12 @@ Règles d'interprétation :
 - `mots_cles` : cherchés dans l'intitulé et l'intitulé court, casse, accents
   et pluriels ignorés ; un mot-clé suffit ; un mot-clé de plusieurs mots
   (« génie civil ») les demande tous. Comparés dans le moteur, sans recherche
-  plein texte PostgreSQL au volume actuel (ADR 0013, § 3).
+  plein texte PostgreSQL au volume actuel (ADR 0013, § 3). Un mot-clé qui est un
+  terme validé d'un type d'ouvrage (`referentiel.Terme`, libellé ou sigle du type), sans pays
+  ou du pays de l'avis et de portée « partout », trouve aussi les autres termes de ce type dans
+  les intitulés des références de leur pays : « AEPS » au Burkina retrouve « adduction d'eau
+  sommaire » (ADR 0019, AV15). Un sigle ne se compare qu'en capitales. La simulation dit par
+  quel terme une référence est trouvée.
 - `annee_min`, `annee_max` : une mission sans année ne passe pas la borne.
 - `pieces_requises` : une entrée par pièce qui prouve la référence, un type
   (`garde`, `signature`, `attestation`…) ou une nature exacte (`bonne_fin`,
