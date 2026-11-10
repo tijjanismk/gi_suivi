@@ -24,6 +24,7 @@ from moteur.avis.filtres import (
     correspond,
     mots_cles_trouves,
     preuve,
+    termes_trouves,
 )
 
 
@@ -35,6 +36,7 @@ class Candidate:
     preuve: Preuve
     manques: tuple[Manque, ...] = ()
     mots_cles: int = 0  # mots-clés du filtre trouvés dans l'intitulé
+    par_termes: tuple[str, ...] = ()  # termes équivalents qui l'ont fait retenir (ADR 0019)
     forcee: bool = False  # retenue par une personne, pas par le filtre
     sure: bool = True  # compte dans la note sûre
     possible: bool = True  # compte dans la note possible
@@ -68,6 +70,7 @@ def selectionner(
                 preuve=etat,
                 manques=manques,
                 mots_cles=mots_cles_trouves(filtre, r),
+                par_termes=termes_trouves(filtre, r),
                 forcee=not par_filtre,
                 sure=not exigee or etat == Preuve.PROUVEE,
                 possible=not exigee or etat != Preuve.MANQUANTE,

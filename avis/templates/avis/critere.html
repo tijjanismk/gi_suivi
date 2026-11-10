@@ -13,7 +13,7 @@
   {% for e in formulaire.non_field_errors %}<p class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-red-100 gic:text-red-900" role="alert">{{ e }}</p>{% endfor %}
   {% if apercu %}
   <div class="gic:rounded-md gic:px-4 gic:py-2 gic:text-sm gic:bg-blue-50 gic:text-blue-900" id="apercu" role="status">
-    <strong>{{ apercu.total }} référence{{ apercu.total|pluralize }} retenue{{ apercu.total|pluralize }}</strong> : {{ apercu.prouvees }} prouvée{{ apercu.prouvees|pluralize }}, {{ apercu.a_auditer }} à auditer, {{ apercu.manquantes }} sans pièce.
+    <strong>{{ apercu.total }} référence{{ apercu.total|pluralize }} retenue{{ apercu.total|pluralize }}</strong> : {{ apercu.prouvees }} prouvée{{ apercu.prouvees|pluralize }}, {{ apercu.a_auditer }} à auditer, {{ apercu.manquantes }} sans pièce.{% if apercu.par_termes %} Dont {{ apercu.par_termes }} trouvée{{ apercu.par_termes|pluralize }} par un terme équivalent d'un mot-clé.{% endif %}
     {% if apercu.codes %}<div class="gic:mt-1 gic:font-mono gic:text-xs">{{ apercu.codes|join:" · " }}{% if apercu.total > apercu.codes|length %} …{% endif %}</div>{% endif %}
   </div>
   {% endif %}

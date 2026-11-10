@@ -109,12 +109,13 @@ def fiche(request, avis_id: int):
     calcules = [c for c in criteres if c.mode != Critere.Mode.MANUEL]
     besoins = a.besoins.exists()
     references = services.references_du_bureau() if calcules or besoins else []
+    termes = services.lexique() if calcules else ()
     lignes = []
     for c in criteres:
         apercu, erreur = None, ""
         if c in calcules:
             try:
-                apercu = services.apercu(c.filtre, references)
+                apercu = services.apercu(c.filtre, references, a.pays, termes)
             except FiltreInvalideError as e:
                 erreur = str(e)
         lignes.append(
@@ -242,7 +243,7 @@ def critere(request, avis_id: int, critere_id: int | None = None):
     apercu = None
     if request.method == "POST" and formulaire.is_valid():
         if request.POST.get("action") == "apercu":
-            apercu = services.apercu(formulaire.instance.filtre)
+            apercu = services.apercu(formulaire.instance.filtre, pays_avis=a.pays)
         else:
             c = formulaire.save(commit=False)
             c.brouillon = False  # enregistré par une personne : il compte (AV09)

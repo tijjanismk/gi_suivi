@@ -8,16 +8,19 @@ conditions se cumulent (ET) ; dans une liste, une seule valeur suffit (OU). Form
   avec un message pour l'écran de saisie.
 - `correspond` : la référence répond-elle au filtre ?
 - `mots_cles_trouves` : combien de mots-clés du filtre sont dans son intitulé (pour classer).
+- `termes_trouves` : les termes équivalents par lesquels elle répond à un mot-clé qu'elle ne
+  contient pas (ADR 0019 : « AEPS » trouve « adduction d'eau sommaire », `moteur.avis.termes`).
 - `preuve` : prouvée, à auditer ou manquante, d'après les pièces requises par le critère.
 """
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from enum import StrEnum
 
+from moteur.avis.termes import Terme, contient, du_pays, equivalents
 from moteur.references.doublons import mots, normaliser
 
 NATURES = frozenset({"ETU", "CTR", "ETC"})
@@ -132,6 +135,8 @@ class Filtre:
     bailleurs: frozenset[str] = frozenset()
     localites: frozenset[str] = frozenset()
     mots_cles: tuple[frozenset[str], ...] = ()  # un mot-clé = l'ensemble de ses mots
+    # pour chaque mot-clé, les termes du même type d'ouvrage qui le remplacent (ADR 0019)
+    equivalents: tuple[tuple[Terme, ...], ...] = ()
     quantites_min: Mapping[str, Decimal] = field(default_factory=dict)
     annee_min: int | None = None
     annee_max: int | None = None
@@ -210,9 +215,12 @@ def _pieces_requises(donnees: Mapping) -> tuple[frozenset[str], ...]:
     return tuple(lues)
 
 
-def lire_filtre(donnees: Mapping | None) -> Filtre:
+def lire_filtre(
+    donnees: Mapping | None, lexique: Iterable[Terme] = (), pays_avis: str = ""
+) -> Filtre:
     """Le filtre JSON d'un critère, vérifié. Vide ou absent : toutes les références, avec les
-    trois pièces requises par défaut."""
+    trois pièces requises par défaut. `lexique` : les termes validés des types d'ouvrages ; un
+    mot-clé qui en est un (pour le pays de l'avis) trouve aussi les autres termes de son type."""
     if donnees is None:
         return Filtre()
     if not isinstance(donnees, Mapping):
@@ -227,11 +235,13 @@ def lire_filtre(donnees: Mapping | None) -> Filtre:
     roles = frozenset(_liste(donnees, "roles"))
     if roles - ROLES:
         raise FiltreInvalideError(f"« roles » : {', '.join(sorted(roles - ROLES))} inconnu")
-    mots_cles = []
+    mots_cles, remplacants = [], []
+    lexique = tuple(lexique)
     for mot_cle in _liste(donnees, "mots_cles"):
         if not mots(mot_cle):
             raise FiltreInvalideError(f"« mots_cles » : « {mot_cle} » ne contient aucun mot utile")
         mots_cles.append(mots(mot_cle))
+        remplacants.append(equivalents(mot_cle, lexique, pays_avis))
     annee_min, annee_max = _annee(donnees, "annee_min"), _annee(donnees, "annee_max")
     if annee_min and annee_max and annee_min > annee_max:
         raise FiltreInvalideError("« annee_min » est après « annee_max »")
@@ -251,6 +261,7 @@ def lire_filtre(donnees: Mapping | None) -> Filtre:
         bailleurs=frozenset(normaliser(v) for v in _liste(donnees, "bailleurs")),
         localites=frozenset(normaliser(v) for v in _liste(donnees, "localites")),
         mots_cles=tuple(mots_cles),
+        equivalents=tuple(remplacants) if any(remplacants) else (),
         quantites_min=_quantites(donnees),
         annee_min=annee_min,
         annee_max=annee_max,
@@ -263,11 +274,33 @@ def _normalises(textes: frozenset[str]) -> frozenset[str]:
     return frozenset(normaliser(t) for t in textes)
 
 
-def mots_cles_trouves(filtre: Filtre, reference: Reference) -> int:
-    """Nombre de mots-clés présents dans l'intitulé ; un mot-clé de plusieurs mots les demande
-    tous (« génie civil »). Casse, accents et pluriels ignorés."""
+def _trouves(filtre: Filtre, reference: Reference) -> list[str]:
+    """Pour chaque mot-clé trouvé : vide s'il est dans l'intitulé, sinon le terme équivalent qui
+    y est (un terme d'un autre pays ne sert pas : ADR 0019, § 2)."""
     mots_intitule = mots(reference.intitule)
-    return sum(1 for mot_cle in filtre.mots_cles if mot_cle <= mots_intitule)
+    trouves = []
+    for i, mot_cle in enumerate(filtre.mots_cles):
+        if mot_cle <= mots_intitule:
+            trouves.append("")
+            continue
+        for t in filtre.equivalents[i] if i < len(filtre.equivalents) else ():
+            if du_pays(t, reference.pays) and contient(reference.intitule, t.texte):
+                trouves.append(t.texte)
+                break
+    return trouves
+
+
+def mots_cles_trouves(filtre: Filtre, reference: Reference) -> int:
+    """Nombre de mots-clés présents dans l'intitulé, eux-mêmes ou par un terme équivalent ; un
+    mot-clé de plusieurs mots les demande tous (« génie civil »). Casse, accents et pluriels
+    ignorés."""
+    return len(_trouves(filtre, reference))
+
+
+def termes_trouves(filtre: Filtre, reference: Reference) -> tuple[str, ...]:
+    """Les termes équivalents par lesquels la référence répond, pour les mots-clés que son
+    intitulé ne contient pas : ce que l'écran montre pour qu'une personne en juge."""
+    return tuple(dict.fromkeys(t for t in _trouves(filtre, reference) if t))
 
 
 def correspond(filtre: Filtre, reference: Reference) -> bool:
