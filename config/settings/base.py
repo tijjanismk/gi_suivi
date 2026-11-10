@@ -126,6 +126,9 @@ GROUPE_DIRECTION = env.str("GROUPE_DIRECTION", "GI-Direction")
 # créer en P04.
 GROUPE_DIRECTION_LECTURE = env.str("GROUPE_DIRECTION_LECTURE", "GI-Direction-Lecture")
 GROUPE_OFFRES = env.str("GROUPE_OFFRES", "GI-Offres")
+# Délégation de la direction pour décider de répondre ou non à un avis (ADR 0022). Groupe AD à
+# créer ; tant qu'il est vide, seule GI-Direction décide.
+GROUPE_DECISION_AVIS = env.str("GROUPE_DECISION_AVIS", "GI-Decision-Avis")
 # Partage des documents du bureau (D:\GIC). Les pièces administratives y sont lues, jamais écrites
 # (ADR 0010, règle 4). Vide en développement : les écrans le signalent.
 PARTAGE_GIC = env.str("PARTAGE_GIC", "")

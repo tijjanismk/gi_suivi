@@ -82,6 +82,7 @@ Navigateur (poste / VPN) ──────────────────�
 | Avis | AMI, DP ou AO reçu, avec son barème | `avis.Avis` |
 | Critère | Une ligne du barème, décrite en données | `avis.Critere` |
 | Proposition | Un avis candidat, pas encore validé | `avis.Proposition` |
+| Décision | « On répond » ou « on ne répond pas », motivée, par la direction ou sa délégation | `avis.DecisionAvis` |
 | Sélection | Les références choisies pour un avis donné | `avis.Selection` |
 | Expert | Une personne du vivier (interne ou externe) | `experts.Expert` |
 | Affectation | Un expert sur une mission, à un poste | `experts.Affectation` |

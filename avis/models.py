@@ -107,15 +107,7 @@ class Avis(models.Model):
     )
     note_possible = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
     simulee_le = models.DateTimeField("simulée le", null=True, blank=True)
-    decision_par = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="+",
-    )
-    decision_le = models.DateTimeField(null=True, blank=True)
-    motif_decision = models.CharField(max_length=500, blank=True)
+    # Qui a décidé de répondre ou non, quand et pourquoi : `DecisionAvis` (ADR 0021)
     observations = models.TextField(blank=True)
     cree_par = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -145,6 +137,11 @@ class Avis(models.Model):
                 PieceExigee(avis=self, type=t, origine=PieceExigee.Origine.PAR_DEFAUT)
                 for t in TypePiece.objects.filter(exigee_par_defaut=True, actif=True)
             )
+
+    @property
+    def decision_en_cours(self) -> DecisionAvis | None:
+        """La dernière décision « on répond ou pas », None s'il n'y en a pas encore."""
+        return self.decisions.select_related("par").first()
 
 
 class Critere(models.Model):
@@ -396,3 +393,45 @@ class Proposition(models.Model):
     def __str__(self) -> str:
         reference = (self.champs_extraits or {}).get("reference", "")
         return f"Proposition {self.pk} ({self.get_origine_display()}) {reference}".strip()
+
+
+class DecisionAvis(models.Model):
+    """Une décision « on répond » ou « on ne répond pas » sur un avis (ADR 0021, ISO 9001
+    § 8.2.3) : qui, à quel titre, quand, pourquoi, et la note de la dernière simulation à ce
+    moment. Jamais modifiée ni supprimée : la plus récente est la décision en cours, les autres
+    restent pour la trace. Seules la direction et sa délégation décident (ADR 0022)."""
+
+    class Decision(models.TextChoices):
+        GO = "go", "on répond"
+        NO_GO = "no_go", "on ne répond pas"
+
+    class Qualite(models.TextChoices):
+        DIRECTION = "direction", "direction"
+        DELEGATION = "delegation", "délégation de la direction"
+
+    avis = models.ForeignKey(Avis, on_delete=models.PROTECT, related_name="decisions")
+    decision = models.CharField("décision", max_length=6, choices=Decision.choices)
+    motif = models.TextField()
+    par = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="+")
+    qualite = models.CharField("qualité", max_length=10, choices=Qualite.choices)
+    le = models.DateTimeField(auto_now_add=True)
+    statut_avant = models.CharField("statut avant", max_length=12, choices=Avis.Statut.choices)
+    note_sure = models.DecimalField(
+        "note sûre", max_digits=6, decimal_places=2, null=True, blank=True
+    )
+    note_possible = models.DecimalField(max_digits=6, decimal_places=2, null=True, blank=True)
+    simulee_le = models.DateTimeField("simulée le", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "décision sur un avis"
+        verbose_name_plural = "décisions sur les avis"
+        ordering = ["-le", "-pk"]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(decision__in=["go", "no_go"]) & ~models.Q(motif=""),
+                name="decision_avis_motivee",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.avis} — {self.get_decision_display()}"

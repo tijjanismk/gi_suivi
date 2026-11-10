@@ -25,8 +25,17 @@ from administratif.services import (
     chemin_absolu,
     controle_a_la_date,
 )
-from avis.models import Avis, BesoinExpert, Critere, PieceExigee, Proposition, Selection
+from avis.models import (
+    Avis,
+    BesoinExpert,
+    Critere,
+    DecisionAvis,
+    PieceExigee,
+    Proposition,
+    Selection,
+)
 from experts.models import Expert
+from moteur.avis import decision as decision_moteur
 from moteur.avis import experts as experts_moteur
 from moteur.avis import notation
 from moteur.avis import sommaire as sommaire_moteur
@@ -309,6 +318,46 @@ def choisir(critere: Critere, mission: Mission, decision: str, motif: str, par) 
     s.retenue_le = timezone.now()
     s.motif = motif
     s.save()
+
+
+# -- décision « on répond ou pas » (AV12, ADR 0021 et 0022) -------------------------------------
+def qualite_pour_decider(utilisateur) -> str | None:
+    """« direction » ou « delegation » si la personne peut décider de répondre, sinon None."""
+    if not getattr(utilisateur, "is_active", False):
+        return None
+    return decision_moteur.qualite(
+        direction=utilisateur.dans_groupe(settings.GROUPE_DIRECTION),
+        delegation=utilisateur.dans_groupe(settings.GROUPE_DECISION_AVIS),
+    )
+
+
+@transaction.atomic
+def decider(avis: Avis, decision: str, motif: str, par) -> DecisionAvis:
+    """Garde la décision (qui, à quel titre, pourquoi, la note de la dernière simulation) et passe
+    l'avis au statut décidé. `DecisionInvalideError` si la personne ne peut pas décider ou si le
+    moteur refuse la décision ; rien n'est alors enregistré."""
+    qualite = qualite_pour_decider(par)
+    if qualite is None:
+        raise decision_moteur.DecisionInvalideError(
+            "Seules la direction et sa délégation décident de répondre à un avis."
+        )
+    a = Avis.objects.select_for_update().get(pk=avis.pk)
+    motif = decision_moteur.controler(decision, motif, a.statut)
+    d = DecisionAvis.objects.create(
+        avis=a,
+        decision=decision,
+        motif=motif,
+        par=par,
+        qualite=qualite,
+        statut_avant=a.statut,
+        note_sure=a.note_sure,
+        note_possible=a.note_possible,
+        simulee_le=a.simulee_le,
+    )
+    a.statut = decision
+    a.save(update_fields=["statut", "modifie_le"])
+    avis.statut = a.statut
+    return d
 
 
 # -- pièces exigées à la date limite (AV05) ------------------------------------------------------

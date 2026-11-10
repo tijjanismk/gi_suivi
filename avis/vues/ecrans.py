@@ -1,6 +1,7 @@
 """Écrans des avis (ADR 0013, AV03) : la liste, la fiche (barème, pièces exigées, fichiers) et la
-saisie d'un avis et de ses critères. Consultation : direction, consultation seule et
-responsables des offres ; saisie : direction et responsables des offres (`GI-Offres`)."""
+saisie d'un avis et de ses critères. Consultation : direction, consultation seule, responsables
+des offres et délégation ; saisie : direction et responsables des offres (`GI-Offres`) ; décision
+« on répond ou pas » : direction et sa délégation (`GI-Decision-Avis`, ADR 0021 et 0022)."""
 
 from __future__ import annotations
 
@@ -17,16 +18,23 @@ from django.views.decorators.http import require_POST
 from administratif.models import TypePiece
 from administratif.services import PartageIndisponibleError, chemin_absolu
 from avis import services
-from avis.formulaires import FormulaireAvis, FormulaireBesoin, FormulaireCritere
+from avis.formulaires import (
+    FormulaireAvis,
+    FormulaireBesoin,
+    FormulaireCritere,
+    FormulaireDecision,
+)
 from avis.models import Avis, BesoinExpert, Critere, Proposition
 from experts.models import Expert
 from identite.decorateurs import groupe_requis
+from moteur.avis.decision import AVANT_DEPOT, DecisionInvalideError
 from moteur.avis.filtres import FiltreInvalideError
 from references.models import Mission
 from suivi.services import journaliser
 
 SAISIE = (settings.GROUPE_DIRECTION, settings.GROUPE_OFFRES)
-CONSULTATION = (*SAISIE, settings.GROUPE_DIRECTION_LECTURE)
+DECISION = (settings.GROUPE_DIRECTION, settings.GROUPE_DECISION_AVIS)
+CONSULTATION = (*SAISIE, settings.GROUPE_DIRECTION_LECTURE, settings.GROUPE_DECISION_AVIS)
 FICHIERS = {"avis": ("Avis", "fichier_avis_chemin"), "tdr": ("TDR", "fichier_tdr_chemin")}
 LARGES = {
     "objet",
@@ -105,6 +113,10 @@ def fiche(request, avis_id: int):
         Avis.objects.select_related("maitre_ouvrage", "bailleur", "cree_par"), pk=avis_id
     )
     journaliser(request, "consulter:avis", str(a.pk))
+    return _fiche(request, a, FormulaireDecision())
+
+
+def _fiche(request, a: Avis, formulaire_decision: FormulaireDecision):
     criteres = list(a.criteres.all())
     calcules = [c for c in criteres if c.mode != Critere.Mode.MANUEL]
     besoins = a.besoins.exists()
@@ -148,6 +160,10 @@ def fiche(request, avis_id: int):
             "lien_controle": services.lien_controle(a),
             "fichiers": [_fichier(a, quoi) for quoi in FICHIERS],
             "peut_saisir": _peut_saisir(request),
+            "decisions": list(a.decisions.select_related("par")),
+            "peut_decider": a.statut in AVANT_DEPOT
+            and services.qualite_pour_decider(request.user) is not None,
+            "formulaire_decision": formulaire_decision,
         },
     )
 
@@ -168,6 +184,31 @@ def dossier(request, avis_id: int):
     sommaire, intercalaires, lettre, listes de références, organigramme ; les pièces du partage
     et les pages manquantes sont marquées à leur place. AMI seulement."""
     return _dossier(request, avis_id, intercalaires_seulement=False)
+
+
+@require_POST
+@groupe_requis(*DECISION)
+def decider(request, avis_id: int):
+    """« On répond » ou « on ne répond pas », avec un motif (AV12, ADR 0021). Refusée, la décision
+    revient sur la fiche avec le motif saisi et la raison du refus."""
+    a = get_object_or_404(
+        Avis.objects.select_related("maitre_ouvrage", "bailleur", "cree_par"), pk=avis_id
+    )
+    formulaire = FormulaireDecision(request.POST)
+    if formulaire.is_valid():
+        donnees = formulaire.cleaned_data
+        try:
+            d = services.decider(a, donnees["decision"], donnees["motif"], request.user)
+        except DecisionInvalideError as e:
+            if a.statut not in AVANT_DEPOT:  # la fiche n'a plus de formulaire où le dire
+                messages.error(request, str(e))
+                return redirect("avis:fiche", avis_id=a.pk)
+            formulaire.add_error(None, str(e))
+        else:
+            journaliser(request, "avis:decider", f"{a.pk} {d.decision}")
+            messages.success(request, f"Décision enregistrée : {d.get_decision_display()}.")
+            return redirect("avis:fiche", avis_id=a.pk)
+    return _fiche(request, a, formulaire)
 
 
 @groupe_requis(*CONSULTATION)
